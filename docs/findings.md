@@ -141,3 +141,12 @@ se nel log compare `Processing pending joins` seguito dall'ingresso del giocator
 Da notare anche che il joiner rientra con i **suoi** dati di salvataggio e non con il personaggio
 e gli oggetti che aveva nella run. Anche se il join riesce, gli oggetti del personaggio non tornano
 automaticamente.
+
+## 2026-09-22 — Mod diagnostico verificato in singleplayer
+
+Il mod si carica senza errori sulla v1.9.7.17.J460 (patchata) e scrive 26 righe `[BTO-DIAG]` in
+una run di prova. Ha funzionato: caricamento, player init, avvio della run, nuovo piano, nuova
+stanza, conteggio giocatori, collectible spawn (id 195, 217, 564) e raccolta oggetti (`items 0 -> 1 -> 2`).
+Non ancora osservati: uscita dalla run (`MC_PRE_GAME_EXIT`) e rimozione di un giocatore.
+Per la rimozione serve una sessione online.
+Primo tentativo fallito: `os` è `nil` nella sandbox Lua vanilla. Ora si usa `Isaac.GetTime()`.
