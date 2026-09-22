@@ -433,3 +433,31 @@ raggiungibile, in ordine:
    (riusa il trasferimento di stato del rientro). È la versione ottenibile del traguardo.
 3. Se comunque spezza, rientro (Pezzo 1).
 Il Pezzo 1 è il mattone comune di 2 e 3.
+
+## 2026-09-22 19:45 — CRASH di entrambi i client causato dalla mod snapshot (corretto)
+
+Durante la prima sessione di test (Isaac + Azazel, ~50k frame, nessun desync) il gioco è crashato
+**su entrambi i PC nello stesso momento**. Report: `crash_dumps/isaacv1.9.7.17.J460-20260922-194550-*.txt`.
+
+```
+[C](-1): GetCollectibleNum                       <- crash nativo (access violation)
+snapshot.lua(43): snapshotPlayer                 p:GetCollectibleNum(id, true) nel ciclo 1..732
+snapshot.lua(78): snapshotAll
+snapshot.lua(137): MC_POST_NEW_ROOM
+```
+
+- Contesto: `Starting room transition (type 6)` verso la Starting Room, subito dopo la morte di un boss.
+- Una transizione dello stesso tipo 6 al frame 40670 era passata senza crash: la causa dipende da uno
+  stato preciso del gioco in quel momento (probabilmente un giocatore in stato transitorio), non dal
+  solo tipo di transizione. Root cause non confermata.
+- Crash simultaneo = in lockstep entrambi eseguono la mod nello stesso frame con lo stesso stato.
+- Un crash nativo non è intercettabile con `pcall` da Lua.
+
+**Azione:** snapshot **disattivato** (`include("snapshot")` commentato in `main.lua`). Il logger
+`main.lua` resta attivo: ha retto l'intera sessione. Visto il chiarimento dell'utente (allo split
+nessuno perde il personaggio), lo snapshot è solo una riserva e non vale il rischio. Da riattivare
+solo se il test del rientro mostra un personaggio vuoto, e solo dopo averlo corretto (gate con
+`HasCollectible`, `ItemConfig` non nil, snapshot differito a stanza stabile, salto giocatori morti).
+
+**Lezione:** qualunque mod che gira online va provata a lungo in singleplayer, attraversando
+morti, revive e boss, prima di darla a entrambi i client: un crash deterministico colpisce tutti.

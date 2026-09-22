@@ -87,5 +87,7 @@ end, PickupVariant.PICKUP_COLLECTIBLE)
 
 log("loaded v0.1")
 
--- Rete di sicurezza per lo split: fotografa e recupera il personaggio (vedi snapshot.lua).
-include("snapshot")
+-- Snapshot DISATTIVATO (22/09/2026): crash nativo in GetCollectibleNum durante una transizione
+-- di stanza, che ha fatto crashare entrambi i client in lockstep. Vedi docs/findings.md.
+-- Non riattivare finché non è corretto e testato.
+-- include("snapshot")

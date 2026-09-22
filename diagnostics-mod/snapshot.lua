@@ -1,3 +1,8 @@
+-- !! DISATTIVATO (non incluso da main.lua): il 22/09/2026 p:GetCollectibleNum(id, true) nel ciclo
+-- !! 1..732 ha causato un crash nativo in MC_POST_NEW_ROOM (transizione tipo 6, dopo la morte di un
+-- !! boss), facendo crashare entrambi i client. Prima di riattivare: gate con HasCollectible +
+-- !! controllo ItemConfig non nil, snapshot differito in MC_POST_UPDATE a stanza stabile, salto dei
+-- !! giocatori morti/non esistenti. Serve solo se il test mostra che il rientro dà un personaggio vuoto.
 -- BetterTBOIOnline: snapshot del personaggio come rete di sicurezza per lo split da desync.
 -- In co-op ogni client simula TUTTI i personaggi in modo identico fino al frame del desync.
 -- Questa mod fotografa lo stato di ogni giocatore a ogni stanza e lo salva su file (mod SaveData).
