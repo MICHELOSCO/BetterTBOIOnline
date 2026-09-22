@@ -279,3 +279,15 @@ vanilla di Michele, possono spiegare lo scarto di velocità del giocatore.
 2. **Per rientrare nella stessa run dopo uno split:** con il gioco com'è oggi non funziona. Il
    pending join non viene mai elaborato, e il salvataggio non si può riprendere se le mod
    sono cambiate. È il cuore del problema 1 e richiede la fase di reverse engineering.
+
+### Precisazione dell'utente (22/09/2026)
+
+Dopo ogni split il secondo giocatore provava a rientrare e restava in **"waiting"** senza mai
+entrare in partita, **finché non abbandonava a mano**. Le uscite rapide (13:03 al frame 346,
+13:06 al frame 747, 12:52 al frame 2813) sono quindi **abbandoni manuali**, non errori del client.
+Una sola volta ciascuno ha provato a finire la run in solo (per Megumi è la sessione 23:40:
+continua a giocare mentre il join di Michele resta in coda).
+
+Il "waiting" dal lato del joiner corrisponde esattamente a `Adding pending join` mai seguito da
+`Processing pending joins` / `Joining existing game` dal lato host. **Caso d'uso e sintomo nei log
+coincidono.** Il punto da indagare è perché la coda dei pending join non viene elaborata dopo uno split.
