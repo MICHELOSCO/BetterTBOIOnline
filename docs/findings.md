@@ -150,3 +150,35 @@ stanza, conteggio giocatori, collectible spawn (id 195, 217, 564) e raccolta ogg
 Non ancora osservati: uscita dalla run (`MC_PRE_GAME_EXIT`) e rimozione di un giocatore.
 Per la rimozione serve una sessione online.
 Primo tentativo fallito: `os` è `nil` nella sandbox Lua vanilla. Ora si usa `Isaac.GetTime()`.
+
+## 2026-09-22 — Il gioco sceglie sempre DROP dopo un desync
+
+Nei log, dopo `process_desync_confirm_message` compare `resolutionPlan = SYNC_PLAN_DROP | SYNC_PLAN_SYNC`.
+In **tutti e 3** i desync il piano scelto è stato `SYNC_PLAN_DROP`, cioè il gioco rimuove il peer:
+
+| Sessione | Stato del frame | Seed globale | Checksum salvataggio | Piano |
+|---|---|---|---|---|
+| 19/09 23:40 | diverso | uguale | uguale | DROP |
+| 20/09 12:52 | uguale | uguale | **diverso** (442259532 vs 3984795189) | DROP |
+| 20/09 13:07 | diverso | uguale | uguale | DROP |
+
+Ipotesi: con solo 2 peer non esiste una maggioranza che stabilisca quale stato è corretto,
+quindi il gioco scarta sempre l'altro. Il desync al frame 0 dipende dal **salvataggio condiviso
+diverso** tra i due client, non dal gameplay.
+**Obiettivo per un fix futuro:** capire in quali condizioni il gioco sceglie SYNC. Forzare SYNC eviterebbe lo split.
+
+## 2026-09-22 — Opzioni di avvio nascoste
+
+Stringhe trovate nell'exe: `--localhost_match`, `--networktest`, `--luadebug`, `--luaheapsize=`,
+`--set-stage=`, `--set-stage-type=`, `--load-room=`.
+Esiste anche un backend `ServiceLocalhost`/`LobbyLocalhost` ("Localhost lobby values currently not supported").
+
+Prova con `--localhost_match`:
+- Steam rilancia il gioco e mantiene l'argomento.
+- All'avvio il gioco crea **da solo** una friend lobby (`Creating friend lobby… Successfully joined lobby`).
+  L'ID è di tipo Steam, quindi la lobby passa comunque da Steam e non da un backend locale.
+- Una seconda istanza con la stessa opzione si chiude subito: niente log, niente processo.
+  Probabilmente il gioco non ammette due istanze aperte con lo stesso account.
+- **Esito: non è una via praticabile per testare con un solo PC e un solo account.** Superare il limite
+  delle due istanze richiederebbe di modificare il binario o di aggiungere file nella cartella di gioco,
+  cose fuori perimetro per ora. `--networktest` non è ancora stato provato.
