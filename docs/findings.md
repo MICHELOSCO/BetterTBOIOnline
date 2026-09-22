@@ -182,3 +182,29 @@ Prova con `--localhost_match`:
 - **Esito: non è una via praticabile per testare con un solo PC e un solo account.** Superare il limite
   delle due istanze richiederebbe di modificare il binario o di aggiungere file nella cartella di gioco,
   cose fuori perimetro per ora. `--networktest` non è ancora stato provato.
+
+## 2026-09-22 — Catalogo dei casi reali (confermato dall'utente)
+
+L'utente conferma che le sessioni del 19–20/09 riproducono esattamente i casi d'uso del progetto.
+
+**Split (problema 1):** 3 casi, tutti con lo stesso meccanismo: desync → `SYNC_PLAN_DROP` →
+`RemoveUser` → `Desync Handler creating new lobby`. Nessuno è una vera disconnessione di rete.
+
+**Rientro fallito:** i log mostrano due varianti.
+
+| Variante | Sessioni | Cosa si vede sul lato host (MICHELOSCO) |
+|---|---|---|
+| **A. Invito che non arriva** | 19/09 23:40, 20/09 13:07 | Dopo lo split: `Successfully created/joined lobby`, poi **nessuna traccia di Megumi** fino alla fine della run. L'invito resta in "waiting" senza raggiungere la lobby dell'host. |
+| **B. Join in coda mai elaborato** | 20/09 12:52 (duplicata in 12:54) | Megumi entra nella lobby, invia Save Data e Player Info, l'host registra `Adding pending join`. Nessun cambio stanza segue. Circa 270 frame dopo lei esce. |
+
+Altri tentativi dopo lo split, con nuove lobby e run da zero: 20/09 13:03 (lei esce al frame 346)
+e 20/09 13:06 (al frame 747 lei chiede di nuovo i dati di salvataggio, `Save Data Request`, ed esce
+subito). Sono uscite rapide, compatibili con un errore sul suo lato che il nostro log non mostra.
+
+Dettaglio sulla sessione 13:07: dopo lo split il numero di frame **torna indietro**
+(da 63717 a 57809). La run solitaria dell'host sembra ripartire da uno stato precedente
+(checkpoint o snapshot), non dal frame del desync.
+
+**Per chiudere la diagnosi manca il lato di Megumi.** Servono i suoi `online_logs/sessions/`
+delle stesse date (19/09 sera, 20/09 dalle 12:50 alle 13:10). Soprattutto per la variante A:
+se il suo client ha provato a entrare in una lobby, quale ID ha usato (vecchia o nuova?) e con quale errore.
