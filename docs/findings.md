@@ -402,3 +402,34 @@ Conseguenze:
 
 Flusso reale del rientro: B **chiude del tutto il gioco**, poi usa invito/join per entrare nella
 sessione di A ancora in corso (client fresco che fa join-in-progress). È il percorso già analizzato.
+
+## 2026-09-22 — Diagnosi desync: RNG in sync, diverge solo la velocità (chiave)
+
+Dai `desync_diff.txt` dei due desync mid-run (23:40 Eden, 13:07 Bethany):
+
+| | RNG globale (P0 / P1) | Velocità personaggio (P0 vs P1) |
+|---|---|---|
+| 23:40 | `1c46977a` / `1c46977a` — **UGUALE** | Y: -5.2567 vs -5.1579 |
+| 13:07 | `fa8e37ba` / `fa8e37ba` — **UGUALE** | (4.1287, 1.9684) vs (4.0851, 1.9054) |
+
+**L'RNG globale è identico su entrambi i PC; diverge solo la velocità del personaggio (~0.1).**
+Implicazioni:
+- Il desync **non** è causato da RNG né da mod (quelle divergerebbero l'RNG). È una micro-divergenza
+  di **fisica/movimento** del gioco base. Uguagliare le mod aiuta poco per questo tipo.
+- Possibile causa: previsione del movimento con input delay, o risoluzione collisione/knockback non
+  perfettamente deterministica. Config attuale: `OnlineInputDelay=2`, `EosCrossplay=0` (backend Steam).
+- **Leva a costo zero:** alzare `OnlineInputDelay` (2 -> 4) su entrambi i PC e misurare se i desync
+  calano. Reversibile, prezzo = un po' di input lag. Da validare nel test.
+- **Rafforza il "non spezzare la sessione":** la divergenza è minima e isolata (RNG e save allineati),
+  quindi una risincronizzazione mirata della sola velocità sarebbe semplice. Il DROP del gioco è
+  sproporzionato.
+
+### Obiettivo ultimo dell'utente: "che il desync non avvenga proprio"
+Prevenire OGNI desync = rendere deterministico il netcode del gioco base (gli sviluppatori stessi non
+ci riescono, per questo esiste il rilevatore). Non realistico per il progetto. Decomposizione
+raggiungibile, in ordine:
+1. Ridurre la frequenza: stessa versione, stesse mod, `OnlineInputDelay` più alto.
+2. Far sì che il desync NON spezzi la sessione: su desync, risincronizzare il peer invece di scartarlo
+   (riusa il trasferimento di stato del rientro). È la versione ottenibile del traguardo.
+3. Se comunque spezza, rientro (Pezzo 1).
+Il Pezzo 1 è il mattone comune di 2 e 3.
