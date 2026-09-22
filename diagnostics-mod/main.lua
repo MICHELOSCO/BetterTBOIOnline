@@ -8,8 +8,8 @@ local mod = RegisterMod("BetterTBOIOnline Diagnostics", 1)
 local game = Game()
 
 local function log(fmt, ...)
-	local ok, t = pcall(os.date, "%H:%M:%S")
-	Isaac.DebugString(string.format("[BTO-DIAG] %s f=%d %s", ok and t or "?", game:GetFrameCount(), string.format(fmt, ...)))
+	-- `os` is nil in the vanilla sandbox; t = Isaac.GetTime() (system ms clock).
+	Isaac.DebugString(string.format("[BTO-DIAG] t=%d f=%d %s", Isaac.GetTime(), game:GetFrameCount(), string.format(fmt, ...)))
 end
 
 local function describe(p)
