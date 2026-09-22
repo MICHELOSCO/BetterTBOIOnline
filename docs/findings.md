@@ -291,3 +291,25 @@ continua a giocare mentre il join di Michele resta in coda).
 Il "waiting" dal lato del joiner corrisponde esattamente a `Adding pending join` mai seguito da
 `Processing pending joins` / `Joining existing game` dal lato host. **Caso d'uso e sintomo nei log
 coincidono.** Il punto da indagare è perché la coda dei pending join non viene elaborata dopo uno split.
+
+### Correzione: le mod NON sono la causa principale dei desync
+
+L'utente riferisce che le ultime run erano senza mod, o al massimo con una, e lo split è avvenuto lo stesso.
+Conteggio dai log (`LOADED MOD` = contenuto caricato, `Lua` = script eseguiti):
+
+| Sessione | Michele content/Lua | Megumi content/Lua | Desync |
+|---|---|---|---|
+| 19/09 (tutte) | 0 / 0 | ~54 mod / **0** | 23:40 |
+| 20/09 12:52 | 15 / 11 | – | frame 0 |
+| 20/09 12:56–13:06 | 6–14 / 4–10 | 8–18 / 4–9 | nessuno |
+| 20/09 13:07 | 6 / 4 | 8 / 4 | 63715 |
+
+- Nel desync 19/09 23:40 **nessuno script di mod girava** su nessuno dei due client. Megumi caricava
+  solo il contenuto (risorse) delle mod, e nel log non compare nessun XML di gameplay. È una partita
+  praticamente vanilla.
+- In 2 casi su 3 la divergenza è la velocità del giocatore (`PostVelocity`): è compatibile con un
+  errore di calcolo del gioco base, non con una mod.
+
+**Conclusione rivista:** il gioco va in desync anche senza mod. Le mod diverse sono un fattore
+aggravante, non la causa. Il difetto da correggere è la **gestione** del desync (sempre DROP) e il
+**rientro** (pending join mai elaborato), che avvengono allo stesso modo con o senza mod.
