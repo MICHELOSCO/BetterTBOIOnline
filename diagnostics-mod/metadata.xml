@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+	<name>BetterTBOIOnline Diagnostics</name>
+	<directory>bettertboionline-diagnostics</directory>
+	<description>Read-only logger for co-op join/leave/desync investigation. Writes [BTO-DIAG] lines to log.txt. Does not change gameplay.</description>
+	<version>0.1</version>
+	<visibility>Private</visibility>
+</metadata>
