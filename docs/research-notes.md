@@ -86,3 +86,59 @@ Dettagli in [findings.md](findings.md). In sintesi: gira solo su una copia del g
 Nell'exe ci sono le classi `KAGE::Network::MultiplayerManager`, `NetDesyncHandler`,
 `ServiceEOS`/`ServiceSteam`/`ServiceLocalhost`, `LobbyEOS`/`LobbySteam`. Esistono quindi due
 backend, EOS e Steam, più un backend locale, forse per i test.
+
+## Analisi statica (sola lettura) di v1.9.7.17.J460 — desync e rientro
+
+Strumenti: `tools/xref.py` (trova il codice che usa una stringa) e `tools/refs.py`
+(`calls` / `disp` / `dis`). Basati su capstone. Tutti gli indirizzi sono VA del `.bak` vanilla, ImageBase 0x400000.
+
+### Scelta SYNC/DROP dopo un desync: VA 0x008FDC7C–0x008FDD3F
+
+Per ogni peer remoto `edi`, con `local = [ebp-0x14]` e `remote = [edi+0x3BC]` (stato del frame):
+
+```
+SYNC  se  remote.checksum(+0x14) == local.checksum
+      e   remote.globalSeed(+0x10) == local.globalSeed
+      e   remoteSaveChecksum([edi+0x3C0]) == localSaveChecksum
+DROP  altrimenti
+```
+
+"SYNC" significa "questo peer è uguale a me, tienilo", non "riallinealo". Il gioco non ha nessun
+trasferimento di stato per correggere chi ha divergito. **In 2 giocatori, un desync vero porta
+sempre a DROP e quindi alla scissione: è una scelta di progetto, non un bug.**
+Per evitare la scissione bisogna fornire noi una risincronizzazione vera. Il candidato naturale è
+il meccanismo di join in corsa, che già trasferisce lo stato di gioco (`Join Existing Game`,
+`Save Data Request`, `Report Game States`).
+
+### Perché il rientro resta in "waiting"
+
+- Il gestore del messaggio "Player Info" (VA ~0x916A34) registra `Adding pending join` quando il
+  messaggio ha il flag `0x02` (join in una partita esistente). Inserisce il giocatore in una mappa a
+  `game+0x4CC3C`, dove `game = [0x00C7169C]`.
+- `NetManager = game+0x4B3D8`. Il campo `NetManager+0x1868` (= `game+0x4CC40`) è la
+  **dimensione di quella mappa**: diventa 1 appena c'è un join in coda.
+- L'elaborazione (`Processing pending joins` → `Adding %d new players`) è in
+  **`NetManager::ProcessPendingJoins` a VA 0x0090DF40** (`bool force`). Esce subito se la mappa
+  è vuota e `force == 0`.
+- Ha 4 chiamanti: `0x006FB21A`, `0x006FB33E` (force=1), `0x0092FE3C` (force=0) e `0x00958DB6` (force=1).
+  **Tre di questi chiamanti** (`0x6FB33E` indirettamente, `0x92FE3C`, `0x958DB6`) la chiamano solo se una lista del
+  NetManager (`[NetManager+0] != [NetManager+4]`, un vector) **non è vuota**. Per `0x6FB21A` la
+  condizione non è ancora stata ricostruita.
+- **Ipotesi forte:** quel vector è l'elenco dei giocatori remoti nel match. Dopo un DROP l'host resta
+  senza giocatori remoti, il vector è vuoto e `ProcessPendingJoins` non viene più chiamata.
+  Il join resta in coda per sempre. Questo spiega anche l'unico `Processing pending joins` al
+  frame 4 subito dopo lo split: in quel momento la rimozione era forse ancora in corso.
+- Da verificare: che cosa contiene esattamente `[NetManager+0..+4]` e dove viene svuotato
+  (`RemoveRemotePlayer`).
+
+### Implicazioni per i fix (fase futura, richiede patch/hook, oggi fuori perimetro)
+
+1. **Sbloccare il rientro:** quando la mappa dei pending join non è vuota, chiamare
+   `ProcessPendingJoins(force=1)` anche se l'host è rimasto solo. In alternativa, togliere la
+   condizione sul vector nel chiamante `0x92FE3C`.
+2. **Evitare la scissione:** al posto di DROP + nuova lobby, tenere la lobby e far rientrare il peer
+   divergente con il percorso join-in-progress, così l'host gli invia lo stato.
+3. **Recuperare il personaggio:** il DROP rimuove il personaggio del peer, e il join-in-progress
+   lo farebbe rientrare con un personaggio nuovo. Una mod Lua su entrambi i client può fotografare
+   ogni personaggio (oggetti, cuori, consumabili) fino al frame del desync, quando i client sono
+   ancora identici, e riapplicarlo al rientro.
