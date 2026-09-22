@@ -208,3 +208,74 @@ Dettaglio sulla sessione 13:07: dopo lo split il numero di frame **torna indietr
 **Per chiudere la diagnosi manca il lato di Megumi.** Servono i suoi `online_logs/sessions/`
 delle stesse date (19/09 sera, 20/09 dalle 12:50 alle 13:10). Soprattutto per la variante A:
 se il suo client ha provato a entrare in una lobby, quale ID ha usato (vecchia o nuova?) e con quale errore.
+
+## 2026-09-22 — Analisi dal lato di Megumi (i suoi `online_logs/sessions`)
+
+Log in `logs-megumi/`, escluso da git perché contiene dati personali. Megumi usa Steam, con il gioco
+in `C:\Program Files (x86)\Steam\...`. Le cartelle hanno gli stessi nomi delle nostre, quindi le
+sessioni si confrontano una a una.
+
+### Il desync è simmetrico: entrambi scelgono DROP
+
+In 23:40 e 13:07 il client di Megumi vede lo stesso desync con gli stessi checksum, sceglie
+`SYNC_PLAN_DROP` per "Michele" e crea **anche lui** una lobby nuova. Nessuno dei due resta nella
+lobby originale.
+
+### La run in solo riparte dall'inizio del piano
+
+Dopo lo split il frame di gioco di Megumi torna a **48547** ("Room 1.2 Start Room"), mentre il frame
+di rete prosegue (52718, 57854…). Stessa cosa sul nostro lato in 13:07 (63717 → 57809).
+**Lo split ricarica lo stato salvato a inizio piano.** Chi continua in solo perde tutto quello che
+ha fatto nel piano corrente.
+
+### ❌ Ipotesi smentita: il cambio stanza NON sblocca il pending join
+
+In 23:40 Michele entra nella nuova lobby di Megumi (frame di rete 52718). Il client di lei registra
+`Adding pending join for player …` **più di 12 volte in circa 2,5 minuti** (52999 → 57854) e nel
+frattempo **cambia stanza oltre 20 volte**. Il join non viene mai elaborato.
+- `Processing pending joins` compare **una sola volta** in tutti i log di entrambi, al frame 4
+  subito dopo la creazione della lobby.
+- `Joining existing game on frame %d` (stringa presente nell'exe) **non compare mai**.
+- Il sistema di "revival" per i giocatori caduti (`MSG_DROP_ON/OFF/EXECUTE`, `RevivePlayer`,
+  `Revival Frame … has passed without being revived`) **non si attiva mai**: lo split da desync
+  chiama `RemoveUser` direttamente e salta questo meccanismo.
+
+**Nuova ipotesi:** dopo uno split per desync la partita non è più in uno stato che accetta join
+in corso. La coda si riempie ma nessuno la elabora. Per capire quale condizione blocca
+l'elaborazione servirà guardare il codice attorno a `Adding pending join` / `Processing pending joins`
+(fase futura, reverse engineering).
+
+### Riprendere la run salvata: bloccato dallo stato delle mod
+
+Nei tentativi successivi (12:56, 12:58, 13:03, 13:06) il client di Megumi scrive:
+
+```
+Cannot continue a game that doesn't have the same modding state (rep+rerunstate1.dat)!   (x20)
+Cannot continue a game that doesn't have the same modding state (rep+rerunstate2.dat)!   (x8)
+Cannot continue a game that doesn't have the same modding state (rep+rerunstate3.dat)!   (x8)
+```
+
+Il gioco **rifiuta di continuare la run salvata** perché il set di mod attive è cambiato rispetto
+al momento del salvataggio. Per questo in quei tentativi il messaggio è `Join New Game`, non
+"existing": si riparte da zero. In più `thefuture_2993558907` va in errore Lua sul client di Megumi.
+
+### Mod diverse tra i due client: probabile causa dei desync
+
+| Sessione | Solo Michele | Solo Megumi |
+|---|---|---|
+| 19/09 23:40 | nessuna mod (patch online non ancora applicata) | ~55 mod caricate come **content** (XML/risorse, nessuno script Lua), tra cui stackable items, better doors, epiphany, repentogon… |
+| 20/09 12:56 | stageapi15 | external item descriptions, **start_with_spoonbender** |
+| 20/09 13:07 | – | **start_with_spoonbender** |
+
+Una mod "content" (solo XML, senza Lua) può comunque cambiare il gameplay: statistiche,
+oggetti iniziali, entità. `start_with_spoonbender` presente su un solo client è un candidato forte
+per il desync delle 13:07. Nel caso 23:40 le mod content di Megumi, caricate contro il gioco
+vanilla di Michele, possono spiegare lo scarto di velocità del giocatore.
+
+### Conclusioni operative
+
+1. **Per ridurre gli split subito, senza codice:** stessa identica lista di mod (anche solo content)
+   su entrambi i client, e nessuna mod che cambia il gameplay presente da un solo lato.
+2. **Per rientrare nella stessa run dopo uno split:** con il gioco com'è oggi non funziona. Il
+   pending join non viene mai elaborato, e il salvataggio non si può riprendere se le mod
+   sono cambiate. È il cuore del problema 1 e richiede la fase di reverse engineering.
