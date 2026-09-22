@@ -461,3 +461,16 @@ solo se il test del rientro mostra un personaggio vuoto, e solo dopo averlo corr
 
 **Lezione:** qualunque mod che gira online va provata a lungo in singleplayer, attraversando
 morti, revive e boss, prima di darla a entrambi i client: un crash deterministico colpisce tutti.
+
+### Correzione (utente): non è morto il boss, sono morti i giocatori durante la bossfight
+
+Il report mostra il frame che torna indietro: `[Frame 52192] TriggerBossDeath` poi
+`[Frame 50210] Starting room transition (type 6)` verso la Starting Room. Alla morte il gioco ha
+**ricaricato uno stato salvato in precedenza** (respawn/revive), ricostruendo i personaggi.
+Ipotesi di causa raffinata: `MC_POST_NEW_ROOM` è scattato durante quella ricostruzione e
+`GetCollectibleNum` è stato chiamato su un personaggio non ancora valido. Le morti in bossfight sono
+frequenti: lo snapshot com'era avrebbe crashato spesso. Disattivarlo era corretto.
+
+Indizio utile per l'obiettivo "non spezzare la sessione": il gioco ha già un meccanismo per
+**ricaricare uno stato salvato** (usato per il revive). Da studiare come possibile base per una
+risincronizzazione al posto del DROP.
