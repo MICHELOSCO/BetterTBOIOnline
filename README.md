@@ -6,20 +6,45 @@ Obiettivi:
 1. Rientrare nella run dell'amico, con il proprio personaggio e i propri oggetti, dopo uno "sdoppiamento" della partita.
 2. Mantenere attive online le mod compatibili con il multiplayer.
 
+Stato: diagnosi completata, mod diagnostica+snapshot funzionanti. Il fix del rientro richiede una
+patch al gioco, da finalizzare in una sessione di test con un secondo giocatore. Vedi
+[docs/findings.md](docs/findings.md).
+
 | Cartella | Contenuto |
 |---|---|
-| `diagnostics-mod/` | Mod Lua in sola lettura. Scrive righe `[BTO-DIAG]` in `log.txt`. |
+| `diagnostics-mod/` | Mod Lua: logger eventi (`main.lua`) + snapshot personaggio (`snapshot.lua`). |
 | `mod-online-patcher/` | Reimplementazione futura della patch "mod online" (vuota per ora). |
-| `docs/findings.md` | Risultati sperimentali: ambiente, log, ipotesi. |
-| `docs/research-notes.md` | Studio delle tecniche: Isaac-Online-Modded, REPENTOGON, log di rete del gioco. |
+| `tools/` | Script di analisi statica dell'exe (sola lettura). |
+| `docs/findings.md` | Risultati sperimentali: ambiente, log, diagnosi, piano del fix. |
+| `docs/research-notes.md` | Tecniche: Isaac-Online-Modded, REPENTOGON, analisi statica del netcode. |
 
-## Installare il mod diagnostico
+## La mod (diagnostica + snapshot)
 
-Crea un collegamento (junction) dalla cartella mod del gioco a questo repo:
+`main.lua` logga gli eventi; include `snapshot.lua`, che fotografa ogni personaggio a ogni stanza e,
+allo split, congela l'ultima foto. Durante il gioco è in sola lettura. Righe di log: `[BTO-DIAG]` e
+`[BTO-SNAP]` in `Documents\My Games\Binding of Isaac Repentance+\log.txt` (o in
+`online_logs\sessions\<data>\log.txt` quando online).
 
+### Installazione
+Sul PC di sviluppo (junction al repo):
 ```bat
 mklink /J "F:\SteamLibrary\steamapps\common\The Binding of Isaac Rebirth\mods\bettertboionline-diagnostics" "%CD%\diagnostics-mod"
 ```
+Sul secondo PC (Megumi): copiare la **cartella** `diagnostics-mod` (i tre file `main.lua`,
+`snapshot.lua`, `metadata.xml`) in
+`...\The Binding of Isaac Rebirth\mods\bettertboionline-diagnostics\`. Deve essere la **stessa versione**
+su entrambi i PC, e le liste di mod devono coincidere (il gioco penalizza le liste diverse).
 
-Per leggere l'output, cerca `BTO-DIAG` in `Documents\My Games\Binding of Isaac Repentance+\log.txt`
-oppure in `online_logs\sessions\<data>\log.txt`.
+### Recupero manuale (console)
+Serve `EnableDebugConsole=1` in `options.ini`. Poi in partita:
+- `bto_dump` — elenca le foto disponibili.
+- `bto_restore <indice>` — riapplica una foto al giocatore locale 0.
+
+`bto_restore` **modifica lo stato**: usarlo solo da soli dopo uno split, mai durante una partita online.
+`AUTO_RESTORE` in `snapshot.lua` è `false`: al rientro la mod scrive solo cosa recupererebbe. Va messo
+`true` solo dopo aver validato il rientro in una sessione di test.
+
+## Sessione di test del rientro (serve un secondo giocatore)
+Protocollo dettagliato in [docs/findings.md](docs/findings.md). In breve: mod identiche su entrambi,
+console abilitata, provocare uno split, tentare il rientro (l'host cambia stanza), poi raccogliere i
+log dei due lati.
