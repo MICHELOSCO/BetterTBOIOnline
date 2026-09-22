@@ -346,3 +346,38 @@ regole richiedono conferma esplicita prima di procedere. Non è stato scritto n�
 
 Serve un test dal vivo con Megumi per validare qualunque patch: patchare il netcode solo da analisi
 statica può causare crash o desync peggiori.
+
+## 2026-09-22 — Strada "Continua" (idea utente) NON percorribile
+
+Verificato sui log: per le run online il gioco **non salva uno stato riprendibile**. Al menu controlla
+`rep+gamestate1/2/3.dat` e trova sempre `SteamCloud could not find or open ... No Game State detected`,
+poi `Cannot continue a game that doesn't have the same modding state (rep+rerunstate<N>.dat)`.
+Nessun file `gamestate` esiste nella cartella save. Conclusione: non c'è una sessione online da
+riprendere col "Continua". Abilitarlo richiederebbe di far salvare e ricaricare l'intera run online
+al gioco — più invasivo del rientro dal vivo. **Scelta: strada A (rientro).**
+
+## Piano fix rientro (autorizzato dall'utente il 22/09/2026)
+
+Obiettivo: dopo uno split, il giocatore in "waiting" rientra nella run **in corso** dell'host e
+recupera il personaggio esatto di prima del desync.
+
+Due pezzi:
+- **Pezzo 1 — sbloccare l'elaborazione della coda (patch al gioco).** `NetManager::ProcessPendingJoins`
+  (VA 0x0090DF40) non viene chiamata quando l'host è rimasto solo. Approccio candidato: al sito
+  "Adding pending join" (VA ~0x916A4D) iniettare, via code-cave, una chiamata a
+  `ProcessPendingJoins(force=1)` subito dopo l'inserimento in coda, così il join viene elaborato
+  anche senza altri giocatori remoti. Da fare come **patch su file con backup** (stessa tecnica della
+  patch mod-online già presente, coesistente con essa), NON come iniezione in memoria del processo.
+- **Pezzo 2 — recupero personaggio (mod, già pronta).** Al rientro il gioco darebbe un personaggio
+  nuovo; `snapshot.lua` riapplica la foto congelata allo split (oggetti, cuori, consumabili).
+
+Il punto esatto della patch va **confermato in una sessione di test dal vivo con Megumi**: patchare il
+netcode solo da analisi statica può causare crash o desync. Serve provocare uno split reale e osservare,
+con la mod diagnostica attiva su entrambi, se la chiamata forzata fa completare il rientro senza desync.
+
+### Protocollo di test (sessione con Megumi)
+1. Entrambi con mod diagnostica+snapshot identiche e stessa lista mod. `EnableDebugConsole=1`.
+2. Avviate una run online, giocate fino a provocare uno split (mod diverse, o attesa di un desync).
+3. Chi è fuori prova a rientrare; l'host **cambia stanza** subito dopo.
+4. Raccogliete i log di entrambi (`online_logs/sessions/…`) + le righe `[BTO-DIAG]`/`[BTO-SNAP]`.
+5. Con quei dati si finalizza e prova il Pezzo 1; a rientro riuscito si aggancia il Pezzo 2.
