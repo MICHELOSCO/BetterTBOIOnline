@@ -142,3 +142,15 @@ il meccanismo di join in corsa, che già trasferisce lo stato di gioco (`Join Ex
    lo farebbe rientrare con un personaggio nuovo. Una mod Lua su entrambi i client può fotografare
    ogni personaggio (oggetti, cuori, consumabili) fino al frame del desync, quando i client sono
    ancora identici, e riapplicarlo al rientro.
+
+## Vincolo: coesistenza con la patch mod-online già applicata
+
+L'`isaac-ng.exe` dell'utente ha già la patch mod-online (7 byte, vedi sopra e findings.md):
+telemetria disattivata (VA 0x905C80) e controllo "mod bannate" neutralizzato (tre `je`->`nop` a ~0x90DC08).
+
+Qualunque patcher futuro di questo progetto (fix rientro, anti-split, o reimplementazione mod-online)
+**deve tenerne conto**: riconoscere e conservare quei byte, oppure inglobare anche quella patch in un
+unico strumento. Non deve assumere un exe vanilla né sovrascrivere la patch esistente. Un patcher a
+pattern di byte dovrebbe accettare sia il pattern originale sia quello già patchato, e per il sito
+mod-online applicarla solo se non già presente. Le zone patchate non si sovrappongono al sito del fix
+rientro (~0x958DBD), quindi le patch possono coesistere.
