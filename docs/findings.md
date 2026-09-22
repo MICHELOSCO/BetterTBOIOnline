@@ -381,3 +381,24 @@ con la mod diagnostica attiva su entrambi, se la chiamata forzata fa completare 
 3. Chi è fuori prova a rientrare; l'host **cambia stanza** subito dopo.
 4. Raccogliete i log di entrambi (`online_logs/sessions/…`) + le righe `[BTO-DIAG]`/`[BTO-SNAP]`.
 5. Con quei dati si finalizza e prova il Pezzo 1; a rientro riuscito si aggancia il Pezzo 2.
+
+## 2026-09-22 — Correzione modello (chiarimento utente)
+
+Precisazione importante dell'utente: **allo split nessuno perde il personaggio**. Ogni giocatore
+continua da solo con tutto quello che aveva. (Il `Removing collectible ... from player` nei log
+dell'host riguarda la sua copia del giocatore rimosso, non il personaggio dell'altro nella sua
+sessione.) L'unica cosa rotta è il **rientro**: per tornare insieme uno chiude il gioco e prova a
+entrare nella sessione ancora aperta dell'altro, ma resta in **"waiting"** e non entra mai.
+
+Conseguenze:
+- Il fix necessario è **solo il Pezzo 1** (sbloccare l'elaborazione della coda di pending join lato
+  host). Bersaglio invariato: `Adding pending join` non seguito da `Processing pending joins`.
+- **Non è ancora noto** se, a rientro sbloccato, il gioco restituisca il personaggio pieno o uno
+  vuoto: chi entra è sempre rimasto in waiting. Da verificare nel test.
+- La mod snapshot passa da "pezzo centrale" a **riserva**: serve solo se il rientro desse un
+  personaggio vuoto. La foto è salvata su file, quindi sopravvive alla chiusura del gioco di chi
+  rientra. La riga `REJOIN dry-run` mostrerà cosa recupererebbe, da confrontare con ciò che il gioco
+  dà davvero.
+
+Flusso reale del rientro: B **chiude del tutto il gioco**, poi usa invito/join per entrare nella
+sessione di A ancora in corso (client fresco che fa join-in-progress). È il percorso già analizzato.
