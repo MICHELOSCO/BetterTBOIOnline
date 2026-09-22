@@ -86,3 +86,6 @@ mod:AddCallback(ModCallbacks.MC_POST_PICKUP_INIT, function(_, pk)
 end, PickupVariant.PICKUP_COLLECTIBLE)
 
 log("loaded v0.1")
+
+-- Rete di sicurezza per lo split: fotografa e recupera il personaggio (vedi snapshot.lua).
+include("snapshot")

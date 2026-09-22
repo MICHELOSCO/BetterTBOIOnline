@@ -313,3 +313,36 @@ Conteggio dai log (`LOADED MOD` = contenuto caricato, `Lua` = script eseguiti):
 **Conclusione rivista:** il gioco va in desync anche senza mod. Le mod diverse sono un fattore
 aggravante, non la causa. Il difetto da correggere è la **gestione** del desync (sempre DROP) e il
 **rientro** (pending join mai elaborato), che avvengono allo stesso modo con o senza mod.
+
+## 2026-09-22 — Rete di sicurezza: mod snapshot personaggio (consegnata)
+
+`diagnostics-mod/snapshot.lua`, inclusa da `main.lua`. Sola scrittura su file mod, nessun effetto
+sul gameplay. Verificata in singleplayer: si carica e fotografa senza errori (`snapshot(game-start)`,
+`snapshot(new-room)`).
+
+- A ogni stanza fotografa ogni giocatore: oggetti (ciclo 1..732 con `GetCollectibleNum`), trinket,
+  oggetti attivi, carte/pillole nei 4 slot, tutti i tipi di cuore, monete/bombe/chiavi, tipo personaggio.
+  Salva su `mod:SaveData` (JSON), quindi sopravvive alla chiusura/riavvio.
+- Alla riduzione del numero di giocatori (lo split) congela l'ultima foto valida in `state.frozen`.
+- Recupero da console: `bto_dump` elenca le foto, `bto_restore <indice>` riapplica una foto al
+  giocatore locale 0.
+
+**Limiti noti (`ponytail:` accettati per ora):**
+- Enumerazione oggetti O(732) a ogni stanza; se pesa, aumentare STRIDE o filtrare per pool.
+- Non salva la carica esatta degli attivi, la posizione, gli effetti temporanei, i famigli speciali.
+- La console vanilla richiede `EnableDebugConsole=1` in `options.ini`. Il recupero automatico al
+  rientro dipende dal fix del rientro (fase patch), non ancora fatto.
+
+## Stato / prossimo bivio (decisione utente)
+
+L'analisi statica indica due fix possibili, entrambi richiedono di **modificare il comportamento del
+gioco** (patch su file con backup, oppure hook in memoria). Il brief li mette fuori scope e le mie
+regole richiedono conferma esplicita prima di procedere. Non è stato scritto né applicato alcun patcher.
+
+- **Fix A — sbloccare il rientro:** far elaborare la coda dei pending join anche quando l'host è
+  rimasto solo (gate a VA 0x0090DF6F / chiamanti). Piccolo, ma da validare con debugger + 2 giocatori.
+- **Fix B — evitare lo split:** al posto di DROP, far rientrare il peer divergente col percorso
+  join-in-progress. Più invasivo.
+
+Serve un test dal vivo con Megumi per validare qualunque patch: patchare il netcode solo da analisi
+statica può causare crash o desync peggiori.
