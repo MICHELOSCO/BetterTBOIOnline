@@ -474,3 +474,31 @@ frequenti: lo snapshot com'era avrebbe crashato spesso. Disattivarlo era corrett
 Indizio utile per l'obiettivo "non spezzare la sessione": il gioco ha già un meccanismo per
 **ricaricare uno stato salvato** (usato per il revive). Da studiare come possibile base per una
 risincronizzazione al posto del DROP.
+
+## 2026-09-23 — Due desync a metà run in The Future (StageAPI 2.42, The Future 1.8)
+
+**17:18 (3 giocatori, Megumi + Xandred_Kaze):** desync al frame 37271, cioè al primo cambio stanza
+dentro il piano The Future. Megumi e Xandred hanno lo stesso checksum; Michele è l'unico diverso: sul
+suo client la transizione verso la stanza a sinistra (idx 83) è partita, sugli altri il giocatore è
+fermo contro il bordo (x=38, velocità azzerata). Stesso copione dopo lo split: entrambi entrano nella
+nuova lobby, `Adding pending join` e poi più niente (bug del rientro confermato, anche con 3 giocatori).
+
+**21:08 (2 giocatori, SuperPanciLollo):** desync al frame 34799. RNG globale **uguale**, diverge
+**una sola entità**: 391.151.0 = *Selfish Knight* di The Future.
+Velocità dopo l'update: (-4.0, 0) su un PC e (-2.8, -1.2) sull'altro. È esattamente
+`Lerp((-4,0), (0,-4), 0.3)`: su un solo PC il cavaliere ha girato da LEFT a UP.
+
+Causa (`tf_scripts/monsters/selfishknight.lua:127`): la svolta dipende da `mod:RandomInt(1, 50-…)`
+senza RNG proprio, quindi usa `TheFuture.rng`. Lo stesso RNG viene consumato anche in
+`MC_POST_RENDER` dal timer dell'effetto fulmine (`tf_scripts/thefuture.lua:226`). Il render gira un
+numero di volte diverso su ciascun PC (fps, recupero dopo lag), quindi `TheFuture.rng` va fuori fase
+e l'IA dei mostri che lo usano diverge. È l'unico punto di render che consuma quell'RNG (verificati
+tutti i callback `*_RENDER` della mod).
+
+**Fix:** mod `thefuture-onlinefix/` (va installata su tutti i client). Durante `MC_POST_RENDER`, le
+chiamate a `TheFuture:RandomInt` senza RNG proprio usano un RNG cosmetico separato. Il gameplay non
+cambia. Non tocca i file di The Future, quindi sopravvive agli aggiornamenti Steam.
+
+Il fumetto di Steven senza testo è cosmetico: il font viene caricato da un percorso fisso
+`mods/thefuture_2993558907/…` (`tf_scripts/stevennpc.lua:10`), nel log non c'è nessun errore. Da
+verificare se il problema c'è anche in singleplayer.
