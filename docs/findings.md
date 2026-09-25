@@ -502,3 +502,34 @@ cambia. Non tocca i file di The Future, quindi sopravvive agli aggiornamenti Ste
 Il fumetto di Steven senza testo è cosmetico: il font viene caricato da un percorso fisso
 `mods/thefuture_2993558907/…` (`tf_scripts/stevennpc.lua:10`), nel log non c'è nessun errore. Da
 verificare se il problema c'è anche in singleplayer.
+
+## 2026-09-24 — ✅ Il rientro FUNZIONA: la coda viene elaborata al cambio PIANO
+
+Sessione `09_24_2026__20_27_11` (Michele host; Megumi, Xandred_Kaze, SuperPanciLollo). Fix The Future
+attivo (`[BTO-FUTUREFIX] RandomInt wrapped`).
+
+**Desync 1 (frame 54644, Depths, stanza del boss):** divergono solo 3 lacrime (2.0.0) di circa 0.09 px,
+e l'RNG globale è uguale. È la solita micro-divergenza di fisica del gioco base. The Future non c'entra.
+Split e DROP come sempre.
+
+**Rientro:** SuperPanciLollo e Megumi entrano nella nuova lobby, `Adding pending join` (55800, 56142).
+Poi l'host prende la botola: `Starting stage transition` → **`Processing pending joins` → `Adding 2 new
+players` → `Joining existing game on frame 56503`**.
+Corregge la diagnosi precedente: la coda non è bloccata per sempre, viene elaborata **solo alla
+transizione di piano**. Il cambio stanza non basta, e nei casi precedenti si abbandonava prima di
+cambiare piano.
+- Chi rientra riceve un **personaggio nuovo** (Isaac, Azazel) più **5 oggetti casuali dal pool
+  treasure**: è la compensazione vanilla per chi entra a partita in corso. Il personaggio di prima
+  non torna.
+- L'host serializza e ricarica lo stato per tutti (anche per sé: `player removed` ×3, poi respawn, `RNG
+  Start Seed … [Continue]`, stanza "The Gate").
+
+**Desync 2 (frame 56554, 51 frame dopo il join, `Level::Init` del piano nuovo):** i due che sono
+rientrati concordano tra loro, l'host è diverso, **RNG globale diverso**. L'host ha nella Start Room
+6.19.0 (spawn del layout a (240,160), presente a ogni piano) e 1000.12548 (StageAPIStageShadow), gli
+altri no.
+Ipotesi (senza i log dei joiner): tutti ripartono dallo stesso stato serializzato, ma la generazione del
+piano diverge. Candidati: (a) lo stato Lua delle mod (StageAPI, The Future, Fair Co-op Items) **non
+viene trasferito** al join, quindi i joiner hanno lo stato Lua "fresco" o i loro file locali, l'host
+quello di tutta la run; (b) il join elaborato *durante* una transizione di piano.
+**Servono i log di chi è rientrato** (`online_logs/sessions` e `desyncs` delle 20:27 del 24/09).
