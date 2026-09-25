@@ -533,3 +533,23 @@ piano diverge. Candidati: (a) lo stato Lua delle mod (StageAPI, The Future, Fair
 viene trasferito** al join, quindi i joiner hanno lo stato Lua "fresco" o i loro file locali, l'host
 quello di tutta la run; (b) il join elaborato *durante* una transizione di piano.
 **Servono i log di chi è rientrato** (`online_logs/sessions` e `desyncs` delle 20:27 del 24/09).
+
+## 2026-09-24 — Desync all'avvio quando SuperPanciLollo NON è l'host
+
+Sessioni 23/09 20:49, 20:55, 21:03 (host Michele, solo Panci) e 24/09 21:02–21:10 (host Michele, 4
+giocatori). Il desync arriva sempre al frame 0–1 e finisce con DROP. Secondo l'utente non succede
+quando l'host è Panci.
+
+Nei casi a 2 giocatori (gli unici con i dati remoti completi):
+- **Save checksum UGUALE** (394715111 = 394715111; 4218897375 = 4218897375): il salvataggio condiviso
+  non c'entra.
+- Stesso seed della run, stesso `Level::Init`, stesse entità nelle stesse posizioni (2 giocatori, 6.19,
+  1000.21).
+- **RNG globale già diverso al frame 0** (0f36f3bb vs 0ac4f55b).
+
+Quindi all'avvio della run il client di Panci consuma l'RNG in modo diverso dagli altri: esegue
+qualcosa in più o in meno. Cause probabili: una mod (anche solo "content"/XML) o una versione di mod
+presente solo da lui, oppure file residui nella sua cartella mods. L'asimmetria host/non host fa
+pensare a codice che si comporta diversamente in base a chi è il giocatore 0 o l'host.
+**Serve il `log.txt` di Panci** subito dopo un avvio fallito, per confrontare le righe
+`LOADED MOD` / `Running Lua Script` con le nostre.
