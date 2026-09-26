@@ -85,7 +85,17 @@ mod:AddCallback(ModCallbacks.MC_POST_PICKUP_INIT, function(_, pk)
 	log("collectible spawned id=%d spawner=%d pos=(%.0f,%.0f)", pk.SubType, pk.SpawnerType, pk.Position.X, pk.Position.Y)
 end, PickupVariant.PICKUP_COLLECTIBLE)
 
-log("loaded v0.1")
+-- State trace, once per second: compare the same f= across two clients' logs to find the first
+-- frame where they diverge (the game only dumps the frame it notices). fr = TheFuture.rng state.
+mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
+	if game:GetFrameCount() % 30 ~= 0 then return end
+	local p = Isaac.GetPlayer(0)
+	local fr = TheFuture and TheFuture.rng and TheFuture.rng:GetSeed() or 0
+	log("trace room=%d ents=%d p0=(%.1f,%.1f) fr=%d", game:GetLevel():GetCurrentRoomIndex(),
+		#Isaac.GetRoomEntities(), p.Position.X, p.Position.Y, fr)
+end)
+
+log("loaded v0.2")
 
 -- Snapshot DISATTIVATO (22/09/2026): crash nativo in GetCollectibleNum durante una transizione
 -- di stanza, che ha fatto crashare entrambi i client in lockstep. Vedi docs/findings.md.
