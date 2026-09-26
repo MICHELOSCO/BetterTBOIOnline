@@ -553,3 +553,30 @@ presente solo da lui, oppure file residui nella sua cartella mods. L'asimmetria 
 pensare a codice che si comporta diversamente in base a chi è il giocatore 0 o l'host.
 **Serve il `log.txt` di Panci** subito dopo un avvio fallito, per confrontare le righe
 `LOADED MOD` / `Running Lua Script` con le nostre.
+
+## 2026-09-26 — ✅ CAUSA dei desync all'avvio e dopo il rientro: preload di StageAPI alla prima run
+
+Log di Megumi e SuperPanciLollo in `logs-others/` (esclusi da git). Stesse 7 mod Lua su tutti i client.
+
+**Schema (tabella per seed, memoria Lua al primo "Lua mem usage" della run):** la memoria Lua è circa
+37,9 MB alla **prima run dopo l'avvio del gioco** e circa 56,6 MB dalle run successive.
+- Desync all'avvio: 9C48, DGLK, RKXG (Panci alla prima run, gli altri no), ZKS3 (Michele alla prima
+  run, gli altri no). 48ND e 9KM4: Panci senza mod Lua (817 KB, mod non attive).
+- Nessun desync: tutti alla prima run (NJ91) oppure tutti già oltre la prima (DCN2, SST2, YKC2).
+
+**Meccanismo** (`stageapi15_1348031964/scripts/stageapi/stage/extrarooms.lua:205-279`, StageAPI 2.42):
+in `MC_POST_GAME_STARTED`, se `StageAPI.PreloadedGotoData` non è ancora caricato (cioè alla prima run
+del processo), StageAPI esegue circa 100 comandi console `goto` per leggere i dati delle stanze. Nel
+log si vedono circa 100 `Starting room transition` al frame 0, solo sul client alla prima run. Poi,
+se si è nella prima stanza del piano 1, imposta `DataLoadNeedsRestart` ed esegue `Isaac.ExecuteCommand("restart")`
+al `MC_POST_NEW_ROOM` successivo. Online lo fa **solo quel client**: RNG globale diverso al frame 0,
+entità identiche, save identico → desync.
+- Spiega anche il **desync subito dopo il rientro** (24/09 frame 56554): chi rientra ha appena
+  riavviato il gioco, quindi è alla prima run. Megumi fa 103 `Starting room transition` a frame fermo
+  prima del `Level::Init`.
+- Spiega "Panci da ospite desincronizza": lui avvia il gioco ed entra subito, mentre gli altri hanno
+  già giocato.
+
+**Workaround (senza codice):** dopo aver avviato il gioco, **ognuno fa partire una run in solo,
+aspetta che carichi (può ricominciare da sola una volta), poi esce** e solo dopo va online. Vale anche
+per chi rientra dopo uno split.
