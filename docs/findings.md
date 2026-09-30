@@ -580,3 +580,25 @@ entità identiche, save identico → desync.
 **Workaround (senza codice):** dopo aver avviato il gioco, **ognuno fa partire una run in solo,
 aspetta che carichi (può ricominciare da sola una volta), poi esce** e solo dopo va online. Vale anche
 per chi rientra dopo uno split.
+
+## 2026-09-30 — Log di Xandred: desync del 25/09 tra Xan e Megumi
+
+Log di Xan in `logs-others/xan/`. Entrambi avevano `thefuture-onlinefix` attivo (`[BTO-FUTUREFIX] RandomInt
+wrapped`) e il logger v0.1 (senza traccia): la causa NON è il fulmine e non c'è ancora la traccia.
+
+- **23:02, frame 176** (run CFLR): entrambi con memoria Lua 56,6 MB, cioè **nessuno alla prima run** (la
+  run 0S6G subito prima, con entrambi a 37,9 MB, non ha avuto desync, coerente con la diagnosi del
+  preload). Quindi è un desync di gioco base a inizio run: posizione del giocatore diversa di ~16 px e
+  lacrime di ~1,5 px al frame 176.
+- **23:22, frame 48294** (run TGEE, The Future): divergenza precoce, visibile prima del dump. Nella stanza
+  "Sin - Monster Slots" la stessa moneta (5.20.1, stesso seed 22d2058a) compare al frame di rete **48217 su
+  Xan e 48249 su Megumi**, 32 frame dopo. I frame locali di transizione differiscono di 2 (45575 vs 45573).
+  Quindi il movimento/interazione dei giocatori era già diverso nella stanza delle slot, molto prima del
+  frame segnalato. Al dump: posizioni giocatore diverse di ~50 px, 4 proiettili (9.12.0) presenti solo su
+  Megumi. Ipotesi: stesso tipo di micro-divergenza di fisica del gioco base, amplificata in una stanza
+  con molte interazioni. Non riconducibile a una mod dal solo log.
+- Il codice `CURRENT ROOM INDEX 84 <hash>` è costante per client e diverso tra PC anche nelle run senza
+  desync: NON è un indicatore di divergenza (pista scartata).
+
+**Prossimo passo:** logger v0.2 (traccia di stanza, entità, posizione p0 ogni secondo) su tutti i client,
+poi confronto degli `f=` tra i due log per il primo secondo divergente.
