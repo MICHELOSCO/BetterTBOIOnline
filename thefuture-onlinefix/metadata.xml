@@ -3,6 +3,6 @@
 	<name>The Future Online Fix</name>
 	<directory>thefuture-onlinefix</directory>
 	<description>Fixes an online desync in The Future: its cosmetic lightning drew from the gameplay RNG inside a render callback. Needs The Future. Install on every client.</description>
-	<version>0.1</version>
+	<version>0.2</version>
 	<visibility>Private</visibility>
 </metadata>
