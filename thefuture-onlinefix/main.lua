@@ -4,6 +4,7 @@
 -- Fix: any TheFuture:RandomInt call without its own RNG, made during render, uses a
 -- separate cosmetic RNG instead. Gameplay calls (MC_POST_UPDATE/NPC_UPDATE) are untouched.
 local mod = RegisterMod("The Future Online Fix", 1)
+local game = Game()
 local inRender = false
 local cosmetic = RNG()
 cosmetic:SetSeed(1, 35)
