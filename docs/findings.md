@@ -602,3 +602,24 @@ wrapped`) e il logger v0.1 (senza traccia): la causa NON è il fulmine e non c'�
 
 **Prossimo passo:** logger v0.2 (traccia di stanza, entità, posizione p0 ogni secondo) su tutti i client,
 poi confronto degli `f=` tra i due log per il primo secondo divergente.
+
+## 2026-10-02 — Le sessioni dell'1/10 sono inquinate da un bug mio; il rientro non scatta ai cambi piano di StageAPI
+
+**Bug mio (corretto in `thefuture-onlinefix` v0.3, commit 42e0e70):** nella v0.2 usavo `game` senza
+definirlo → `Error in "PostGameStart" call: …thefuture-onlinefix/main.lua:44: attempt to index a nil value
+(global 'game')` a ogni avvio online (1/10: 1+3+1 errori; 30/09 prima dell'aggiornamento: 0). La mod ha
+priorità IMPORTANT, quindi gira per prima e l'errore salta le altre callback `PostGameStart` (il logger
+non scrive `game started` in 2 sessioni su 3, StageAPI salta il suo preload). **I desync d'avvio e quello in
+The Future dell'1/10 non sono valutabili.**
+
+**Rientro di Megumi (sessione 10_01_2026__21_08_56, host Michele):** desync al frame 42397, lei entra nella
+lobby, `Adding pending join` al 43065. Michele esce da The Future: compare `Level::Init m_Stage 6` **senza**
+`Starting stage transition` e **senza** `Processing pending joins`. Lei lascia la lobby al 55845; la discesa
+vanilla successiva (`Starting stage transition` + `Level::Init m_Stage 7`) è al 56500, solo ~650 frame dopo.
+
+Causa (codice): StageAPI cambia piano da/verso gli stage custom con la console,
+`Isaac.ExecuteCommand("stage …")` (`stage/transitions.lua:367, 797-814`), non con la transizione di piano
+del gioco. Il join in coda viene elaborato solo nella transizione di piano vanilla (così il 24/09,
+con una botola normale). Quindi: **i cambi piano via StageAPI (entrare/uscire da The Future) non fanno
+entrare chi aspetta; serve poi una discesa vanilla (botola).**
+Da verificare: che anche l'ingresso in The Future passi per la console (ipotesi, stesso codice).
