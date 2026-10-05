@@ -623,3 +623,20 @@ del gioco. Il join in coda viene elaborato solo nella transizione di piano vanil
 con una botola normale). Quindi: **i cambi piano via StageAPI (entrare/uscire da The Future) non fanno
 entrare chi aspetta; serve poi una discesa vanilla (botola).**
 Da verificare: che anche l'ingresso in The Future passi per la console (ipotesi, stesso codice).
+
+## 2026-10-05 — Serata con v0.3: i desync d'avvio vengono dal client di Megumi, non dal preload
+
+Log di Michele (host), processi 20:23 e 20:50. `thefuture-onlinefix` v0.3: 0 errori `PostGameStart`,
+`[BTO-FUTUREFIX] preload forced` + `restart suppressed` su ogni run online.
+
+- **Michele e Panci hanno sempre lo stesso checksum al frame 1** (es. 20:45: 10051334 = 10051334; 20:52:
+  1e3af7fa = 1e3af7fa). Il preload forzato funziona tra due client con v0.3.
+- Il terzo peer, **Megumi, risulta con checksum 00000000** (nessun framestate: il suo client non è arrivato
+  al frame 1) in tutti i desync d'avvio della serata (9 run di fila, incluse run con memoria Lua già a
+  56,9 MB). Nel run 20:50 lei esce dalla lobby al frame 8; nel 20:52 al frame 14, e la run di Michele+Panci
+  prosegue senza desync (J3QJ).
+- Ipotesi principale: Megumi ha ancora la v0.2 con il bug `game` nil (errore in `PostGameStart` che
+  interrompe l'avvio) o non ha la mod. Da confermare con il suo `log.txt`: cercare
+  `Error in "PostGameStart"`.
+- Rumore non correlato: `fair co-op items` dà `main.lua:255: attempt to get length of a nil value (global
+  'pedestals')` in `MC_POST_RENDER` (40 errori per processo, il log si ferma lì). Solo render.
