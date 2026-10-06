@@ -1,0 +1,46 @@
+BetterTBOIOnline - cosa installare e come usarlo
+=================================================
+IMPORTANTE: tutti i giocatori della partita devono avere QUESTA STESSA VERSIONE.
+Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avvio.
+
+1) INSTALLAZIONE (chiudi prima Isaac)
+   a) Apri la cartella del gioco: Steam > tasto destro su The Binding of Isaac
+      > Gestisci > Sfoglia i file locali. Entra nella cartella "mods".
+   b) CANCELLA le vecchie cartelle, se ci sono:
+        bettertboionline-diagnostics
+        thefuture-onlinefix
+   c) Copia dentro "mods" le DUE cartelle che trovi nella cartella "mods" di questo zip.
+   d) Controllo: apri thefuture-onlinefix\metadata.xml, deve esserci
+        <version>0.4</version>
+      e in bettertboionline-diagnostics\metadata.xml
+        <version>0.2</version>
+   e) Avvia il gioco, menu Mods: devono essere attive
+        BetterTBOIOnline Diagnostics
+        The Future Online Fix
+      Servono anche, attive e uguali per tutti (Steam Workshop): StageAPI, The Future,
+      EID Online Plus, Fair Co-op Items, Antibirth Music+++.
+
+2) CONTROLLO DOPO LA PRIMA PARTITA ONLINE
+   Apri log.txt (vedi punto 4) e cerca queste righe:
+        [BTO-FUTUREFIX] RandomInt wrapped
+        [BTO-FUTUREFIX] preload forced ...
+   Se compare  Error in "PostGameStart"  la mod e' sbagliata o vecchia: rifai il punto 1.
+
+3) COME GIOCARE
+   - Non serve piu' fare una run in solo prima di andare online (la nuova versione dovrebbe
+     renderlo inutile). Se all'avvio c'e' comunque un desync, dillo e manda i log.
+   - Dopo uno split (ognuno si ritrova da solo): chi vuole rientrare chiude il gioco, lo
+     riapre ed entra nella lobby dell'host. L'host deve scendere con una BOTOLA normale al
+     piano successivo: solo allora il rientro viene elaborato. Uscire da The Future non basta
+     (il gioco non lo conta come discesa): serve una botola in piu'. Non andare via prima.
+
+4) LOG DA MANDARE DOPO OGNI DESYNC (anche se pensi non serva)
+   Cartella dei log, in uno di questi posti (controlla in ordine):
+     - Documenti\My Games\Binding of Isaac Repentance+\
+       (con OneDrive puo' essere OneDrive\Documenti\My Games\...)
+     - la cartella del gioco (Steam > Gestisci > Sfoglia i file locali)
+   Dentro ci sono "log.txt" e la cartella "online_logs".
+   Manda:
+     - tutta la cartella "online_logs" (tasto destro > Comprimi in ZIP)
+     - il file "log.txt" (copialo PRIMA di riaprire il gioco: viene sovrascritto a ogni avvio)
+   Non contengono password: solo cosa e' successo in partita, le mod caricate e i nomi Steam.

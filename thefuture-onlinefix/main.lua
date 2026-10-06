@@ -5,24 +5,53 @@
 -- separate cosmetic RNG instead. Gameplay calls (MC_POST_UPDATE/NPC_UPDATE) are untouched.
 local mod = RegisterMod("The Future Online Fix", 1)
 local game = Game()
-local inRender = false
+local renderDepth = 0
 local cosmetic = RNG()
 cosmetic:SetSeed(1, 35)
 
-mod:AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.IMPORTANT, function()
-	inRender = true
-end)
--- ponytail: assumes no other mod's MC_POST_RENDER runs after LATE+1 and calls TheFuture:RandomInt.
-mod:AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.LATE + 1, function()
-	inRender = false
-end)
+-- Bracket EVERY render callback (world render + per-entity renders): while any of them runs,
+-- renderDepth > 0. Render runs a different number of times on each PC, so any synced random
+-- source consumed inside it drifts apart between clients.
+-- ponytail: assumes no other mod's render callback runs after LATE+1 and draws random numbers.
+for _, id in ipairs({
+	ModCallbacks.MC_POST_RENDER, ModCallbacks.MC_POST_FAMILIAR_RENDER, ModCallbacks.MC_POST_NPC_RENDER,
+	ModCallbacks.MC_POST_PLAYER_RENDER, ModCallbacks.MC_POST_PICKUP_RENDER, ModCallbacks.MC_POST_TEAR_RENDER,
+	ModCallbacks.MC_POST_PROJECTILE_RENDER, ModCallbacks.MC_POST_LASER_RENDER, ModCallbacks.MC_POST_KNIFE_RENDER,
+	ModCallbacks.MC_POST_EFFECT_RENDER, ModCallbacks.MC_POST_BOMB_RENDER,
+}) do
+	mod:AddPriorityCallback(id, CallbackPriority.IMPORTANT, function() renderDepth = renderDepth + 1 end)
+	mod:AddPriorityCallback(id, CallbackPriority.LATE + 1, function() renderDepth = math.max(renderDepth - 1, 0) end)
+end
+
+-- GENERIC GUARD (any mod): during render, the engine-synced draws Random() / RandomVector() come from a
+-- local cosmetic RNG instead. Outside render, math.random is re-seeded from (run seed, frame), so its
+-- stream no longer depends on how many renders ran. Update-time behaviour is otherwise unchanged.
+-- ponytail: mods that cached `local Random = Random` before this mod loaded are not covered.
+local origRandom, origRandomVector, origMathRandom = Random, RandomVector, math.random
+Random = function() if renderDepth > 0 then return cosmetic:Next() end return origRandom() end
+RandomVector = function()
+	if renderDepth > 0 then return Vector.FromAngle(cosmetic:RandomFloat() * 360) end
+	return origRandomVector()
+end
+local lastFrame = -1
+math.random = function(...)
+	if renderDepth == 0 then
+		-- pcall: can be called while mods load, before a run (and its seeds) exists.
+		local ok, f = pcall(game.GetFrameCount, game)
+		if ok and f ~= lastFrame then
+			lastFrame = f
+			pcall(function() math.randomseed((game:GetSeeds():GetStartSeed() + f * 7919) % 2147483647) end)
+		end
+	end
+	return origMathRandom(...)
+end
 
 local wrapped = false
 local function wrap()
 	if wrapped or not TheFuture or not TheFuture.RandomInt then return end
 	local original = TheFuture.RandomInt
 	TheFuture.RandomInt = function(self, min, max, entrng)
-		if inRender and not entrng then entrng = cosmetic end
+		if renderDepth > 0 and not entrng then entrng = cosmetic end
 		return original(self, min, max, entrng)
 	end
 	wrapped = true
@@ -62,3 +91,5 @@ mod:AddPriorityCallback(ModCallbacks.MC_POST_GAME_STARTED, CallbackPriority.LATE
 		Isaac.DebugString("[BTO-FUTUREFIX] StageAPI restart suppressed")
 	end
 end)
+
+Isaac.DebugString("[BTO-FUTUREFIX] sync guard active (render-time Random/RandomVector isolated, math.random per-frame seeded)")
