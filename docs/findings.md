@@ -808,3 +808,14 @@ ignorata (`return true`) e l'HUD mostra un avviso una volta per pickup; lo scamb
 voluta (drop con il tasto, poi raccolta). La decisione dipende solo dagli slot (stato sincronizzato), quindi
 è identica su tutti i client. Limite noto: se il bug è nella rimozione in sé (Liberty Cap), anche il drop
 volontario può desincronizzare; lo diranno i log v0.4.
+
+Utente: nemmeno così, il gameplay non va alterato. Rilettura dei dati con l'ipotesi "il client che controlla
+il giocatore applica le statistiche del trinket **in coda** su un frame diverso dagli altri": spiega tutti
+e quattro i casi (oggi Goat Hoof in coda = velocità, i tre vecchi Vibrant Bulb in coda = lacrime/velocità)
+e anche gli scambi innocui (Liberty Cap in coda non ha statistiche; Goat Hoof↔Blister: se fermo, una
+differenza di velocità non si vede nel checksum). Esclusa EID Online+: i suoi `MC_INPUT_ACTION`
+restituiscono sempre nil o bloccano tutto (solo con UI aperte), non un -3,6 %. Fix **v0.8**: con ≥2
+giocatori la collisione nativa con i trinket viene saltata e lo scambio è fatto in Lua sul frame della
+collisione, uguale su tutti i client: `TryRemoveTrinket` + spawn del vecchio ai piedi, `AddTrinket`
+immediato (niente coda), `AnimateTrinket` + suono + testo HUD per l'aspetto; cooldown di 30 frame per
+giocatore al posto del `Wait` vanilla; trinket dei negozi lasciati al gioco. Gameplay invariato.

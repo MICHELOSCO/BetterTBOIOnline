@@ -1,4 +1,4 @@
--- The Future Online Fix v0.7 — keeps StageAPI / The Future deterministic across online clients.
+-- The Future Online Fix v0.8 — keeps StageAPI / The Future deterministic across online clients.
 -- Loads last (folder name sorts after the other mods), so the global overrides below see every mod.
 -- Each block is independent; "ponytail:" notes mark known ceilings. See docs/desync-audit.md.
 local mod = RegisterMod("The Future Online Fix", 1)
@@ -180,28 +180,41 @@ mod:AddPriorityCallback(ModCallbacks.MC_POST_NEW_ROOM, CallbackPriority.LATE + 1
 end)
 
 -- ---------------------------------------------------------------------------------------------
--- 7. Trinket swaps desync the base game: every RNG-identical desync in the logs (19/09, 20/09, 24/09,
+-- 7. Trinket pickups desync the base game: every RNG-identical desync in the logs (19/09, 20/09, 24/09,
 --    07/10 22:53) came the frame after a player holding a trinket walked over another one (old trinket
---    dropped, new one queued); the swapping player's own velocity/tears differ by <1% on the other clients
---    for that frame (docs/findings.md 2026-10-07 22:53). Walking over a trinket by accident is too easy, so
---    with 2+ players a trinket on the floor is ignored while every slot is full: drop on purpose first
---    (hold the drop button), then pick it up. Decision depends only on synced state (slots), same on all clients.
--- ponytail: a deliberate drop of a state-dependent trinket (Liberty Cap, Vibrant Bulb) may still desync; v0.4 diag logs will tell.
-local function trinketSlotsFull(p)
-	for i = 0, p:GetMaxTrinkets() - 1 do
-		if p:GetTrinket(i) == 0 then return false end
-	end
-	return true
-end
+--    dropped, new one queued above the head); only the swapping player's own velocity/tears differ, by <1%,
+--    on the other clients (docs/findings.md 2026-10-07 22:53). The native path applies the queued trinket's
+--    stats at a different frame on the owner's client than on the others. With 2+ players the native pickup
+--    is bypassed and the whole swap is done here, on the collision frame, identically on every client:
+--    old trinket removed and dropped at the player's feet, new one added immediately (hold-up animation
+--    kept for looks). Gameplay unchanged: walking over a trinket still takes it.
+-- ponytail: shop trinkets stay native (payment); with two full slots the first slot is the one dropped.
+local sfx = SFXManager()
 mod:AddCallback(ModCallbacks.MC_PRE_PICKUP_COLLISION, function(_, pickup, collider)
 	local p = collider:ToPlayer()
-	if not p or game:GetNumPlayers() < 2 or not trinketSlotsFull(p) then return end
-	local d = pickup:GetData()
-	if not d.btoSwapNotice then
-		d.btoSwapNotice = true
-		game:GetHUD():ShowItemText("Trinket non scambiato (online)", "Lascia prima quello in mano: tieni premuto il tasto di drop")
+	if not p or game:GetNumPlayers() < 2 or pickup:IsShopItem() then return end
+	local d, pd, frame = pickup:GetData(), p:GetData(), game:GetFrameCount()
+	if d.btoTaken or p:IsCoopGhost() or not p:IsItemQueueEmpty() or p:IsHoldingItem()
+		or (pd.btoTrinketCooldown or 0) > frame then return true end
+	local free
+	for i = 0, p:GetMaxTrinkets() - 1 do
+		if p:GetTrinket(i) == 0 then free = i break end
 	end
+	if not free then
+		local old = p:GetTrinket(0)
+		if not p:TryRemoveTrinket(old) then return true end
+		Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_TRINKET, old, p.Position, Vector.Zero, p):ToPickup().Touched = true
+	end
+	d.btoTaken = true
+	pd.btoTrinketCooldown = frame + 30 -- like the vanilla wait before a dropped trinket can be taken again
+	local id = pickup.SubType
+	p:AddTrinket(id, not pickup.Touched)
+	p:AnimateTrinket(id)
+	sfx:Play(SoundEffect.SOUND_POWERUP1)
+	local cfg = Isaac.GetItemConfig():GetTrinket(id & ~TrinketType.TRINKET_GOLDEN_FLAG)
+	if cfg then game:GetHUD():ShowItemText(cfg.Name, cfg.Description) end
+	pickup:Remove()
 	return true
 end, PickupVariant.PICKUP_TRINKET)
 
-log("v0.7 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, no trinket swap online")
+log("v0.8 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, trinket pickups in Lua")
