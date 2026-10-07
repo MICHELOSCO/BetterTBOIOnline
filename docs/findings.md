@@ -735,3 +735,6 @@ Online+** (testo "Gli achievement sono disabilitati!", 10 s, icona lucchetto), n
 sua euristica (Book of Revelations/Cube of Meat "disponibili") fallisce online perché la disponibilità degli
 oggetti viene calcolata sui salvataggi di tutti i giocatori della lobby (`IsAvailable` 0x730AA0). In solo
 con le stesse mod non compare (verificato aprendo il gioco). Dettagli in research-notes.md.
+L'icona rossa "intrecciata" sopra le stats è l'indicatore di **Hard mode** dell'HUD (frame 4 della riga
+icone, mostrato quando `Game.Difficulty == 1`): verificato il 07/10 riprendendo una run Hard (icona presente)
+e una Normal (assente) con lo stesso salvataggio. Non c'entra con gli achievement: le lobby online sono in Hard.

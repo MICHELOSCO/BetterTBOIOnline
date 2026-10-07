@@ -189,10 +189,16 @@ quei due oggetti, EID crede che gli achievement siano disattivati anche se il ga
 In solo (07/10, stesso salvataggio e stesse mod) l'avviso non compare. Si può spegnere in EID:
 `DisableStartOfRunWarnings`.
 
-Icone native dell'HUD (funzione 0x9A3EB0, riga icone sopra le stats, sprite `HUD+0x3AE4`, frame = id):
-`5` = sblocchi vietati (trofeo barrato, stessa condizione del ReadOnly), `8` = `g_Game+0x26630 != 0`,
-`9`/`11`/`7` = stato online (`g_Game+0x269C8 == 3`). Il trofeo barrato nativo non può comparire mentre
-`TryUnlock` registra sblocchi: usano la stessa condizione.
+Icone native dell'HUD (funzione 0x9A3EB0, riga icone sotto i contatori di pickup, sprite `HUD+0x3AB4`,
+animazione "Idle", frame = id; `g_Game+0x269C8` = `Game.Difficulty`): `4` = Hard mode (difficoltà 1, run
+non speciale), `5` = sblocchi vietati (trofeo barrato, stessa condizione del ReadOnly: seed custom, seed
+effect, policy, flag cheat `g_Game+0x26588`, challenge), `8` = `g_Game+0x26630 != 0` (seed di daily/award,
+64 bit a +0x26630), `9`/`11`/`7` = Greed/Greedier con `g_Game+0x26614 < 2`. Il trofeo barrato nativo non
+può comparire mentre `TryUnlock` registra sblocchi: usano la stessa condizione. **Identificata (07/10,
+screenshot in partita):** l'"icona rossa intrecciata" sotto i contatori di pickup è il frame 4, cioè
+l'indicatore di **Hard mode**: assente nella prima run ripresa (Normal), presente nella seconda (Hard), con
+lo stesso salvataggio e le stesse mod. Le lobby online del gruppo sono in Hard, in solo l'utente gioca Normal:
+da qui l'impressione che fosse legata all'online o alle mod.
 
 Patch possibile, **non applicata e non necessaria**: VA 0x959626 (file 0x558A26) `75 2A` → `EB 2A`
 (`jne` → `jmp`): con le mod attive gli sblocchi sarebbero permessi anche senza aver battuto Mom. Byte
