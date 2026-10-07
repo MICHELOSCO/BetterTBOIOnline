@@ -640,3 +640,21 @@ Log di Michele (host), processi 20:23 e 20:50. `thefuture-onlinefix` v0.3: 0 err
   `Error in "PostGameStart"`.
 - Rumore non correlato: `fair co-op items` dà `main.lua:255: attempt to get length of a nil value (global
   'pedestals')` in `MC_POST_RENDER` (40 errori per processo, il log si ferma lì). Solo render.
+
+## 2026-10-07 — Sessione del 06/10 (v0.4): nessun desync in 95.000 frame; il "lag" è il caricamento dei piani
+
+Log di Michele, sessione `10_06_2026__21_32_21`: host con Panci (2 giocatori), una sola run (HDB4 0GJ4), 0 errori Lua,
+`preload forced` + `restart suppressed` + `sync guard active` presenti. Memoria Lua 38 MB al primo avvio = prima
+run del processo, quella che prima desincronizzava: **nessun desync**. Fino al piano 10 (stage 10), fine run
+`NotifyGameEnd Result = 2` al frame di rete 95387. The Future non visitato (0 `Generating custom level`): le
+correzioni sul fulmine e su `math.random` restano non verificate.
+
+**Disconnessione:** al frame di rete 69827 `User MICHELOSCO (locale) disconnected from lobby` → il gioco
+rimuove Panci (`RemoveUser`, `Creating public lobby`, nota: lobby *pubblica*, non friend) e Michele prosegue da
+solo per ~25.000 frame. Non è un desync: è la perdita della lobby Steam sul client di Michele. Manca il log di
+Panci per vedere il suo lato.
+
+**Il "lag" è il caricamento del piano (non la rete):** dalle tracce (tempo reale vs frame) 8 blocchi da 7–12 s
+corrispondono a 8 `Starting stage transition`/`Level::Init`. Due di questi (12,4 s) sono avvenuti **dopo** la
+disconnessione, quindi in solo: dipendono dal PC/mod, non dal netcode. Ogni piano esegue `[ModManager] load stage`
+×7 (una volta per mod). Blocchi minori da 1,7–2,6 s a ogni ~6000 frame (non classificati).
