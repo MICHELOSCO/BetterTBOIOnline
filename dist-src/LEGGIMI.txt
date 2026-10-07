@@ -11,7 +11,7 @@ Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avv
         thefuture-onlinefix
    c) Copia dentro "mods" le DUE cartelle che trovi nella cartella "mods" di questo zip.
    d) Controllo: apri thefuture-onlinefix\metadata.xml, deve esserci
-        <version>0.4</version>
+        <version>0.5</version>
       e in bettertboionline-diagnostics\metadata.xml
         <version>0.2</version>
    e) Avvia il gioco, menu Mods: devono essere attive
@@ -33,6 +33,11 @@ Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avv
      riapre ed entra nella lobby dell'host. L'host deve scendere con una BOTOLA normale al
      piano successivo: solo allora il rientro viene elaborato. Uscire da The Future non basta
      (il gioco non lo conta come discesa): serve una botola in piu'. Non andare via prima.
+     ATTENZIONE: la parte che evita il desync SUBITO DOPO il rientro e' sperimentale (v0.5).
+     Se dopo un rientro la partita si divide di nuovo al piano successivo, mandate i log di
+     tutti: e' proprio il caso che serve per sistemarla.
+   - Online, entrando o uscendo da The Future NON vedrete piu' l'animazione di transizione di
+     StageAPI: e' voluto (quell'animazione faceva cambiare piano in momenti diversi sui vari PC).
 
 4) LOG DA MANDARE DOPO OGNI DESYNC (anche se pensi non serva)
    Cartella dei log, in uno di questi posti (controlla in ordine):

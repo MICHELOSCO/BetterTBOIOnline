@@ -22,6 +22,9 @@ ha funzionato e portava con sé anche i dati salvati delle mod (`[StageAPI] Succ
 | 3 | `math.random` Lua (stream locale, non sincronizzato) usato in gameplay | The Future: effetti con posizioni casuali in update (`moretug.lua:173`, `sisyphus.lua:332`) | v0.4: ri-seed per frame da (seed run, frame) |
 | 4 | Liste di mod diverse tra i client | 19–20/09 | si evita con lo zip uguale per tutti |
 | 5 | Piccola divergenza di fisica del gioco base (velocità ~0.1, lacrime ~1.5 px) | desync senza mod il 19/09, 20/09, 24/09, 25/09 | **non risolvibile con una mod** |
+| 6 | `StageAPI.RandomRNG` seminato una volta da `Random()` al caricamento, mai per run; usato per la porta d'ingresso casuale (sposta tutti i giocatori), prezzo diavolo, particelle porte | 23/09 17:18 e 01/10 42395: giocatori tutti a una porta diversa per client | v0.5: riseed deterministico per piano/stanza |
+| 7 | Uscita da The Future con animazione StageAPI: `stage N` lanciato da `MC_GET_SHADER_PARAMS` (render) | codice `transitions.lua:8-38, 959` | v0.5: niente animazione con ≥2 giocatori |
+| 8 | Join in corsa: `MC_POST_GAME_STARTED` solo sul joiner → preload/riseed asimmetrici | 24/09 desync 51 frame dopo il join | v0.5 sperimentale: mirror del dispatch sui client già in partita |
 
 La 5 è il motivo per cui "evitare tutti i desync" non è raggiungibile: non dipende dalle mod e il
 gioco, con 2 giocatori, non ha un arbitro. Serve una **risincronizzazione guidata dall'host**.

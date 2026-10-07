@@ -658,3 +658,62 @@ Panci per vedere il suo lato.
 corrispondono a 8 `Starting stage transition`/`Level::Init`. Due di questi (12,4 s) sono avvenuti **dopo** la
 disconnessione, quindi in solo: dipendono dal PC/mod, non dal netcode. Ogni piano esegue `[ModManager] load stage`
 ×7 (una volta per mod). Blocchi minori da 1,7–2,6 s a ogni ~6000 frame (non classificati).
+
+## 2026-10-07 — Revisione completa delle correzioni (v0.5)
+
+Riletto tutto il codice della mod contro `resources/scripts/main.lua`, StageAPI 2.42, The Future 1.8 e i log.
+
+### ❌ Bug grave nella v0.4 (corretto)
+`_RunCallback` (main.lua:66) chiama le callback **senza pcall** e si ferma alla prima che genera un errore o
+ritorna non-nil (confermato dai log dell'1/10: 3 errori → solo 1 `game started` del logger, quello della run
+`[Continue]` in cui il mio handler non errava). Fair Co-op Items va in errore in `MC_POST_RENDER`
+(`main.lua:255 … 'pedestals'`, ≥40 volte per processo): il mio decremento `LATE+1` di `renderDepth` veniva
+saltato e il contatore restava bloccato >0 → **tutte** le estrazioni (`Random()`, `RandomVector()`,
+`TheFuture:RandomInt`) anche in update sarebbero andate sull'RNG locale → desync certo in The Future. Il 06/10
+non si è visto solo perché The Future non è stata visitata. **v0.5:** niente contatore; un flag messo a
+`true` dalla prima handler di ogni callback di render e a `false` dalla prima handler di ogni callback di
+update (tutte tranne `INPUT_ACTION`, `EXECUTE_CMD`, `EVALUATE_CACHE`). Si auto-ripara a ogni tick.
+
+### ✅ Nuova causa trovata: `StageAPI.RandomRNG` non sincronizzato → porta d'ingresso casuale
+`library/random.lua:4`: `StageAPI.RandomRNG:SetSeed(Random(), 0)` **una volta al caricamento**, mai per run.
+`StageAPI.Random(a, b)` senza rng lo usa per scelte di gioco: `core/callbacks.lua:1350` quando il layout
+caricato non ha la porta da cui si è entrati sceglie una porta valida a caso e **sposta tutti i giocatori lì**;
+`:1557` prezzo dei patti col diavolo; `grid/customdoors.lua:671-707` particelle delle porte custom.
+Combacia con due desync a "prima stanza di The Future":
+- 23/09 17:18: su Michele i 3 giocatori a x≈558 (porta destra), su Megumi/Xan a x≈38-43 (porta sinistra),
+  fermi, tutti nello stesso punto per client.
+- 01/10 42395: su Michele entrambi a (320,160) (porta alta), su Megumi uno a (317,430) (porta bassa).
+**v0.5:** riseminato in modo deterministico prima di ogni handler StageAPI (`MC_POST_NEW_LEVEL` con lo
+stage seed, `MC_POST_NEW_ROOM` con il decoration seed, priorità `IMPORTANT-1`); in render instradato
+sull'RNG cosmetico.
+
+### ✅ Nuova causa: uscita da The Future guidata dal render
+La botola custom chiama `StageAPI.GotoCustomStage(data.GoesTo, true)` (`stage/transitions.lua:959`):
+l'animazione avanza in `MC_GET_SHADER_PARAMS` (render) e lancia `stage N` quando il contatore supera 150
+(`transitions.lua:8-38`) → il piano cambia a un frame di gioco diverso per fps. L'ingresso (Steven:
+`GotoCustomStage(mod.Stage, false)`; botola vanilla: sostituzione in `MC_POST_NEW_ROOM`) è in update, ok.
+**v0.5:** con ≥2 giocatori `playTransition` forzato a `false` (comando immediato, niente animazione online).
+
+### ❌ Il rientro NON era coperto (v0.3/0.4) — mirror sperimentale in v0.5
+Al join il gioco ricarica lo stato su tutti i client ma `MC_POST_GAME_STARTED` scatta **solo sul joiner**
+(log host 24/09: nessun `game started` al join; EID lo documenta in `main.lua:4859`). Quindi solo il joiner
+rifaceva preload + riseed di `TheFuture.rng` → desync al `Level::Init` 51 frame dopo (24/09), identico con la
+v0.3. **v0.5 (sperimentale):** i client già in partita riconoscono il reload (tutti i loro player rimossi,
+conteggio cresciuto, run in corso) e in `MC_POST_NEW_ROOM`(LATE+1) eseguono `Isaac.RunCallback(
+MC_POST_GAME_STARTED, false)`, cioè lo stesso dispatch del joiner nello stesso punto. Un eventuale dispatch
+reale duplicato nello stesso frame viene inghiottito (la mia handler IMPORTANT ritorna `true`). Verifica nel
+log dell'host: `join mirror: running POST_GAME_STARTED` seguito da `[BTO-DIAG] game started`.
+Nota: `mod:SaveData` non viene trasferito al join; ciò che resta divergente è lo stato Lua persistente delle
+mod (es. `HasSpokenToSteven`): il mirror non lo copre.
+
+### Correzioni alle note precedenti
+- 05/10: "checksum 00000000 = il client di Megumi non è arrivato al frame 1" era una lettura azzardata; il
+  dato certo è che Michele e Panci concordavano e Megumi (mod vecchie) no.
+- `CURRENT ROOM INDEX <hash>` non è un indicatore (già scartato).
+- Fair Co-op Items usa variabili **globali** (`players`, `pedestals`, `pos`, `it`, …): oltre all'errore in render,
+  può collidere con altre mod. Non toccato: il suo oggetto mod è locale, non raggiungibile.
+
+### Cosa resta non verificabile da qui
+Nessuna delle modifiche è eseguibile senza due PC. In solo, il log deve mostrare `v0.5 active` e nessun
+`Error in`; online, `preload forced`, `restart suppressed`, e in The Future `stage transition animation
+skipped`. Il mirror del join si verifica solo provocando uno split e un rientro.
