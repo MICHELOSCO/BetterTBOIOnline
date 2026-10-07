@@ -717,3 +717,16 @@ mod (es. `HasSpokenToSteven`): il mirror non lo copre.
 Nessuna delle modifiche è eseguibile senza due PC. In solo, il log deve mostrare `v0.5 active` e nessun
 `Error in`; online, `preload forced`, `restart suppressed`, e in The Future `stage transition animation
 skipped`. Il mirror del join si verifica solo provocando uno split e un rientro.
+
+## 2026-10-07 — Achievement con le mod: non servono mod né patch
+
+Richiesta: una mod che riattivi gli achievement con le mod attive. Verificato nell'exe (dettagli e indirizzi
+in `research-notes.md`, sezione "Achievement con le mod attive") e nei log di tutti: nella 1.9.7.17 le mod
+**non** bloccano gli sblocchi. Regola reale: offline, con almeno una mod attiva, gli sblocchi sono vietati
+**solo finché su quel salvataggio non si è battuta Mom** (achievement 4, The Womb); online contano solo i
+quattro "Shared save user ID" della partita, le mod sono ignorate. Prova: log di Michele 06/10 (7 mod, online)
+con sblocchi nuovi 376, 35, 143, 15, 8, 159; Panci ha sbloccato 28 e 87 con le mod prima ancora di battere Mom
+(online), poi The Womb e altri 10 al kill di Mom; Megumi 545. Il gate è il byte ReadOnly del salvataggio,
+loggato come `Setting PersistentGameData ReadOnly to True/False`: nei log è False in tutte le run, True solo
+nel deathmatch online post-run. Una mod Lua non può toccare nulla di questo. Patch da 1 byte individuata
+(0x959626) per togliere anche la condizione "Mom battuta": non applicata, non necessaria.

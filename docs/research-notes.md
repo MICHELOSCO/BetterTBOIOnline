@@ -143,6 +143,42 @@ il meccanismo di join in corsa, che già trasferisce lo stato di gioco (`Join Ex
    ogni personaggio (oggetti, cuori, consumabili) fino al frame del desync, quando i client sono
    ancora identici, e riapplicarlo al rientro.
 
+## Achievement con le mod attive (analisi statica 07/10/2026)
+
+Richiesta: "una mod che riattivi gli achievement con le mod". Esito: **non serve nessuna mod** e una mod Lua
+non potrebbe comunque farlo (il controllo è nativo). Nella 1.9.7.17 le mod **non** bloccano gli achievement,
+salvo il caso "Mom mai battuta" sotto. Prove nei log: Michele 06/10 online con 7 mod → sblocchi nuovi 376,
+35, 143, 15, 8, 159; Panci (Mom mai battuta prima) → 28 e 87 online, poi al kill di Mom 4 (The Womb) + 10
+altri, run dopo 371, 375, 77, 81; Megumi 545. Tutte righe `unlock steam achievement '%s'`, che il gioco
+scrive solo per sblocchi nuovi (vedi `TryUnlock`).
+
+Indirizzi (VA, `.bak` vanilla; `g_Manager = [0xC7169C]`, `g_Game = [0xC71678]`):
+
+- `PersistentGameData` = `g_Manager+0x14`: `+0` dirty, `+1` **ReadOnly** (unico gate), `+2` Steam attivo,
+  `+0x38` `unlocked[642]` (un byte per achievement; `+0x38+4` = The Womb, cioè "Mom battuta").
+- `PersistentGameData::TryUnlock(id)` **0x929A20**: ritorna false se ReadOnly, `id == 0` o già sbloccato;
+  altrimenti `unlocked[id] = 1`, e se `+2` e (offline, oppure online con l'utente locale nella lista degli
+  "Shared save user ID") chiama **0x929790** (log `unlock steam achievement '%s'`, `SetAchievement` +
+  `StoreStats`). Sblocchi inline con id fisso: 0x759B54 (388), 0x763343 (378), 0x92AFF9 (324); loop di
+  risincronizzazione Steam di tutti gli sbloccati: 0x9EDF50.
+- Politica "sblocchi vietati" **0x9595E0** (nome mio: `AchievementUnlocksDisallowed`):
+  - online (vector giocatori remoti `g_Manager+0x4B3D8` non vuoto, o flag `+0x4B130` e `+0x4B274`):
+    vietato ⇔ l'utente locale **non** è tra i 4 `uint64` in `g_Manager+0x4C3F0` (gli "Shared save user ID"
+    loggati a fine partita). **Le mod non contano.**
+  - offline: vietato ⇔ (`ModManager::AnyEnabled` 0x8F8CD0 su `g_Manager+0x2A6C0`, flag `ModEntry+0xFD`,
+    oppure `g_Manager+0x2A398`) **e** `unlocked[4] == 0` (The Womb) **e** non (`g_Manager+8 == 2` e
+    (`g_Game+0x26630 > 0` o `g_Game+0x26589`)). Cioè: con le mod, gli sblocchi sono vietati **solo finché su
+    quel salvataggio non si è battuta Mom almeno una volta** (la vecchia regola di Afterbirth+).
+- ReadOnly a inizio run (0x6F54E8–0x6F5544 e variante 0x6F742A–0x6F747D, log `Setting PersistentGameData
+  ReadOnly to %s`): `RO = [cfg] != 0 || 0x9E9B50(cfg) || Disallowed() || g_Game+0x26588 || (challenge
+  g_Game+0x26584 != 0)`. RO torna True anche all'avvio del deathmatch online post-run (0x6F6ACF) e durante
+  la gestione del completamento challenge (0x704F20); False a fine partita.
+
+Patch possibile, **non applicata e non necessaria**: VA 0x959626 (file 0x558A26) `75 2A` → `EB 2A`
+(`jne` → `jmp`): con le mod attive gli sblocchi sarebbero permessi anche senza aver battuto Mom. Byte
+identici in `.bak` e nell'exe patchato (`80 7E 50 00 75 2A 83 7E` a file 0x558A22). Alternativa senza
+patch per un salvataggio nuovo: battere Mom una volta senza mod, oppure online (dove la regola non vale).
+
 ## Vincolo: coesistenza con la patch mod-online già applicata
 
 L'`isaac-ng.exe` dell'utente ha già la patch mod-online (7 byte, vedi sopra e findings.md):
