@@ -1,4 +1,4 @@
--- The Future Online Fix v0.6 — keeps StageAPI / The Future deterministic across online clients.
+-- The Future Online Fix v0.7 — keeps StageAPI / The Future deterministic across online clients.
 -- Loads last (folder name sorts after the other mods), so the global overrides below see every mod.
 -- Each block is independent; "ponytail:" notes mark known ceilings. See docs/desync-audit.md.
 local mod = RegisterMod("The Future Online Fix", 1)
@@ -179,4 +179,29 @@ mod:AddPriorityCallback(ModCallbacks.MC_POST_NEW_ROOM, CallbackPriority.LATE + 1
 	end
 end)
 
-log("v0.6 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned")
+-- ---------------------------------------------------------------------------------------------
+-- 7. Trinket swaps desync the base game: every RNG-identical desync in the logs (19/09, 20/09, 24/09,
+--    07/10 22:53) came the frame after a player holding a trinket walked over another one (old trinket
+--    dropped, new one queued); the swapping player's own velocity/tears differ by <1% on the other clients
+--    for that frame (docs/findings.md 2026-10-07 22:53). Walking over a trinket by accident is too easy, so
+--    with 2+ players a trinket on the floor is ignored while every slot is full: drop on purpose first
+--    (hold the drop button), then pick it up. Decision depends only on synced state (slots), same on all clients.
+-- ponytail: a deliberate drop of a state-dependent trinket (Liberty Cap, Vibrant Bulb) may still desync; v0.4 diag logs will tell.
+local function trinketSlotsFull(p)
+	for i = 0, p:GetMaxTrinkets() - 1 do
+		if p:GetTrinket(i) == 0 then return false end
+	end
+	return true
+end
+mod:AddCallback(ModCallbacks.MC_PRE_PICKUP_COLLISION, function(_, pickup, collider)
+	local p = collider:ToPlayer()
+	if not p or game:GetNumPlayers() < 2 or not trinketSlotsFull(p) then return end
+	local d = pickup:GetData()
+	if not d.btoSwapNotice then
+		d.btoSwapNotice = true
+		game:GetHUD():ShowItemText("Trinket non scambiato (online)", "Lascia prima quello in mano: tieni premuto il tasto di drop")
+	end
+	return true
+end, PickupVariant.PICKUP_TRINKET)
+
+log("v0.7 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, no trinket swap online")

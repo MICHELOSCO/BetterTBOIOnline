@@ -11,7 +11,7 @@ Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avv
         thefuture-onlinefix
    c) Copia dentro "mods" le DUE cartelle che trovi nella cartella "mods" di questo zip.
    d) Controllo: apri thefuture-onlinefix\metadata.xml, deve esserci
-        <version>0.6</version>
+        <version>0.7</version>
       e in bettertboionline-diagnostics\metadata.xml
         <version>0.4</version>
    e) Avvia il gioco, menu Mods: devono essere attive
@@ -38,6 +38,10 @@ Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avv
      tutti: e' proprio il caso che serve per sistemarla.
    - Online, entrando o uscendo da The Future NON vedrete piu' l'animazione di transizione di
      StageAPI: e' voluto (quell'animazione faceva cambiare piano in momenti diversi sui vari PC).
+   - TRINKET (dalla v0.7): online, se hai gia' un trinket in mano, passare sopra un altro trinket
+     NON lo scambia piu' (compare un avviso). Lo scambio automatico fa desync nel gioco base
+     (4 casi su 4 nei log). Per prenderlo: lascia prima il tuo tenendo premuto il tasto di drop
+     (Ctrl da tastiera), poi raccoglilo.
 
 4) LOG DA MANDARE DOPO OGNI DESYNC (anche se pensi non serva)
    Cartella dei log, in uno di questi posti (controlla in ordine):

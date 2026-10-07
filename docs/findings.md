@@ -801,3 +801,10 @@ trinket di ogni giocatore loggati sul frame in cui cambiano, per vedere su quale
 cosa; (2) regola pratica per il gruppo: **online non scambiare trinket** (lasciare prima quello in mano o
 ignorare quelli a terra), in particolare Liberty Cap e Vibrant Bulb; (3) se si ripete, analisi statica di
 `Entity_Player::AddTrinket`/`TryRemoveTrinket`/`EvaluateItems` cercando un ramo "giocatore locale".
+
+Utente: la regola (2) non è praticabile, si passa sopra un trinket troppo facilmente. Fix **v0.7**:
+`MC_PRE_PICKUP_COLLISION` sui trinket, con ≥2 giocatori e tutti gli slot pieni la collisione viene
+ignorata (`return true`) e l'HUD mostra un avviso una volta per pickup; lo scambio diventa un'azione
+voluta (drop con il tasto, poi raccolta). La decisione dipende solo dagli slot (stato sincronizzato), quindi
+è identica su tutti i client. Limite noto: se il bug è nella rimozione in sé (Liberty Cap), anche il drop
+volontario può desincronizzare; lo diranno i log v0.4.

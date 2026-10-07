@@ -3,6 +3,6 @@
 	<name>The Future Online Fix</name>
 	<directory>thefuture-onlinefix</directory>
 	<description>Online fixes for The Future and other mods: keeps render-time random draws off the synced RNG, equalises the StageAPI first-run preload. Needs The Future + StageAPI. Install on every client.</description>
-	<version>0.6</version>
+	<version>0.7</version>
 	<visibility>Private</visibility>
 </metadata>
