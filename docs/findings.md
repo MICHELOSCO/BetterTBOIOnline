@@ -730,3 +730,8 @@ con sblocchi nuovi 376, 35, 143, 15, 8, 159; Panci ha sbloccato 28 e 87 con le m
 loggato come `Setting PersistentGameData ReadOnly to True/False`: nei log è False in tutte le run, True solo
 nel deathmatch online post-run. Una mod Lua non può toccare nulla di questo. Patch da 1 byte individuata
 (0x959626) per togliere anche la condizione "Mom battuta": non applicata, non necessaria.
+Aggiornamento 07/10 sera: la "dicitura" e l'icona rossa viste online sono l'avviso di inizio run di **EID
+Online+** (testo "Gli achievement sono disabilitati!", 10 s, icona lucchetto), non un messaggio del gioco. La
+sua euristica (Book of Revelations/Cube of Meat "disponibili") fallisce online perché la disponibilità degli
+oggetti viene calcolata sui salvataggi di tutti i giocatori della lobby (`IsAvailable` 0x730AA0). In solo
+con le stesse mod non compare (verificato aprendo il gioco). Dettagli in research-notes.md.

@@ -174,6 +174,26 @@ Indirizzi (VA, `.bak` vanilla; `g_Manager = [0xC7169C]`, `g_Game = [0xC71678]`):
   g_Game+0x26584 != 0)`. RO torna True anche all'avvio del deathmatch online post-run (0x6F6ACF) e durante
   la gestione del completamento challenge (0x704F20); False a fine partita.
 
+### L'"icona rossa" e la scritta "achievement disabilitati" viste online
+
+Non vengono dal gioco ma da **EID Online+**: `main.lua:2726-2756` (`CheckStartOfRunWarnings`) mostra per i
+primi 10 s di ogni run il testo `AchievementWarningText` ("Gli achievement sono disabilitati! … Se hai
+sconfitto Mamma, questo messaggio è un bug e può essere ignorato") con l'icona `{{AchievementLocked}}`
+(`eid_inline_icons.png`, animazione Misc frame 4: lucchetto rosso). La condizione è
+`EID:AreAchievementsAllowed()` (`features/eid_api.lua:2109`): euristica che chiede a
+`ItemConfig:IsAvailable()` se Book of Revelations o Cube of Meat sono disponibili. Nell'exe
+`ItemConfig::Item::IsAvailable` (VA 0x730AA0) in modalità online (`g_Game+0x269C8` = 3) e con
+`g_Game+0x26614 >= 2` consulta un provider condiviso (`g_Game+0x26620`, vtable+0x24): la disponibilità degli
+oggetti online dipende dai salvataggi di **tutti** i giocatori della lobby. Se un compagno non ha sbloccato
+quei due oggetti, EID crede che gli achievement siano disattivati anche se il gate vero (ReadOnly) è aperto.
+In solo (07/10, stesso salvataggio e stesse mod) l'avviso non compare. Si può spegnere in EID:
+`DisableStartOfRunWarnings`.
+
+Icone native dell'HUD (funzione 0x9A3EB0, riga icone sopra le stats, sprite `HUD+0x3AE4`, frame = id):
+`5` = sblocchi vietati (trofeo barrato, stessa condizione del ReadOnly), `8` = `g_Game+0x26630 != 0`,
+`9`/`11`/`7` = stato online (`g_Game+0x269C8 == 3`). Il trofeo barrato nativo non può comparire mentre
+`TryUnlock` registra sblocchi: usano la stessa condizione.
+
 Patch possibile, **non applicata e non necessaria**: VA 0x959626 (file 0x558A26) `75 2A` → `EB 2A`
 (`jne` → `jmp`): con le mod attive gli sblocchi sarebbero permessi anche senza aver battuto Mom. Byte
 identici in `.bak` e nell'exe patchato (`80 7E 50 00 75 2A 83 7E` a file 0x558A22). Alternativa senza
