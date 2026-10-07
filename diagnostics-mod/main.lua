@@ -112,7 +112,25 @@ mod:AddCallback(ModCallbacks.MC_POST_PROJECTILE_INIT, function(_, proj)
 	end
 end)
 
-log("loaded v0.3")
+-- v0.4: per-player stats and trinkets, logged on the frame they change. 07/10 22:53 desync (vanilla floor):
+-- Michele's own velocity diverged by 0.4% the frame after he swapped Liberty Cap for Goat Hoof, with the
+-- global RNG and both session logs identical; three older RNG-identical desyncs (19/09, 20/09, 24/09) also
+-- came the frame after a trinket swap. Comparing the frame of each stat change on the two clients tells
+-- whether one of them applied the new trinket's stats earlier than the other.
+local lastStats = {}
+mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
+	for i = 0, game:GetNumPlayers() - 1 do
+		local p = Isaac.GetPlayer(i)
+		local s = string.format("trk=%d/%d spd=%.3f dmg=%.3f delay=%.3f range=%.1f luck=%.2f", p:GetTrinket(0),
+			p:GetTrinket(1), p.MoveSpeed, p.Damage, p.MaxFireDelay, p.TearRange, p.Luck)
+		if lastStats[i] ~= s then
+			lastStats[i] = s
+			log("p%d stats %s", i, s)
+		end
+	end
+end)
+
+log("loaded v0.4")
 
 -- Snapshot DISATTIVATO (22/09/2026): crash nativo in GetCollectibleNum durante una transizione
 -- di stanza, che ha fatto crashare entrambi i client in lockstep. Vedi docs/findings.md.

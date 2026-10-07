@@ -765,3 +765,39 @@ Rubber online desincronizza** (prima d'oggi nessuno l'aveva ucciso online). Neve
 prima di sparare (`nevermore.lua:239`); gli altri nemici usano modalità che ignorano il campo. Fix **v0.6**:
 wrapper di `TheFuture.FireProjectiles` che, in modalità 9, imposta `params.CircleAngle = npc.InitSeed % 360`.
 Dettagli statici in research-notes.md.
+
+## 2026-10-07 — Desync 22:53 (Michele host, Panci), piano 5 vanilla: scambio di trinket
+
+Sessione `10_07_2026__20_53_17`, entrambi con onlinefix 0.6 + diagnostica 0.3, nessun errore Lua. Frame 37250,
+Depths (stanza vanilla, The Future non coinvolto). RNG globale **identico** (1b478f74); diverge **una sola
+entità: il giocatore di Michele** (entità 0, ctrl 2, gamepad), e solo la velocità post-update, di ~0,4 %:
+(-1.14508, -0.75318) sul suo PC contro (-1.14597, -0.74690) su quello di Panci. Il log di Panci
+(`log_errore.zip`) è **identico riga per riga** al suo fino al desync: stesse mod, spawn, seed, trinket.
+
+Un frame prima (37249) Michele, che teneva la Liberty Cap, ha toccato la Goat Hoof: Liberty Cap lasciata a
+terra (`Entity Pickup Initialized as: 5.350.32` a 37249), Goat Hoof in coda sopra la testa (`Adding trinket 37`
+solo dopo lo split). Catalogo di tutti i dump disponibili (script `catalog.ps1`): i desync con **RNG globale
+uguale e un solo giocatore (o i suoi lacrimoni) divergente** sono quattro, e **tutti e quattro arrivano il
+frame dopo uno scambio di trinket** (un pickup 5.350.x inizializzato al frame N, desync al frame N+1):
+
+| Dump | Frame | Diverge | Pickup trinket al frame prima | Trinket in gioco |
+|---|---|---|---|---|
+| 19/09 23:40 (Megumi) | 51823 | 1.0.9 Eden | 5.350.78 a 51822 | Vibrant Bulb (100) comparsa a 51778 |
+| 20/09 13:07 (Megumi) | 63715 | 1.0.18 Bethany | 5.350.8 a 63714 | Vibrant Bulb (100) comparsa a 63681 |
+| 24/09 20:27 (Xandred) | 54644 | 6 lacrime 2.0.0 | 5.350.42 a 54643 | Vibrant Bulb (100) comparsa a 54538 |
+| 07/10 22:53 (Michele) | 37250 | 1.0.0 Michele | 5.350.32 a 37249 | Liberty Cap ↔ Goat Hoof |
+
+Non ogni scambio desincronizza: sullo stesso piano Michele ha scambiato Goat Hoof ↔ Blister quattro volte e
+Goat Hoof → Liberty Cap una volta senza problemi. Il caso fatale coinvolge la Liberty Cap (effetto casuale
+da fungo) e i tre vecchi la Vibrant Bulb (statistiche condizionate alla carica dell'attivo): trinket con
+contributo alle statistiche **dipendente dallo stato**. Ipotesi: alla rimozione/aggiunta il gioco rivaluta
+le statistiche (`EvaluateItems`) e il client che controlla il giocatore ottiene un risultato diverso dagli
+altri per un frame (es. conta già il trinket in coda, o l'effetto temporaneo della Liberty Cap); il
+rilevatore scatta su quel frame. È un bug del **gioco base** (nessuna mod tocca le statistiche:
+Fair Co-op Items gestisce solo i piedistalli, EID legge soltanto). Non chiudibile dai log attuali.
+
+Passi: (1) diagnostica **v0.4**: statistiche (`MoveSpeed`, `Damage`, `MaxFireDelay`, `TearRange`, `Luck`) e
+trinket di ogni giocatore loggati sul frame in cui cambiano, per vedere su quale client e quando cambia
+cosa; (2) regola pratica per il gruppo: **online non scambiare trinket** (lasciare prima quello in mano o
+ignorare quelli a terra), in particolare Liberty Cap e Vibrant Bulb; (3) se si ripete, analisi statica di
+`Entity_Player::AddTrinket`/`TryRemoveTrinket`/`EvaluateItems` cercando un ramo "giocatore locale".
