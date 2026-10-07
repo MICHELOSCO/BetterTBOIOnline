@@ -1,4 +1,4 @@
--- The Future Online Fix v0.8 — keeps StageAPI / The Future deterministic across online clients.
+-- The Future Online Fix v0.8.1 — keeps StageAPI / The Future deterministic across online clients.
 -- Loads last (folder name sorts after the other mods), so the global overrides below see every mod.
 -- Each block is independent; "ponytail:" notes mark known ceilings. See docs/desync-audit.md.
 local mod = RegisterMod("The Future Online Fix", 1)
@@ -212,9 +212,9 @@ mod:AddCallback(ModCallbacks.MC_PRE_PICKUP_COLLISION, function(_, pickup, collid
 	p:AnimateTrinket(id)
 	sfx:Play(SoundEffect.SOUND_POWERUP1)
 	local cfg = Isaac.GetItemConfig():GetTrinket(id & ~TrinketType.TRINKET_GOLDEN_FLAG)
-	if cfg then game:GetHUD():ShowItemText(cfg.Name, cfg.Description) end
+	if cfg then game:GetHUD():ShowItemText(p, cfg) end -- the (player, item) overload localises the name itself
 	pickup:Remove()
 	return true
 end, PickupVariant.PICKUP_TRINKET)
 
-log("v0.8 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, trinket pickups in Lua")
+log("v0.8.1 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, trinket pickups in Lua")
