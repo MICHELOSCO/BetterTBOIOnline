@@ -738,3 +738,16 @@ con le stesse mod non compare (verificato aprendo il gioco). Dettagli in researc
 L'icona rossa "intrecciata" sopra le stats è l'indicatore di **Hard mode** dell'HUD (frame 4 della riga
 icone, mostrato quando `Game.Difficulty == 1`): verificato il 07/10 riprendendo una run Hard (icona presente)
 e una Normal (assente) con lo stesso salvataggio. Non c'entra con gli achievement: le lobby online sono in Hard.
+
+## 2026-10-07 — Desync 16:26 (Michele host, Megumi), The Future, morte di Rubber
+
+Frame 50825, stanza StageAPI "Ren - Rubber - Don't Miss!" (idx 96, 4° piano). Checksum RNG globale
+**identico** sui due client (063be410); divergono solo 5 proiettili (9.0.0, velocità 8) = la sfera che Rubber
+spara morendo (`rubber.lua:99`, `FireProjectiles(..., Vector(8,5), 9)`): stessa posizione e stesso istante,
+ma ruotata di 6° (offset 54.6° da Michele, 48.6° da Megumi, poi passi di 72°). Lo storico RNG mostra per
+quel frame 5+5 prelievi globali uguali per i 5 proiettili: la rotazione viene da un generatore non globale,
+quasi certamente l'RNG proprio del nemico (seme diverso dallo spawn, oppure consumato un numero diverso di
+volte). Nessuna funzione di render di The Future usa RNG per-entità; nessun errore Lua; fix v0.5 attivo su
+Michele (`preload forced`, `restart suppressed`). Senza i log di Megumi (il `log.zip` ricevuto è di Xandred,
+26/09) non si chiude. Logger v0.3: seme e RNG di ogni NPC a init e morte, angolo dei proiettili dei nemici
+391.x. Prima run di oggi: 3 piani senza desync.

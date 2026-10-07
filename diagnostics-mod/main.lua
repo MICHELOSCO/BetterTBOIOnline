@@ -95,7 +95,24 @@ mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
 		#Isaac.GetRoomEntities(), p.Position.X, p.Position.Y, fr)
 end)
 
-log("loaded v0.2")
+-- v0.3: per-NPC seeds. 07/10 desync: Rubber's 5-projectile death ring was rotated differently on the two
+-- PCs while every other entity and the global RNG were identical, so the divergence lived in that one
+-- enemy's own RNG. Logging InitSeed and the drop-RNG state at init and at death on both clients tells
+-- "born with a different seed" apart from "RNG consumed a different number of times".
+local function npcInfo(npc)
+	return string.format("%d.%d.%d seed=%d rng=%d pos=(%.0f,%.0f)", npc.Type, npc.Variant, npc.SubType,
+		npc.InitSeed, npc:GetDropRNG():GetSeed(), npc.Position.X, npc.Position.Y)
+end
+mod:AddCallback(ModCallbacks.MC_POST_NPC_INIT, function(_, npc) log("npc init %s", npcInfo(npc)) end)
+mod:AddCallback(ModCallbacks.MC_POST_NPC_DEATH, function(_, npc) log("npc death %s", npcInfo(npc)) end)
+-- Projectiles fired by The Future's enemies (type 391): frame and angle of each shot, to compare the ring.
+mod:AddCallback(ModCallbacks.MC_POST_PROJECTILE_INIT, function(_, proj)
+	if proj.SpawnerType == 391 then
+		log("proj spawner=%d.%d angle=%.1f", proj.SpawnerType, proj.SpawnerVariant, proj.Velocity:GetAngleDegrees())
+	end
+end)
+
+log("loaded v0.3")
 
 -- Snapshot DISATTIVATO (22/09/2026): crash nativo in GetCollectibleNum durante una transizione
 -- di stanza, che ha fatto crashare entrambi i client in lockstep. Vedi docs/findings.md.

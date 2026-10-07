@@ -13,7 +13,7 @@ Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avv
    d) Controllo: apri thefuture-onlinefix\metadata.xml, deve esserci
         <version>0.5</version>
       e in bettertboionline-diagnostics\metadata.xml
-        <version>0.2</version>
+        <version>0.3</version>
    e) Avvia il gioco, menu Mods: devono essere attive
         BetterTBOIOnline Diagnostics
         The Future Online Fix
