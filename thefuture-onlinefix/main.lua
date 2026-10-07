@@ -1,4 +1,4 @@
--- The Future Online Fix v0.5 — keeps StageAPI / The Future deterministic across online clients.
+-- The Future Online Fix v0.6 — keeps StageAPI / The Future deterministic across online clients.
 -- Loads last (folder name sorts after the other mods), so the global overrides below see every mod.
 -- Each block is independent; "ponytail:" notes mark known ceilings. See docs/desync-audit.md.
 local mod = RegisterMod("The Future Online Fix", 1)
@@ -57,6 +57,11 @@ end
 
 -- The Future (v1.8) draws its lightning timer from TheFuture.rng inside MC_POST_RENDER
 -- (tf_scripts/thefuture.lua:226); enemy AI (Selfish Knight turning, …) uses the same RNG in update.
+-- FireProjectiles mode 9 (N projectiles in a circle) starts the ring at ProjectileParams.CircleAngle,
+-- "random by default": the constructor draws it, and rubber.lua:5 builds its ProjectileParams once at
+-- mod load, when each PC's RNG is in its own state, so Rubber's death ring (rubber.lua:99) was rotated
+-- by a per-PC constant (desync 07/10 16:26: 5 projectiles 6° apart, global RNG identical on both PCs).
+-- Pin it from the enemy's seed at fire time. Nevermore sets its own (nevermore.lua:239); other modes ignore it.
 local wrapped = false
 local function wrap()
 	if wrapped or not TheFuture or not TheFuture.RandomInt then return end
@@ -65,8 +70,15 @@ local function wrap()
 		if inRender and not entrng then entrng = cosmetic end
 		return original(self, min, max, entrng)
 	end
+	local fire = TheFuture.FireProjectiles
+	if fire then
+		TheFuture.FireProjectiles = function(self, npc, pos, vec, mode, params)
+			if mode == 9 and params then params.CircleAngle = npc.InitSeed % 360 end
+			return fire(self, npc, pos, vec, mode, params)
+		end
+	end
 	wrapped = true
-	log("RandomInt wrapped")
+	log("RandomInt wrapped, FireProjectiles circle angle pinned=" .. tostring(fire ~= nil))
 end
 wrap()
 mod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, wrap)
@@ -167,4 +179,4 @@ mod:AddPriorityCallback(ModCallbacks.MC_POST_NEW_ROOM, CallbackPriority.LATE + 1
 	end
 end)
 
-log("v0.5 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror")
+log("v0.6 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned")

@@ -205,6 +205,27 @@ Patch possibile, **non applicata e non necessaria**: VA 0x959626 (file 0x558A26)
 identici in `.bak` e nell'exe patchato (`80 7E 50 00 75 2A 83 7E` a file 0x558A22). Alternativa senza
 patch per un salvataggio nuovo: battere Mom una volta senza mod, oppure online (dove la regola non vale).
 
+## `EntityNPC:FireProjectiles` modalità 9 e `ProjectileParams.CircleAngle` (analisi statica 07/10/2026)
+
+Tutti VA del `.bak` (identici nell'exe patchato). Dalla pila dei prelievi RNG al frame 50824 del desync
+(`desync_rng_history.txt`, indirizzi − base ASLR + 0x400000):
+
+- `0x6EEF60` = `Random()` globale con logger dello storico (coda a `0x6EF170`); chiamato a `0x6CC917` una
+  volta per proiettile (seme), poi `0x428B20`/`0xAF08B1` spawnano il proiettile.
+- Binding Lua `EntityNPC:FireProjectiles` a `0x6CB2E0`; ramo modalità 9 a `0x6CC802`: `n = int(vel.Y + 0.5)`,
+  `passo = 360 / n` (costante a `0xBAA7A8`), `angolo = [params+0x18]`; ciclo `0x6CC850–0x6CC9A4`:
+  `angolo += passo`, cos/sin (`0x41D540`/`0x41D520`) × `vel.X`, spawn. **Nessuna estrazione per la rotazione.**
+- Registrazione della classe `ProjectileParams` a `0x8677F7` (`addProperty(nome, offset, tipo)` =
+  `call 0x8769C0`): offset `0x18` → stringa `"CircleAngle"` (`0xB707B8`). Documentazione API: "Angle offset
+  used by fire_projectiles PROJECTILES_CIRCLE type emitter. **Random by default**".
+- Classe `RNG`: `RandomInt 0x7E9020`, `RandomFloat 0x7E9080`, `Next 0x7E90F0` (xorshift con shift in
+  `+4/+8/+0xC`, "RNG Seed is zero!").
+
+Conseguenza per le mod online: un `ProjectileParams()` costruito fuori dalla simulazione (a livello di file,
+al caricamento) porta un `CircleAngle` diverso su ogni PC; usato con la modalità 9 desincronizza al primo
+colpo. Fix v0.6 nel wrapper `TheFuture.FireProjectiles`. ponytail: altre mod che chiamassero direttamente
+`npc:FireProjectiles(…, 9, params)` con un params di lunga vita avrebbero lo stesso problema (nessuna installata).
+
 ## Vincolo: coesistenza con la patch mod-online già applicata
 
 L'`isaac-ng.exe` dell'utente ha già la patch mod-online (7 byte, vedi sopra e findings.md):

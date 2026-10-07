@@ -751,3 +751,17 @@ volte). Nessuna funzione di render di The Future usa RNG per-entità; nessun err
 Michele (`preload forced`, `restart suppressed`). Senza i log di Megumi (il `log.zip` ricevuto è di Xandred,
 26/09) non si chiude. Logger v0.3: seme e RNG di ogni NPC a init e morte, angolo dei proiettili dei nemici
 391.x. Prima run di oggi: 3 piani senza desync.
+
+### ✅ Risolto la sera stessa con i log di Megumi (`Binding of Isaac Repentance+.rar`)
+
+Storico RNG globale (ultimi 132 prelievi, indirizzi normalizzati per l'ASLR: base 0xce0000 lei, 0x4a0000 lui)
+e log di sessione **identici** fino al desync: stesse mod e versioni, stesso `SpawnRNG seed` 4229948963 della
+stanza, stessi `trace` (`ents`, `p0`, `fr=2270178565`). Quindi non è l'RNG del nemico: la modalità 9 di
+`EntityNPC::FireProjectiles` (ciclo a VA 0x6CC802–0x6CC9A4) non estrae nulla per la rotazione, parte da
+`ProjectileParams+0x18` = **`CircleAngle`** e somma 360/N a ogni colpo. `CircleAngle` è "random by default"
+(costruttore) e `rubber.lua:5` crea il suo `ProjectileParams` **una volta al caricamento della mod**, quando
+l'RNG di ogni PC è nel proprio stato: angolo costante per PC per tutta la sessione, quindi **ogni morte di
+Rubber online desincronizza** (prima d'oggi nessuno l'aveva ucciso online). Nevermore azzera `CircleAngle`
+prima di sparare (`nevermore.lua:239`); gli altri nemici usano modalità che ignorano il campo. Fix **v0.6**:
+wrapper di `TheFuture.FireProjectiles` che, in modalità 9, imposta `params.CircleAngle = npc.InitSeed % 360`.
+Dettagli statici in research-notes.md.
