@@ -11,7 +11,7 @@ Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avv
         thefuture-onlinefix
    c) Copia dentro "mods" le DUE cartelle che trovi nella cartella "mods" di questo zip.
    d) Controllo: apri thefuture-onlinefix\metadata.xml, deve esserci
-        <version>0.9.1</version>
+        <version>0.9.2</version>
       e in bettertboionline-diagnostics\metadata.xml
         <version>0.4</version>
    e) Avvia il gioco, menu Mods: devono essere attive
@@ -19,6 +19,8 @@ Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avv
         The Future Online Fix
       Servono anche, attive e uguali per tutti (Steam Workshop): StageAPI, The Future,
       EID Online Plus, Fair Co-op Items, Antibirth Music+++.
+      NESSUNA ALTRA MOD ATTIVA: una mod in piu' anche su un solo PC fa desync (e' successo con
+      "The Specialist for Good Items", quella del balletto: musica = numeri casuali sincronizzati).
 
 2) CONTROLLO DOPO LA PRIMA PARTITA ONLINE
    Apri log.txt (vedi punto 4) e cerca queste righe:
@@ -49,6 +51,9 @@ Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avv
    - CRASH DI TUTTI INSIEME subito dopo uno split ("runtime error"): era Fair Co-op Items, che
      dopo lo split tocca i giocatori rimossi nelle stanze tesoro/angelo. Dalla 0.9.1 la nostra mod
      lo impedisce. Se ricapita, mandate i log.
+   - BALLETTO "The Specialist for Good Items" attivo su un solo PC: desync in stanza tesoro (09/10,
+     frame 49365). Dalla 0.9.2 la nostra mod blocca online la chiamata musicale che lo causa, ma la regola
+     resta: stesse mod per tutti, niente mod extra.
 
 4) LOG DA MANDARE DOPO OGNI DESYNC (anche se pensi non serva)
    Cartella dei log, in uno di questi posti (controlla in ordine):

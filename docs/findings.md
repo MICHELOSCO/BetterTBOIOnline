@@ -854,3 +854,28 @@ entità liberate -> eccezione nativa, `Lua stack trace: [C](-1): ToPlayer ... fa
 (`isRightRoom`), e tutti e tre erano in quella stanza allo stesso frame: crash contemporaneo su tutti.
 Fix **v0.9.1**: `isRightRoom` e' una funzione globale di quella mod; la nostra la avvolge e risponde
 `false` da una rimozione di giocatore fino al cambio stanza successivo (dove la lista viene ricostruita).
+
+## 2026-10-09 — Desync 49365 chiuso: "The Specialist for Good Items" (solo su Xandred) e `Room:PlayMusic()`
+
+Storico RNG di Xandred (`desync_rng_history.txt`, indirizzi normalizzati sulla base ASLR): l'estrazione in
+piu' sul suo client e' dentro `Room::PlayMusic()` (VA 0x7EB1B0), chiamata dal trampolino luabridge dei
+metodi void (0x8B3380), cioe' da **Lua** (`room:PlayMusic()`); il gioco, quando entra in stanza, la chiama
+nativamente e quella e' uguale per tutti. Nella funzione nativa, per `ROOM_TREASURE` con la stanza alla
+prima visita (`Room:IsFirstVisit()`, flag `[this+1]`), il jingle d'ingresso viene scelto con
+`Random() & 3 + 0x57` (87..90): una `Random()` del generatore SINCRONIZZATO. Un'estrazione in piu' su un
+client solo -> checksum RNG diverso al frame dopo.
+
+Chi la chiama: nessuna delle mod comuni e nessuno script vanilla contiene `PlayMusic` (grep su tutte le
+mod e su `resources/scripts`), e in un test locale (0.9.2, run in singolo, oggetto preso in stanza tesoro)
+la chiamata Lua non parte. Dal log di Xandred (`Running Lua Script`) lui ha una mod in piu' che gli altri
+non hanno: **`specialistforgooditems_2575911103` = "The Specialist for Good Items"** (Isaac balla con una
+musica quando compare un oggetto di qualita' 4, poi ripristina la musica della stanza: da li' il
+`room:PlayMusic()`). Coerente con le sei righe `Adding costume for 133/134` (costumi del ballo, dalla
+cartella `content/` di quella mod) presenti solo nel suo log e con il momento: stanza tesoro, subito dopo
+`item taken without exchange`.
+
+Fix **v0.9.2**: `Room.__index` avvolto (stesso schema di `resources/scripts/main.lua`); online, nelle
+stanze tesoro alla prima visita, la chiamata Lua a `PlayMusic` viene registrata nel log
+(`Room:PlayMusic from Lua f=... type=4 first=true skip=true`) e saltata; in tutti gli altri casi passa al
+nativo. Il gameplay non cambia (solo musica, e solo per chi ha quella mod). Regola per gli amici nel
+LEGGIMI: stesse mod per tutti, nessuna mod extra.

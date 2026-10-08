@@ -1,4 +1,4 @@
--- The Future Online Fix v0.9.1 — keeps StageAPI / The Future deterministic across online clients.
+-- The Future Online Fix v0.9.2 — keeps StageAPI / The Future deterministic across online clients.
 -- Loads last (folder name sorts after the other mods), so the global overrides below see every mod.
 -- Each block is independent; "ponytail:" notes mark known ceilings. See docs/desync-audit.md.
 local mod = RegisterMod("The Future Online Fix", 1)
@@ -251,4 +251,36 @@ if type(fairRightRoom) == "function" then
 	log("Fair Co-op Items stale-player guard installed")
 end
 
-log("v0.9.1 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, trinket pickups in Lua, version handshake, Fair Co-op crash guard")
+-- ---------------------------------------------------------------------------------------------
+-- 10. Room:PlayMusic() called from Lua. 08/10 desync 49365 (Xandred): in a treasure room his client alone
+--     ran Room:PlayMusic() from Lua (rng history: 7eb4e7 <- 8b33ca, the luabridge void-method trampoline).
+--     Caller: "The Specialist for Good Items" (workshop 2575911103), installed on his PC only: it plays the
+--     dance music when a quality-4 item shows up and restores the room music with Room:PlayMusic().
+--     Natively (VA 0x7EB1B0) that method, for ROOM_TREASURE on the first visit, picks one of the four entry
+--     jingles (ids 87-90) with the SYNCED global RNG: one extra draw on one client only. The native call on
+--     room entry is not affected (it does not go through Lua). Same patching pattern as
+--     resources/scripts/main.lua (BeginClass/EndClass): wrap __index of the class. Online, exactly in the
+--     RNG-drawing case (treasure room, first visit) the Lua call is logged and skipped; elsewhere unchanged.
+do
+	local ok, cls = pcall(function() return getmetatable(Room).__class end)
+	if ok and cls and cls.__index then
+		local oldIndex = cls.__index
+		local function playMusic(room)
+			local first = room:IsFirstVisit()
+			local skip = game:GetNumPlayers() >= 2 and room:GetType() == RoomType.ROOM_TREASURE and first
+			log(string.format("Room:PlayMusic from Lua f=%d type=%d first=%s skip=%s",
+				game:GetFrameCount(), room:GetType(), tostring(first), tostring(skip)))
+			if skip then return end
+			return oldIndex(room, "PlayMusic")(room)
+		end
+		rawset(cls, "__index", function(self, k)
+			if k == "PlayMusic" then return playMusic end
+			return oldIndex(self, k)
+		end)
+		log("Room:PlayMusic wrapped")
+	else
+		log("Room metatable not reachable, PlayMusic not wrapped")
+	end
+end
+
+log("v0.9.2 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, trinket pickups in Lua, version handshake, Fair Co-op crash guard, treasure-room PlayMusic guard")
