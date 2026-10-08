@@ -1,4 +1,4 @@
--- The Future Online Fix v0.9 — keeps StageAPI / The Future deterministic across online clients.
+-- The Future Online Fix v0.9.1 — keeps StageAPI / The Future deterministic across online clients.
 -- Loads last (folder name sorts after the other mods), so the global overrides below see every mod.
 -- Each block is independent; "ponytail:" notes mark known ceilings. See docs/desync-audit.md.
 local mod = RegisterMod("The Future Online Fix", 1)
@@ -231,4 +231,24 @@ mod:AddPriorityCallback(ModCallbacks.MC_POST_GAME_STARTED, CallbackPriority.LATE
 	log("version handshake " .. VERSION_CODE)
 end)
 
-log("v0.9 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, trinket pickups in Lua, version handshake")
+-- ---------------------------------------------------------------------------------------------
+-- 9. Fair Co-op Items keeps its own list of EntityPlayer references, rebuilt only on MC_POST_NEW_ROOM
+--    (its main.lua:33/:154), and walks it on every render frame in treasure/angel/planetarium rooms
+--    (onUpdate, :241-266). When a desync splits the lobby the game removes the other players at once and
+--    the next render calls player:ToPlayer() on freed entities: native exception, "Caught exception,
+--    writing minidump", on every client at the same moment (09/10 01:07, angel room, all three PCs).
+--    Its room check is a global function: after any player removal it answers "no" until the next room
+--    load, where that mod rebuilds its list. Its shop/boss paths touch no player references.
+local fairRightRoom = isRightRoom
+if type(fairRightRoom) == "function" then
+	local stale = false
+	mod:AddCallback(ModCallbacks.MC_POST_ENTITY_REMOVE, function() stale = true end, EntityType.ENTITY_PLAYER)
+	mod:AddPriorityCallback(ModCallbacks.MC_POST_NEW_ROOM, CallbackPriority.LATE + 2, function() stale = false end)
+	isRightRoom = function()
+		if stale then return false end
+		return fairRightRoom()
+	end
+	log("Fair Co-op Items stale-player guard installed")
+end
+
+log("v0.9.1 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, trinket pickups in Lua, version handshake, Fair Co-op crash guard")
