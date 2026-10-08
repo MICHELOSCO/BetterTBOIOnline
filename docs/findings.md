@@ -819,3 +819,19 @@ giocatori la collisione nativa con i trinket viene saltata e lo scambio è fatto
 collisione, uguale su tutti i client: `TryRemoveTrinket` + spawn del vecchio ai piedi, `AddTrinket`
 immediato (niente coda), `AnimateTrinket` + suono + testo HUD per l'aspetto; cooldown di 30 frame per
 giocatore al posto del `Wait` vanilla; trinket dei negozi lasciati al gioco. Gameplay invariato.
+
+## 2026-10-09 — Desync 00:28 (Michele host, Megumi, Xandred), negozio 2° piano: versioni diverse della mod
+
+Frame 14001. RNG globale identico; divergono solo Megumi e il Brain Worm a terra (uscito da un Grab Bag):
+sul suo PC il trinket viene **spinto** dal personaggio (lei stava alzando un oggetto, non poteva
+raccoglierlo), sul PC di Michele e di Xandred resta fermo. I log di Megumi (`Binding of Isaac
+Repentance+.rar`, Steam ID <SteamID omesso>) chiudono il caso: lei aveva **onlinefix 0.6 e diagnostica
+0.3**, gli altri 0.8.1 e 0.4. La 0.6 non tocca i trinket (collisione nativa → spinta), la 0.8.1 la ignorava
+in quel caso. Stessa run, frame 6842: Xandred raccoglie un Match Stick, su Megumi via coda nativa
+("item queue flush"), su Michele via Lua: nessun desync perché nulla di sincronizzato è cambiato. Tutto il
+resto dei due log è identico fino al desync.
+
+Due conseguenze: (1) v0.8.2, nei casi in cui non si può raccogliere la collisione resta al gioco (spinta
+vanilla), (2) **v0.9, handshake di versione**: con ≥2 giocatori a inizio run l'RNG sincronizzato viene
+avanzato `VERSION_CODE` volte, quindi versioni diverse della mod producono "Checksum mismatch (frame 1)"
+subito, invece di una run persa dopo 20 minuti. Il LEGGIMI spiega come leggerlo.

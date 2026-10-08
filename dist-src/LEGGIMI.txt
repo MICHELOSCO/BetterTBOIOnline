@@ -11,7 +11,7 @@ Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avv
         thefuture-onlinefix
    c) Copia dentro "mods" le DUE cartelle che trovi nella cartella "mods" di questo zip.
    d) Controllo: apri thefuture-onlinefix\metadata.xml, deve esserci
-        <version>0.8.2</version>
+        <version>0.9</version>
       e in bettertboionline-diagnostics\metadata.xml
         <version>0.4</version>
    e) Avvia il gioco, menu Mods: devono essere attive
@@ -25,6 +25,9 @@ Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avv
         [BTO-FUTUREFIX] RandomInt wrapped
         [BTO-FUTUREFIX] preload forced ...
    Se compare  Error in "PostGameStart"  la mod e' sbagliata o vecchia: rifai il punto 1.
+   Se la partita si DIVIDE SUBITO all'avvio (nel log: "Checksum mismatch (frame 1)"): qualcuno
+   ha una versione diversa della mod (dalla 0.9 il controllo e' automatico). Tutti devono avere
+   la stessa versione di questo zip: controllate thefuture-onlinefix\metadata.xml.
 
 3) COME GIOCARE
    - Non serve piu' fare una run in solo prima di andare online (la nuova versione dovrebbe

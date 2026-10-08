@@ -1,4 +1,4 @@
--- The Future Online Fix v0.8.2 — keeps StageAPI / The Future deterministic across online clients.
+-- The Future Online Fix v0.9 — keeps StageAPI / The Future deterministic across online clients.
 -- Loads last (folder name sorts after the other mods), so the global overrides below see every mod.
 -- Each block is independent; "ponytail:" notes mark known ceilings. See docs/desync-audit.md.
 local mod = RegisterMod("The Future Online Fix", 1)
@@ -218,4 +218,17 @@ mod:AddCallback(ModCallbacks.MC_PRE_PICKUP_COLLISION, function(_, pickup, collid
 	return true
 end, PickupVariant.PICKUP_TRINKET)
 
-log("v0.8.2 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, trinket pickups in Lua")
+-- ---------------------------------------------------------------------------------------------
+-- 8. Version handshake. 08/10 00:28: Megumi still ran v0.6 while the others had v0.8.1; the run lasted
+--    20 minutes and split on the first trinket pushed on one client and ignored on the others. Every
+--    client must run the same version, so make a mismatch fail at once: with 2+ players the synced RNG is
+--    advanced VERSION_CODE times at run start, identical on clients with the same version, different
+--    otherwise -> "Checksum mismatch" at frame 1 instead of a lost run. Solo runs untouched.
+local VERSION_CODE = 9 -- bump with every release that changes synced behaviour
+mod:AddPriorityCallback(ModCallbacks.MC_POST_GAME_STARTED, CallbackPriority.LATE + 2, function()
+	if game:GetNumPlayers() < 2 then return end
+	for _ = 1, VERSION_CODE do Random() end
+	log("version handshake " .. VERSION_CODE)
+end)
+
+log("v0.9 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, trinket pickups in Lua, version handshake")
