@@ -835,3 +835,22 @@ Due conseguenze: (1) v0.8.2, nei casi in cui non si può raccogliere la collisio
 vanilla), (2) **v0.9, handshake di versione**: con ≥2 giocatori a inizio run l'RNG sincronizzato viene
 avanzato `VERSION_CODE` volte, quindi versioni diverse della mod producono "Checksum mismatch (frame 1)"
 subito, invece di una run persa dopo 20 minuti. Il LEGGIMI spiega come leggerlo.
+
+## 2026-10-09 — 01:07 Crash simultaneo dei tre client dopo uno split: Fair Co-op Items
+
+Sessione `10_08_2026__22_38_56` (tutti con onlinefix 0.9: handshake superato, run di 49.000 frame).
+Desync al frame 49365 nella stanza tesoro 4.9 (3 piedistalli, due aggiunti da Fair Co-op Items per i
+giocatori extra): diverge **Xandred nell'RNG globale** (02b1f350 contro e0f3704b di Megumi e Michele),
+già prima dell'update delle entità del frame; nel log di Michele solo estrazioni native (3/7/3 nei frame
+49363-49365), subito dopo due `item taken without exchange` (Megumi e Xandred prendono il loro
+piedistallo). Da chiudere con i log di Xandred (storico RNG) e Megumi. Pista: i piedistalli extra di Fair
+Co-op (`spawnExtraItems`, `Seeds:GetNextSeed()` + `GetPoolForRoom`) o quanto scatenato dalla loro raccolta.
+
+Il **crash**: dopo lo split il gioco rimuove i giocatori remoti (`RemoveRemotePlayer`), e al render
+successivo Fair Co-op Items (`main.lua:253`, `player:ToPlayer()` nel ciclo di `onUpdate` registrato su
+`MC_POST_RENDER`) usa i riferimenti `EntityPlayer` della sua lista, ricostruita solo a `MC_POST_NEW_ROOM`:
+entità liberate -> eccezione nativa, `Lua stack trace: [C](-1): ToPlayer ... fair co-op items/main.lua(253)`,
+`Caught exception, writing minidump`. Il ciclo gira solo nelle stanze tesoro/angelo/planetario
+(`isRightRoom`), e tutti e tre erano in quella stanza allo stesso frame: crash contemporaneo su tutti.
+Fix **v0.9.1**: `isRightRoom` e' una funzione globale di quella mod; la nostra la avvolge e risponde
+`false` da una rimozione di giocatore fino al cambio stanza successivo (dove la lista viene ricostruita).
