@@ -1,4 +1,4 @@
--- The Future Online Fix v0.8.1 — keeps StageAPI / The Future deterministic across online clients.
+-- The Future Online Fix v0.8.2 — keeps StageAPI / The Future deterministic across online clients.
 -- Loads last (folder name sorts after the other mods), so the global overrides below see every mod.
 -- Each block is independent; "ponytail:" notes mark known ceilings. See docs/desync-audit.md.
 local mod = RegisterMod("The Future Online Fix", 1)
@@ -194,8 +194,9 @@ mod:AddCallback(ModCallbacks.MC_PRE_PICKUP_COLLISION, function(_, pickup, collid
 	local p = collider:ToPlayer()
 	if not p or game:GetNumPlayers() < 2 or pickup:IsShopItem() then return end
 	local d, pd, frame = pickup:GetData(), p:GetData(), game:GetFrameCount()
-	if d.btoTaken or p:IsCoopGhost() or not p:IsItemQueueEmpty() or p:IsHoldingItem()
-		or (pd.btoTrinketCooldown or 0) > frame then return true end
+	-- cannot collect now: the native code only pushes the pickup, same on every client, leave it to it
+	if p:IsCoopGhost() or not p:IsItemQueueEmpty() or p:IsHoldingItem() then return end
+	if d.btoTaken or (pd.btoTrinketCooldown or 0) > frame then return true end
 	local free
 	for i = 0, p:GetMaxTrinkets() - 1 do
 		if p:GetTrinket(i) == 0 then free = i break end
@@ -217,4 +218,4 @@ mod:AddCallback(ModCallbacks.MC_PRE_PICKUP_COLLISION, function(_, pickup, collid
 	return true
 end, PickupVariant.PICKUP_TRINKET)
 
-log("v0.8.1 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, trinket pickups in Lua")
+log("v0.8.2 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, trinket pickups in Lua")
