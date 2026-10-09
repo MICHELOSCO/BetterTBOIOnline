@@ -879,3 +879,35 @@ stanze tesoro alla prima visita, la chiamata Lua a `PlayMusic` viene registrata 
 (`Room:PlayMusic from Lua f=... type=4 first=true skip=true`) e saltata; in tutti gli altri casi passa al
 nativo. Il gameplay non cambia (solo musica, e solo per chi ha quella mod). Regola per gli amici nel
 LEGGIMI: stesse mod per tutti, nessuna mod extra.
+
+## 2026-10-09 — 00:47 Revive Machine in The Future: menu mai visibile, gioco che ignora i comandi
+
+Sessione `10_08_2026__23_59_35` (tutti con onlinefix 0.9.2, run di 44.900 frame, nessun desync). Nel piano di
+The Future (f=35587-44945) Michele e Xandred muoiono nello stesso frame (f=38662, stanza "Anchorfish -
+dodge the fish": entrambi passano alle statistiche da fantasma). Megumi, viva, torna nella stanza iniziale
+(idx 84, f=39617) e resta per 3 minuti attaccata alla **Revive Machine** (slot 6.19 a (240,160); lei ferma
+a (267,150)) finche' non esce dalla lobby: Game Over per i due fantasmi. Nel log di Michele non c'e' alcuna
+riga di revive (`Queueing Revive Player`, `Message_RevivePlayer`: zero) e i trace proseguono a 30 fps: il
+gioco non era in stallo di rete, semplicemente non rispondeva ai comandi.
+
+Meccanica nativa (RE sull'exe vanilla): la Revive Machine apre il menu `gfx/ui/Menu_RevivePlayer.anm2` /
+`RevivePlayer_Selector.anm2` (oggetto a `g_Game+0x24ecc`, stato a +0). Finche' lo stato e' diverso da 0 il
+gioco **non raccoglie piu' gli input dei giocatori** (0x900CF0). L'Update del menu (0x8EF990, chiamato da
+Game::Update a 0x6FAD09 online, 0x6FB8FC offline) e il suo Render (0x8EFE10) escono subito se il byte
+`g_Game+0x22ed0` e' 0; alla conferma il menu chiama `NetManager::QueueRevivePlayer` (0x90A670) che manda
+`Message_RevivePlayer` con un "Revive Frame" e poi `PlayerManager::ReviveCoopPlayer` (0x9BFB20).
+
+Il byte `g_Game+0x22ed0` e' la **visibilita' dell'HUD** (`HUD+0x72f8`, scritto da `HUD:SetVisible`): letto
+dal vivo con un probe di memoria, vale 1 nei piani normali (anche dopo `stage N` da console e dopo `goto`) e
+**0 in tutto The Future**, con lampi a 1 di 1-2 frame. Un watchpoint hardware sul byte e' scattato dentro
+`SetVisible` chiamata da `thefuture_2993558907/tf_scripts/shaders.lua:66`: per colorare anche l'HUD con il
+suo shader, The Future ad ogni frame fa `hud:SetVisible(true); hud:Render(); hud:SetVisible(false)` dentro
+`MC_GET_SHADER_PARAMS`. Risultato: l'HUD e' "invisibile" durante tutti gli update, il menu della Revive
+Machine non viene ne' aggiornato ne' disegnato, e il gioco resta con gli input bloccati per tutti.
+
+Fix **v0.9.3** (sezione 11): con 2+ giocatori, mentre gira l'handler shader di The Future
+(`tfShader`, impostato dal nostro hook IMPORTANT su `MC_GET_SHADER_PARAMS` e azzerato da ogni altro
+callback), `HUD:SetVisible(false)` e `HUD:Render()` sono ignorati (metatable della classe HUD, stesso
+schema di `resources/scripts/main.lua`): l'HUD lo disegna il gioco, non scurito, e il menu funziona. In
+singolo non cambia nulla. `VERSION_CODE` 10. Da verificare in partita: donare le monete in The Future e
+scegliere chi far rinascere.

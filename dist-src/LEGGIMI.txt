@@ -11,7 +11,7 @@ Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avv
         thefuture-onlinefix
    c) Copia dentro "mods" le DUE cartelle che trovi nella cartella "mods" di questo zip.
    d) Controllo: apri thefuture-onlinefix\metadata.xml, deve esserci
-        <version>0.9.2</version>
+        <version>0.9.3</version>
       e in bettertboionline-diagnostics\metadata.xml
         <version>0.4</version>
    e) Avvia il gioco, menu Mods: devono essere attive
@@ -54,6 +54,10 @@ Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avv
    - BALLETTO "The Specialist for Good Items" attivo su un solo PC: desync in stanza tesoro (09/10,
      frame 49365). Dalla 0.9.2 la nostra mod blocca online la chiamata musicale che lo causa, ma la regola
      resta: stesse mod per tutti, niente mod extra.
+   - REVIVE MACHINE (la macchina delle monete nella stanza iniziale) in The Future: prima, raggiunte
+     le monete, il menu "chi far rinascere" non compariva e il gioco non rispondeva piu' a nessuno.
+     Causa: The Future nasconde l'HUD per i suoi shader e quel menu fa parte dell'HUD. Dalla 0.9.3
+     online l'HUD in The Future non viene scurito (solo estetica) e la macchina funziona.
 
 4) LOG DA MANDARE DOPO OGNI DESYNC (anche se pensi non serva)
    Cartella dei log, in uno di questi posti (controlla in ordine):

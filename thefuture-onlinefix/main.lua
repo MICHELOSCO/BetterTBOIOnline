@@ -1,4 +1,4 @@
--- The Future Online Fix v0.9.2 — keeps StageAPI / The Future deterministic across online clients.
+-- The Future Online Fix v0.9.3 — keeps StageAPI / The Future deterministic across online clients.
 -- Loads last (folder name sorts after the other mods), so the global overrides below see every mod.
 -- Each block is independent; "ponytail:" notes mark known ceilings. See docs/desync-audit.md.
 local mod = RegisterMod("The Future Online Fix", 1)
@@ -17,12 +17,17 @@ local function log(s) Isaac.DebugString("[BTO-FUTUREFIX] " .. s) end
 --    every update-phase callback clears it. First handler to run in each dispatch (IMPORTANT).
 -- ponytail: a mod spawning entities *during render* would clear the flag mid-render (none installed does).
 local inRender = false
+local tfShader = false -- inside The Future's "TFColorCorrection" shader handler with 2+ players (see 11.)
 local notUpdate = { MC_INPUT_ACTION = true, MC_EXECUTE_CMD = true, MC_EVALUATE_CACHE = true, MC_PRE_MOD_UNLOAD = true }
 for name, id in pairs(ModCallbacks) do
-	if name:find("RENDER") or name == "MC_GET_SHADER_PARAMS" then
-		mod:AddPriorityCallback(id, CallbackPriority.IMPORTANT, function() inRender = true end)
+	if name == "MC_GET_SHADER_PARAMS" then
+		mod:AddPriorityCallback(id, CallbackPriority.IMPORTANT, function(_, shader)
+			inRender, tfShader = true, shader == "TFColorCorrection" and game:GetNumPlayers() >= 2
+		end)
+	elseif name:find("RENDER") then
+		mod:AddPriorityCallback(id, CallbackPriority.IMPORTANT, function() inRender, tfShader = true, false end)
 	elseif not notUpdate[name] then
-		mod:AddPriorityCallback(id, CallbackPriority.IMPORTANT, function() inRender = false end)
+		mod:AddPriorityCallback(id, CallbackPriority.IMPORTANT, function() inRender, tfShader = false, false end)
 	end
 end
 
@@ -224,7 +229,7 @@ end, PickupVariant.PICKUP_TRINKET)
 --    client must run the same version, so make a mismatch fail at once: with 2+ players the synced RNG is
 --    advanced VERSION_CODE times at run start, identical on clients with the same version, different
 --    otherwise -> "Checksum mismatch" at frame 1 instead of a lost run. Solo runs untouched.
-local VERSION_CODE = 9 -- bump with every release that changes synced behaviour
+local VERSION_CODE = 10 -- bump with every release (keeps the whole party on the same zip)
 mod:AddPriorityCallback(ModCallbacks.MC_POST_GAME_STARTED, CallbackPriority.LATE + 2, function()
 	if game:GetNumPlayers() < 2 then return end
 	for _ = 1, VERSION_CODE do Random() end
@@ -283,4 +288,36 @@ do
 	end
 end
 
-log("v0.9.2 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, trinket pickups in Lua, version handshake, Fair Co-op crash guard, treasure-room PlayMusic guard")
+-- ---------------------------------------------------------------------------------------------
+-- 11. Online Revive Machine soft-lock in The Future (09/10 00:47). The Future tints its HUD by drawing it
+--     itself inside its shader handler: hud:SetVisible(true); hud:Render(); hud:SetVisible(false)
+--     (tf_scripts/shaders.lua:66-68), so the HUD "visible" byte (Game+0x22ed0 = HUD+0x72f8) is 0 during
+--     every game update. The Revive Player menu (gfx/ui/Menu_RevivePlayer.anm2, Game+0x24ecc, opened by the
+--     machine) only updates and draws while that byte is 1 (0x8EF9AF / 0x8EFE5F), and the game drops all
+--     player input while the menu is open (0x900CF0): nobody sees the choice, nobody can move. With 2+
+--     players, inside The Future's handler SetVisible(false) and the manual Render() are skipped: the game
+--     draws the (untinted) HUD itself and the menu works. Single player untouched.
+do
+	local meta = getmetatable(game:GetHUD())
+	local oldIndex = type(meta) == "table" and rawget(meta, "__index")
+	if type(oldIndex) == "function" then
+		local function setVisible(self, visible)
+			if tfShader and not visible then return end
+			return oldIndex(self, "SetVisible")(self, visible)
+		end
+		local function render(self)
+			if tfShader then return end
+			return oldIndex(self, "Render")(self)
+		end
+		rawset(meta, "__index", function(self, k)
+			if k == "SetVisible" then return setVisible end
+			if k == "Render" then return render end
+			return oldIndex(self, k)
+		end)
+		log("HUD SetVisible/Render wrapped (Revive Machine fix)")
+	else
+		log("HUD metatable not reachable, Revive Machine fix off")
+	end
+end
+
+log("v0.9.3 active: render guard, StageAPI RNG re-seed, no animated stage change online, preload equaliser, join mirror, circle-shot angle pinned, trinket pickups in Lua, version handshake, Fair Co-op crash guard, treasure-room PlayMusic guard, Revive Machine HUD fix")

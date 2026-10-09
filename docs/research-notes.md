@@ -237,3 +237,25 @@ unico strumento. Non deve assumere un exe vanilla né sovrascrivere la patch esi
 pattern di byte dovrebbe accettare sia il pattern originale sia quello già patchato, e per il sito
 mod-online applicarla solo se non già presente. Le zone patchate non si sovrappongono al sito del fix
 rientro (~0x958DBD), quindi le patch possono coesistere.
+
+## Revive Machine online e visibilita' dell'HUD (Repentance+ 1.9.7.17.J460, exe vanilla)
+
+- Menu "Revive Player": oggetto in `g_Game+0x24ecc` (stato +0: 0 chiuso, 1 scelta, 2 chiusura; +4 indice
+  controller, +8 selezione), costruito in Game::ctor (0x6F3586, ctor 0x8EF4B0 che carica
+  `gfx/ui/Menu_RevivePlayer.anm2` e `gfx/ui/RevivePlayer_Selector.anm2`). Update 0x8EF990, Render 0x8EFE10
+  (titolo "REVIVE PLAYER"), entrambi condizionati a `byte [g_Game+0x22ed0] != 0`.
+- Input: 0x900CA0 salta la raccolta input se `g_Game+0x68d78`, `+0x23a74` o `+0x24ecc` sono diversi da 0.
+- Rete: conferma -> `NetManager::QueueRevivePlayer` 0x90A670 ("[FRAME: %d] Queueing Revive Player"),
+  ricezione in 0x90F5F0 ("Recieved Message_RevivePlayer ... Revive Frame", "Revival Frame for User ... has
+  passed without being revived"), esecuzione `PlayerManager::ReviveCoopPlayer` 0x9BFB20 (chiamata anche
+  dal menu offline a 0x8EFD5C).
+- `g_Game+0x22ed0` = `HUD+0x72f8` (HUD in `g_Game+0x1bbd8`): e' il flag di visibilita' dell'HUD. Oltre a
+  `HUD:SetVisible` lo scrivono la fine dell'intro boss / transizione stanza (0x83204B =1, 0x82F25C =0) e
+  l'update di Dogma (0x4AB257 =0, 0x4AC0C5 =1). Lettori: menu revive, 0x8D1649, 0x98E4EA, 0x98EF82 (HUD).
+- Revive Machine = slot 6.19, generata nella stanza iniziale di ogni piano online (log: "Spawn Entity with
+  Type(6), Variant(19), Pos(240,160)").
+- Strumenti usati: probe di memoria in sola lettura (ReadProcessMemory su `[0xC71678]` -> g_Game) e un
+  watchpoint hardware (DR0 in scrittura via DebugActiveProcess/Wow64SetThreadContext): utile per trovare chi
+  scrive un byte quando la ricerca statica per displacement non basta (lo stesso byte e' indirizzato come
+  `Game+0x22ed0` e come `HUD+0x72f8`). Attenzione: con il debugger agganciato il gioco va in crash se
+  l'eccezione del watchpoint non viene gestita con DBG_CONTINUE.
