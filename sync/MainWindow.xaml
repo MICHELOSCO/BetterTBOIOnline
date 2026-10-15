@@ -1,0 +1,208 @@
+<Window x:Class="BtoSync.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="BTO Sync" Width="1120" Height="740" MinWidth="860" MinHeight="540"
+        WindowStartupLocation="CenterScreen" Background="{StaticResource Bg}" FontFamily="Segoe UI" FontSize="14"
+        TextOptions.TextFormattingMode="Display">
+  <DockPanel>
+    <!-- Header -->
+    <Border DockPanel.Dock="Top" Background="{StaticResource Panel}" Padding="24,16" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+      <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <StackPanel Orientation="Horizontal">
+          <Border Width="40" Height="40" CornerRadius="10" Background="{StaticResource AccentBrush}" Margin="0,0,12,0">
+            <TextBlock Text="BTO" Foreground="White" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="BTO Sync" FontSize="20" FontWeight="SemiBold"/>
+            <TextBlock Text="Stesse mod per tutti, prima di giocare online" Foreground="{StaticResource Muted}" FontSize="12"/>
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Margin="40,0,24,0" VerticalAlignment="Center">
+          <TextBlock Text="CARTELLA MODS" Foreground="{StaticResource Muted}" FontSize="11" FontWeight="SemiBold"/>
+          <DockPanel Margin="0,2,0,0">
+            <Button DockPanel.Dock="Right" Content="Cambia" Style="{StaticResource Small}" Click="ChangeDir_Click" Margin="10,0,0,0"/>
+            <TextBlock x:Name="ModsDirText" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="13"/>
+          </DockPanel>
+        </StackPanel>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+          <StackPanel x:Name="SteamBox" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,12,0">
+            <Ellipse Width="8" Height="8" Fill="{StaticResource Ok}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <TextBlock Text="Collegato a Steam" Foreground="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center"
+                       ToolTip="Per usare il Workshop BTO Sync si collega a Steam come Isaac: finché è collegato risulti in gioco su Isaac."/>
+            <Button Content="Scollega" Style="{StaticResource Small}" Click="Disconnect_Click" Margin="8,0,0,0"/>
+          </StackPanel>
+          <Button x:Name="LaunchBtn" Content="▶  Avvia Isaac" Style="{StaticResource Accent}" Click="Launch_Click"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border x:Name="IsaacBanner" DockPanel.Dock="Top" Background="#3D2020" Padding="24,10" Visibility="Collapsed">
+      <TextBlock Foreground="#FFB4A8" TextWrapping="Wrap"
+                 Text="Isaac è aperto. Chiudilo per attivare, disattivare o installare mod: il gioco le carica solo all'avvio."/>
+    </Border>
+
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource Panel}" Padding="24,7" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
+      <TextBlock x:Name="StatusText" Foreground="{StaticResource Muted}" FontSize="12" Text="Pronto."/>
+    </Border>
+
+    <TabControl x:Name="Tabs" Margin="12,6,12,0" SelectionChanged="Tabs_SelectionChanged">
+      <!-- 1. Installed mods -->
+      <TabItem Header="Le mie mod">
+        <DockPanel Margin="12,14,12,12">
+          <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+              <Button Content="Aggiorna elenco" Style="{StaticResource Ghost}" Click="Refresh_Click"/>
+              <Button Content="Apri cartella" Style="{StaticResource Ghost}" Click="OpenDir_Click" Margin="8,0,0,0"/>
+            </StackPanel>
+            <TextBlock x:Name="ModsSummary" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
+          </DockPanel>
+          <Border Style="{StaticResource Card}" Padding="0">
+            <ListBox x:Name="ModsList" Style="{StaticResource Plain}" ItemContainerStyle="{StaticResource Row}">
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="64"/><ColumnDefinition/><ColumnDefinition Width="80"/><ColumnDefinition Width="120"/><ColumnDefinition Width="290"/>
+                    </Grid.ColumnDefinitions>
+                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Enabled, Mode=TwoWay}" Click="Toggle_Click" VerticalAlignment="Center"
+                              ToolTip="Attiva o disattiva la mod"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding NameText}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                      <TextBlock Text="{Binding FolderText}" Foreground="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Text="{Binding VersionText}" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
+                    <Border Grid.Column="3" Style="{StaticResource Badge}" HorizontalAlignment="Left">
+                      <TextBlock Text="{Binding Origin}" FontSize="12"/>
+                    </Border>
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Status}" Foreground="{Binding StatusBrush}" VerticalAlignment="Center"/>
+                      <Button Content="Aggiorna" Style="{StaticResource SmallAccent}" Margin="10,0,0,0" Click="UpdateMod_Click"
+                              Visibility="{Binding CanUpdate, Converter={StaticResource Vis}}"/>
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Border>
+        </DockPanel>
+      </TabItem>
+
+      <!-- 2. Online: host code / align to host -->
+      <TabItem Header="Gioca online">
+        <Grid Margin="12,14,12,12">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
+          <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="16"/><ColumnDefinition/></Grid.ColumnDefinitions>
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <TextBlock Text="Sei l'host" Style="{StaticResource H2}"/>
+              <TextBlock Style="{StaticResource MutedText}" Text="Copia il codice delle tue mod attive e incollalo su Discord: gli altri lo useranno per avere esattamente le tue mod."/>
+              <Button Content="Copia il mio codice" Style="{StaticResource Accent}" HorizontalAlignment="Left" Margin="0,16,0,0" Click="Export_Click"/>
+              <TextBox x:Name="ExportBox" Height="58" Margin="0,12,0,0" TextWrapping="Wrap" IsReadOnly="True" Visibility="Collapsed"
+                       VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12"/>
+              <TextBlock x:Name="ExportResult" Margin="0,10,0,0" TextWrapping="Wrap" Foreground="{StaticResource Ok}"/>
+              <ItemsControl x:Name="ExportWarn" Margin="0,8,0,0">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Background="#3A3220" CornerRadius="6" Padding="10,7" Margin="0,0,0,6">
+                      <TextBlock Text="{Binding}" Foreground="{StaticResource Warn}" TextWrapping="Wrap" FontSize="12"/>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+          <Border Grid.Column="2" Style="{StaticResource Card}">
+            <StackPanel>
+              <TextBlock Text="Entri nella partita di un altro" Style="{StaticResource H2}"/>
+              <TextBlock Style="{StaticResource MutedText}" Text="Incolla il codice dell'host: BTO Sync ti mostra cosa cambiare e lo fa per te."/>
+              <TextBox x:Name="CodeBox" Height="58" Margin="0,12,0,0" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                       FontFamily="Consolas" FontSize="12" Tag="BTO1:…"/>
+              <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <Button Content="Incolla" Style="{StaticResource Ghost}" Click="Paste_Click"/>
+                <Button Content="Confronta" Style="{StaticResource Accent}" Margin="8,0,0,0" Click="Compare_Click"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+          <Border x:Name="PlanCard" Grid.Row="1" Grid.ColumnSpan="3" Style="{StaticResource Card}" Margin="0,16,0,0" Visibility="Collapsed">
+            <DockPanel>
+              <DockPanel DockPanel.Dock="Top">
+                <Button x:Name="ApplyBtn" DockPanel.Dock="Right" Content="Allinea ora" Style="{StaticResource Accent}" Click="Apply_Click"/>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock x:Name="PlanTitle" Style="{StaticResource H2}" Margin="0"/>
+                  <TextBlock x:Name="PlanSub" Style="{StaticResource MutedText}"/>
+                </StackPanel>
+              </DockPanel>
+              <ItemsControl x:Name="NotesList" DockPanel.Dock="Top" Margin="0,10,0,0">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Background="#3A3220" CornerRadius="6" Padding="12,8" Margin="0,0,0,6">
+                      <TextBlock Text="{Binding}" Foreground="{StaticResource Warn}" TextWrapping="Wrap"/>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <ListBox x:Name="PlanList" Margin="0,8,0,0" Style="{StaticResource Plain}" ItemContainerStyle="{StaticResource Row}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <Border Style="{StaticResource Badge}" HorizontalAlignment="Left"><TextBlock Text="{Binding KindText}" FontSize="11" FontWeight="SemiBold"/></Border>
+                      <TextBlock Grid.Column="1" Text="{Binding Text}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                      <TextBlock Grid.Column="2" Text="{Binding State}" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="12,0,0,0"/>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </DockPanel>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <!-- 3. Workshop browser -->
+      <TabItem Header="Workshop">
+        <DockPanel Margin="12,14,12,12">
+          <DockPanel DockPanel.Dock="Top">
+            <Button DockPanel.Dock="Right" Content="Cerca" Style="{StaticResource Accent}" Click="Search_Click" Margin="8,0,0,0" VerticalAlignment="Center"/>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+              <RadioButton x:Name="SortTrend" Content="Di tendenza" Style="{StaticResource Chip}" GroupName="sort" IsChecked="True" Checked="Sort_Checked"/>
+              <RadioButton x:Name="SortSubs" Content="Più iscritti" Style="{StaticResource Chip}" GroupName="sort" Checked="Sort_Checked"/>
+              <RadioButton x:Name="SortNew" Content="Più recenti" Style="{StaticResource Chip}" GroupName="sort" Checked="Sort_Checked"/>
+            </StackPanel>
+            <TextBox x:Name="SearchBox" Tag="Cerca mod nel Workshop di Isaac…" KeyDown="SearchBox_KeyDown" VerticalAlignment="Center"/>
+          </DockPanel>
+          <TextBlock x:Name="WsInfo" DockPanel.Dock="Top" Margin="2,12,0,10" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
+          <Button x:Name="MoreBtn" DockPanel.Dock="Bottom" Content="Altri risultati" Style="{StaticResource Ghost}" HorizontalAlignment="Center"
+                  Margin="0,10,0,0" Click="More_Click" Visibility="Collapsed"/>
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="WsList">
+              <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Style="{StaticResource Card}" Width="240" Margin="0,0,14,14" Padding="0" ToolTip="{Binding Description}">
+                    <StackPanel>
+                      <Border Height="135" CornerRadius="10,10,0,0" Background="#2A2C33">
+                        <Image Source="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill"/>
+                      </Border>
+                      <StackPanel Margin="14,10,14,14">
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding SubsText}" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,3,0,10"/>
+                        <ProgressBar Height="4" Maximum="1" Value="{Binding Progress}" Margin="0,0,0,10" Visibility="{Binding Busy, Converter={StaticResource Vis}}"/>
+                        <TextBlock Text="{Binding Error}" Foreground="#FF7B6B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <DockPanel>
+                          <Button DockPanel.Dock="Right" Content="Pagina" Style="{StaticResource Small}" Click="WsPage_Click"/>
+                          <Button Content="{Binding ButtonText}" Style="{StaticResource SmallAccent}" IsEnabled="{Binding CanAct}" Click="WsAct_Click"
+                                  HorizontalAlignment="Left" MinWidth="96"/>
+                        </DockPanel>
+                      </StackPanel>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</Window>

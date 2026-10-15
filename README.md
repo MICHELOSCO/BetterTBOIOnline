@@ -13,7 +13,7 @@ patch al gioco, da finalizzare in una sessione di test con un secondo giocatore.
 | Cartella | Contenuto |
 |---|---|
 | `mods/bto-*/` | Mod di fix online, una per problema (`-sync` = evita un desync, `-fix` = evita crash/blocchi). Elenco e uso in `dist-src/LEGGIMI.txt`; zip per gli amici con `build-zip.sh`. |
-| `sync/` | BTO Sync (`BTO-Sync.bat` + `bto-sync.ps1`, PowerShell 5.1): l'host esporta un codice con le sue mod attive, gli altri allineano la cartella `mods` (attiva/disattiva con `disable.it`, scarica le mod BTO dalle release, apre il Workshop per le mancanti). Istruzioni in `sync/LEGGIMI.txt`, test offline `sync/test-sync.ps1`. |
+| `sync/` | BTO Sync, app Windows (WPF, .NET Framework 4.8, Facepunch.Steamworks): elenco mod con attiva/disattiva (`disable.it`) e aggiornamenti Workshop; codice dell'host e allineamento automatico (mod BTO dalle release GitHub, mod Workshop scaricate via Steam e copiate in `mods/<directory>_<id>` come fa il gioco); ricerca e installazione dal Workshop. Build `dotnet build -c Release` in `sync/`, autotest `BTO-Sync.exe --selftest`, istruzioni `sync/LEGGIMI.txt`. |
 | `diagnostics-mod/` | Mod Lua: logger eventi (`main.lua`) + snapshot personaggio (`snapshot.lua`). |
 | `mod-online-patcher/` | Reimplementazione futura della patch "mod online" (vuota per ora). |
 | `tools/` | Script di analisi statica dell'exe (sola lettura). |

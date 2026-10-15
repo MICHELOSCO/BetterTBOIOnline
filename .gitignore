@@ -2,3 +2,6 @@
 *.rar
 *.zip
 logs-others/
+__pycache__/
+bin/
+obj/

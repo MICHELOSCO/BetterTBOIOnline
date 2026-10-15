@@ -1,24 +1,31 @@
 BTO Sync - stesse mod per tutti prima di giocare online
 =====================================================
 Online, se anche un solo giocatore ha una mod in piu', in meno o di versione diversa, la partita
-si divide (desync). BTO Sync confronta le tue mod con quelle dell'host e le allinea.
-Non serve installare nulla: basta Windows. Usalo SEMPRE A GIOCO CHIUSO.
+si divide (desync). BTO Sync confronta le tue mod con quelle dell'host e le allinea, e ti fa
+cercare e installare mod dal Workshop senza aprire il gioco.
 
-HOST (chi crea la lobby)
-  1. Doppio clic su BTO-Sync.bat, scegli 1.
-  2. Il codice (inizia con BTO1:) e' gia' negli appunti: incollalo su Discord.
+Avvio: doppio clic su BTO-Sync.exe (tieni insieme i 4 file della cartella). Non serve installare
+nulla. Steam deve essere aperto. Usalo A GIOCO CHIUSO: Isaac carica le mod solo all'avvio.
+Se Windows avvisa "PC protetto": "Ulteriori informazioni" > "Esegui comunque".
 
-GLI ALTRI
-  1. Copia il codice dell'host da Discord (tutto, da BTO1: alla fine).
-  2. Doppio clic su BTO-Sync.bat, scegli 2.
-  3. Leggi la lista "Da fare" e rispondi s. BTO Sync:
-       - attiva le mod che l'host ha e tu hai disattivate;
-       - disattiva le mod che l'host non ha (non le cancella: le riattivi dal menu Mods);
-       - scarica da GitHub le mod BTO mancanti o diverse;
-       - per le mod del Workshop che ti mancano apre la pagina Steam: premi Iscriviti.
-  4. Le righe con "!" vanno risolte a mano (es. mod Workshop vecchia: aggiornala da Steam).
-  5. Se ti sei iscritto a mod nuove: aspetta il download su Steam, avvia Isaac una volta, chiudilo
-     e rilancia BTO Sync. Quando non ci sono ne' "!" ne' cose da fare, sei allineato.
+LE MIE MOD
+  Tutte le mod installate, con l'interruttore per attivarle o disattivarle (disattivare non
+  cancella nulla). Per le mod del Workshop vedi se sono aggiornate; "Aggiorna" scarica l'ultima.
 
-Se Windows chiede conferma per aprire il file: "Ulteriori informazioni" > "Esegui comunque".
+GIOCA ONLINE
+  Host: "Copia il mio codice" e incolla il codice (inizia con BTO1:) su Discord.
+  Gli altri: copiano il codice, "Incolla", "Confronta", poi "Allinea ora". BTO Sync:
+    - attiva le mod che l'host ha e tu hai disattivate;
+    - disattiva quelle che l'host non ha;
+    - scarica da GitHub le mod BTO mancanti o diverse;
+    - scarica dal Workshop le mod mancanti o vecchie (ti iscrive lui).
+  Gli avvisi gialli vanno risolti a mano. Quando compare "Sei allineato all'host" sei pronto.
+
+WORKSHOP
+  Cerca per nome o sfoglia per tendenza, iscritti o novita'. "Installa" ti iscrive, scarica e
+  mette la mod nella cartella mods gia' attiva; "Rimuovi" la disiscrive e la toglie.
+
+NOTA SU STEAM: per usare il Workshop BTO Sync si collega a Steam come Isaac, quindi finche' e'
+collegato i tuoi amici ti vedono "in gioco" su Isaac. "Avvia Isaac" e "Scollega" lo staccano.
+
 Sorgente e nuove versioni: https://github.com/MICHELOSCO/BetterTBOIOnline
