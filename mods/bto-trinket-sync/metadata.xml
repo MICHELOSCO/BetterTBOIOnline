@@ -2,7 +2,11 @@
 <metadata>
 	<name>BTO Trinket Sync</name>
 	<directory>bto-trinket-sync</directory>
-	<description>Online desync fix for the base game: picking up or swapping a trinket no longer splits the party. Same gameplay; shop trinkets stay vanilla. Install on every player's PC (same BTO mods, same version).</description>
-	<version>1.0</version>
+	<description>Evita un desync del gioco base: online raccogliere o scambiare un trinket faceva dividere la partita (4 casi su 4 nei log).
+
+La raccolta la gestisce la mod: passi sopra un trinket e lo prendi, se ne avevi già uno cade ai tuoi piedi. L'unica differenza è che il trinket va subito nello slot, senza attesa. I trinket in vendita nei negozi restano gestiti dal gioco.
+
+Va installata su tutti i PC della partita, con la stessa versione (BTO Sync lo controlla per te).</description>
+	<version>1.0.1</version>
 	<visibility>Private</visibility>
 </metadata>

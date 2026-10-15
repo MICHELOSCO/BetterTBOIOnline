@@ -2,7 +2,9 @@
 <metadata>
 	<name>BetterTBOIOnline Diagnostics</name>
 	<directory>bettertboionline-diagnostics</directory>
-	<description>Read-only logger for co-op join/leave/desync investigation. Writes [BTO-DIAG] lines to log.txt. Does not change gameplay.</description>
-	<version>0.4</version>
+	<description>Solo per le analisi, non cambia il gioco.
+
+Scrive nel log.txt cosa succede quando qualcuno entra, esce o la partita si divide, più una foto dei personaggi a ogni stanza. Serve per capire i desync: dopo un problema manda la cartella online_logs e il log.txt.</description>
+	<version>0.4.1</version>
 	<visibility>Private</visibility>
 </metadata>

@@ -2,7 +2,13 @@
 <metadata>
 	<name>BTO StageAPI Sync</name>
 	<directory>bto-stageapi-sync</directory>
-	<description>Online desync fix for StageAPI custom stages (The Future...): deterministic StageAPI RNG, no animated stage change online, same first-run preload on every client. Needs StageAPI. Install on every player's PC (same BTO mods, same version).</description>
-	<version>1.0</version>
+	<description>Rende sincronizzati online i piani personalizzati di StageAPI, come quelli di The Future.
+
+I numeri casuali di StageAPI diventano uguali su tutti i PC, e online non c'è più l'animazione di transizione tra i piani: faceva cambiare piano in momenti diversi sui vari PC.
+
+Serve la mod StageAPI.
+
+Va installata su tutti i PC della partita, con la stessa versione (BTO Sync lo controlla per te).</description>
+	<version>1.0.1</version>
 	<visibility>Private</visibility>
 </metadata>

@@ -2,7 +2,11 @@
 <metadata>
 	<name>BTO The Future Sync</name>
 	<directory>bto-thefuture-sync</directory>
-	<description>Online desync fix for The Future: circle-shot enemies (Rubber...) fire the same ring on every PC. Needs The Future. Install on every player's PC (same BTO mods, same version).</description>
-	<version>1.0</version>
+	<description>Evita i desync con i nemici di The Future che sparano anelli di proiettili: l'anello ora è identico su tutti i PC.
+
+Serve la mod The Future.
+
+Va installata su tutti i PC della partita, con la stessa versione (BTO Sync lo controlla per te).</description>
+	<version>1.0.1</version>
 	<visibility>Private</visibility>
 </metadata>

@@ -2,7 +2,13 @@
 <metadata>
 	<name>BTO Treasure Jingle Sync</name>
 	<directory>bto-treasure-jingle-sync</directory>
-	<description>Online desync fix: a mod restarting the room music in a treasure room (e.g. The Specialist for Good Items) no longer splits the party. Base game, any mod. Install on every player's PC (same BTO mods, same version).</description>
-	<version>1.0</version>
+	<description>Evita un desync nelle stanze del tesoro.
+
+Se una mod fa ripartire la musica quando entri in una stanza del tesoro (era "The Specialist for Good Items", quella del balletto), il gioco consumava numeri casuali sincronizzati solo sul PC che aveva quella mod. Online questa chiamata viene bloccata.
+
+La regola resta: stesse mod per tutti, niente mod in più.
+
+Va installata su tutti i PC della partita, con la stessa versione (BTO Sync lo controlla per te).</description>
+	<version>1.0.1</version>
 	<visibility>Private</visibility>
 </metadata>

@@ -44,27 +44,47 @@ namespace BtoSync
 
 	public class LocalMod : Notify
 	{
-		public string Key, Folder, Name, Id, Version, Hash, Manifest, Path;
+		public string Key, Folder, Name, Id, Version, Hash, Manifest, Path, Description;
 		public bool Link;
-		bool enabled; string status = ""; Brush statusBrush = Theme.Muted; bool canUpdate;
+		bool enabled, canUpdate, unlocked = true, expanded; string status = "", preview; Brush statusBrush = Theme.Muted;
 		public string NameText => Name;
 		public string FolderText => Folder;
 		public string VersionText => Version == "" ? "" : "v" + Version;
-		public string Origin => Link ? "Collegamento" : Id != "" ? "Workshop" : Core.IsBto(Folder) ? "BTO" : "Locale";
+		public string Initial => Name.TrimStart('!', '~', ' ', '-', '[', '(').Length > 0 ? Name.TrimStart('!', '~', ' ', '-', '[', '(').Substring(0, 1).ToUpperInvariant() : "?";
+		public string Origin => Link ? "Sviluppo" : Id != "" ? "Workshop" : Core.IsBto(Folder) ? "BTO" : "Locale";
+		public Brush OriginBrush => Link ? Theme.Warn : Id != "" ? Theme.Blue : Core.IsBto(Folder) ? Theme.Red : Theme.Muted;
+		public string DescriptionText => Core.CleanDescription(Description) ?? "Questa mod non ha una descrizione nel suo metadata.xml.";
+		public bool HasPage => Id != "";
+		public bool CanRemove => !Link && (Id != "" || Core.IsBto(Folder));
 		public bool Enabled { get => enabled; set => Set(ref enabled, value); }
 		public string Status { get => status; set => Set(ref status, value); }
 		public Brush StatusBrush { get => statusBrush; set => Set(ref statusBrush, value); }
 		public bool CanUpdate { get => canUpdate; set => Set(ref canUpdate, value); }
+		public bool Unlocked { get => unlocked; set { if (unlocked != value) Set(ref unlocked, value); } }  // false while Isaac runs
+		public bool IsExpanded { get => expanded; set => Set(ref expanded, value); }
+		public string Preview { get => preview; set { Set(ref preview, value); Raise(nameof(HasPreview)); } }
+		public bool HasPreview => !string.IsNullOrEmpty(preview);
 
 		public void UpdateStatus(Dictionary<string, string> latest)
 		{
 			CanUpdate = false; StatusBrush = Theme.Muted;
+			if (Id != "" && Core.Previews.TryGetValue(Id, out var pv)) Preview = pv;
 			if (Link) Status = "Collegata a una cartella di sviluppo";
 			else if (Id == "") Status = Core.IsBto(Folder) ? "Fix BetterTBOIOnline" : "Solo su questo PC";
 			else if (!latest.TryGetValue(Id, out var last)) Status = "";
 			else if (Manifest != "" && Manifest != last) { Status = "Aggiornamento disponibile"; StatusBrush = Theme.Warn; CanUpdate = true; }
 			else { Status = "Aggiornata"; StatusBrush = Theme.Ok; }
 		}
+	}
+
+	// A saved set of active mods (r2modman-style profile); keys as in LocalMod.Key.
+	public class Profile : Notify
+	{
+		string n; bool active;
+		public string name { get => n; set => Set(ref n, value); }
+		public List<string> keys { get; set; } = new List<string>();
+		[ScriptIgnore] public string Summary => keys.Count == 1 ? "1 mod" : keys.Count + " mod";
+		[ScriptIgnore] public bool IsActive { get => active; set => Set(ref active, value); }
 	}
 
 	public enum ActionKind { Enable, Disable, Download, Subscribe }
@@ -74,7 +94,7 @@ namespace BtoSync
 		public ActionKind Kind; public LocalMod Local; public HostMod Host;
 		string state = "";
 		public string Text { get; set; }
-		public string KindText => Kind switch { ActionKind.Enable => "ATTIVA", ActionKind.Disable => "DISATTIVA", ActionKind.Download => "SCARICA", _ => "WORKSHOP" };
+		public string KindText => Kind switch { ActionKind.Enable => "Attiva", ActionKind.Disable => "Disattiva", ActionKind.Download => "GitHub", _ => "Workshop" };
 		public string State { get => state; set => Set(ref state, value); }
 	}
 
@@ -87,7 +107,8 @@ namespace BtoSync
 
 	public static class Theme
 	{
-		public static readonly Brush Muted = Freeze("#9A9CA5"), Ok = Freeze("#5FC27E"), Warn = Freeze("#E8B04A"), Bad = Freeze("#FF7B6B");
+		public static readonly Brush Muted = Freeze("#8B93A7"), Ok = Freeze("#3FB97A"), Warn = Freeze("#E5A93B"), Bad = Freeze("#F0616D"),
+			Blue = Freeze("#4C8DFF"), Red = Freeze("#E5484D");
 		static Brush Freeze(string hex) { var b = (Brush)new BrushConverter().ConvertFrom(hex); b.Freeze(); return b; }
 	}
 
@@ -171,15 +192,15 @@ namespace BtoSync
 			return t;
 		}
 
-		static (string name, string id, string version, string directory) ReadMeta(string dir)
+		static (string name, string id, string version, string directory, string description) ReadMeta(string dir)
 		{
 			try
 			{
 				var x = XDocument.Load(System.IO.Path.Combine(dir, "metadata.xml")).Root;
 				string V(string n) => (x.Element(n)?.Value ?? "").Trim();
-				return (V("name"), V("id"), V("version"), V("directory"));
+				return (V("name"), V("id"), V("version"), V("directory"), V("description"));
 			}
-			catch { return ("", "", "", ""); }
+			catch { return ("", "", "", "", ""); }
 		}
 
 		// ponytail: hashes every mod on every scan (~1 s for 500 MB); cache by size+mtime if it gets slow.
@@ -204,6 +225,7 @@ namespace BtoSync
 					Enabled = !File.Exists(System.IO.Path.Combine(d, "disable.it")),
 					Link = IsLink(d),
 					Path = d,
+					Description = meta.description,
 				});
 			}
 			return list.OrderBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
@@ -246,7 +268,9 @@ namespace BtoSync
 
 		static System.Collections.IEnumerable Arr(object o) => o as System.Collections.IEnumerable ?? new object[0];
 
-		// Latest Workshop manifest (hcontent_file) per item, from the keyless Steam Web API.
+		public static readonly Dictionary<string, string> Previews = new Dictionary<string, string>();  // Workshop id -> preview image url
+
+		// Latest Workshop manifest (hcontent_file) per item, from the keyless Steam Web API (also fills Previews).
 		public static async Task<Dictionary<string, string>> LatestManifests(ICollection<string> ids)
 		{
 			var r = new Dictionary<string, string>();
@@ -257,7 +281,10 @@ namespace BtoSync
 			var resp = await Http.PostAsync("https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/", new FormUrlEncodedContent(form));
 			var root = (Dictionary<string, object>)new JavaScriptSerializer().DeserializeObject(await resp.Content.ReadAsStringAsync());
 			foreach (Dictionary<string, object> d in Arr(((Dictionary<string, object>)root["response"])["publishedfiledetails"]))
+				{
 				if (d.TryGetValue("hcontent_file", out var h)) r[d["publishedfileid"].ToString()] = h.ToString();
+				if (d.TryGetValue("preview_url", out var pv)) Previews[d["publishedfileid"].ToString()] = pv.ToString();
+			}
 			return r;
 		}
 
@@ -341,6 +368,56 @@ namespace BtoSync
 			Directory.CreateDirectory(dst);
 			foreach (var f in Directory.GetFiles(src)) File.Copy(f, System.IO.Path.Combine(dst, System.IO.Path.GetFileName(f)));
 			foreach (var d in Directory.GetDirectories(src)) CopyDir(d, System.IO.Path.Combine(dst, System.IO.Path.GetFileName(d)));
+		}
+
+		// ---- profiles: %APPDATA%\BtoSync\profiles.json ----
+		class ProfileFile { public string active { get; set; } public List<Profile> profiles { get; set; } }
+		static string ProfilesFile => System.IO.Path.Combine(System.IO.Path.GetDirectoryName(SettingsFile), "profiles.json");
+
+		public static (List<Profile> list, string active) LoadProfiles()
+		{
+			try
+			{
+				var f = new JavaScriptSerializer().Deserialize<ProfileFile>(File.ReadAllText(ProfilesFile));
+				return (f.profiles ?? new List<Profile>(), f.active);
+			}
+			catch { return (new List<Profile>(), null); }
+		}
+
+		public static void SaveProfiles(IEnumerable<Profile> list, string active)
+		{
+			Directory.CreateDirectory(System.IO.Path.GetDirectoryName(ProfilesFile));
+			File.WriteAllText(ProfilesFile, new JavaScriptSerializer().Serialize(new ProfileFile { active = active, profiles = list.ToList() }));
+		}
+
+		// Enables exactly the profile's mods; returns the names of the profile's mods that are not installed.
+		public static List<string> ApplyProfile(Profile p, List<LocalMod> local)
+		{
+			var want = new HashSet<string>(p.keys);
+			foreach (var m in local.Where(m => !m.Link && m.Enabled != want.Contains(m.Key))) SetEnabled(m, want.Contains(m.Key));
+			return p.keys.Where(k => !local.Any(m => m.Key == k)).ToList();
+		}
+
+		// Uninstall: Workshop copies and BTO mods only (they can be downloaded again); never a junction.
+		public static void DeleteMod(LocalMod m)
+		{
+			if (!m.CanRemove) throw new InvalidOperationException("questa mod non si può disinstallare da qui: non è né del Workshop né BTO");
+			DeleteFolder(m.Path);
+		}
+
+		// Workshop descriptions are BBCode: keep the text, drop images and markup.
+		public static string CleanDescription(string s)
+		{
+			if (string.IsNullOrWhiteSpace(s)) return null;
+			const RegexOptions O = RegexOptions.IgnoreCase | RegexOptions.Singleline;
+			s = s.Replace("\r", "");
+			s = Regex.Replace(s, @"\[(img|previewyoutube)[^\]]*\].*?\[/\1\]", "", O);
+			s = Regex.Replace(s, @"\[url=[^\]]*\](.*?)\[/url\]", "$1", O);
+			s = Regex.Replace(s, @"\[\*\]\s*", "• ", O);
+			s = Regex.Replace(s, @"\[/?(h[1-6]|b|i|u|s|strike|spoiler|noparse|list|olist|quote|code|table|tr|td|th|hr|url)(=[^\]]*)?\]", "", O);
+			s = Regex.Replace(s, @"[ \t]+\n", "\n");
+			s = Regex.Replace(s, @"\n{3,}", "\n\n");
+			return s.Trim();
 		}
 
 		public static Plan MakePlan(List<HostMod> host, List<LocalMod> local, Dictionary<string, string> latest)

@@ -2,7 +2,13 @@
 <metadata>
 	<name>BTO The Future Revive Fix</name>
 	<directory>bto-thefuture-revive-fix</directory>
-	<description>Online soft-lock fix: in The Future the Revive Machine menu now appears and the game keeps taking input (the HUD is not tinted online). Needs The Future. Install on every player's PC (same BTO mods, same version).</description>
-	<version>1.0</version>
+	<description>Sistema la Revive Machine (la macchina delle monete nella stanza iniziale) dentro The Future.
+
+Prima, raggiunte le monete, il menu "chi far rinascere" non compariva e il gioco smetteva di rispondere per tutti: The Future nasconde l'HUD per i suoi effetti grafici, e quel menu fa parte dell'HUD. Online l'HUD in The Future non viene più scurito (cambia solo l'aspetto).
+
+Serve la mod The Future.
+
+Va installata su tutti i PC della partita, con la stessa versione (BTO Sync lo controlla per te).</description>
+	<version>1.0.1</version>
 	<visibility>Private</visibility>
 </metadata>

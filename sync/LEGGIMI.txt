@@ -1,31 +1,31 @@
-BTO Sync - stesse mod per tutti prima di giocare online
-=====================================================
-Online, se anche un solo giocatore ha una mod in piu', in meno o di versione diversa, la partita
-si divide (desync). BTO Sync confronta le tue mod con quelle dell'host e le allinea, e ti fa
-cercare e installare mod dal Workshop senza aprire il gioco.
-
-Avvio: doppio clic su BTO-Sync.exe (tieni insieme i 4 file della cartella). Non serve installare
+BTO Sync - mod manager per The Binding of Isaac: Repentance+
+===========================================================
+Avvio: doppio clic su BTO-Sync.exe (tieni insieme i file della cartella). Non serve installare
 nulla. Steam deve essere aperto. Usalo A GIOCO CHIUSO: Isaac carica le mod solo all'avvio.
 Se Windows avvisa "PC protetto": "Ulteriori informazioni" > "Esegui comunque".
 
 LE MIE MOD
   Tutte le mod installate, con l'interruttore per attivarle o disattivarle (disattivare non
-  cancella nulla). Per le mod del Workshop vedi se sono aggiornate; "Aggiorna" scarica l'ultima.
-
-GIOCA ONLINE
-  Host: "Copia il mio codice" e incolla il codice (inizia con BTO1:) su Discord.
-  Gli altri: copiano il codice, "Incolla", "Confronta", poi "Allinea ora". BTO Sync:
-    - attiva le mod che l'host ha e tu hai disattivate;
-    - disattiva quelle che l'host non ha;
-    - scarica da GitHub le mod BTO mancanti o diverse;
-    - scarica dal Workshop le mod mancanti o vecchie (ti iscrive lui).
-  Gli avvisi gialli vanno risolti a mano. Quando compare "Sei allineato all'host" sei pronto.
+  cancella nulla). Cerca per nome, filtra attive/disattivate/da aggiornare, "Aggiorna" per le
+  mod del Workshop vecchie. Clicca una mod per leggere cosa fa e per le altre azioni
+  (pagina Workshop, cartella, disinstalla).
 
 WORKSHOP
-  Cerca per nome o sfoglia per tendenza, iscritti o novita'. "Installa" ti iscrive, scarica e
-  mette la mod nella cartella mods gia' attiva; "Rimuovi" la disiscrive e la toglie.
+  Cerca per nome o sfoglia per tendenza, iscritti o novità. Clicca una mod per la descrizione.
+  "Installa" ti iscrive, la scarica e la mette già attiva nella cartella mods.
 
-NOTA SU STEAM: per usare il Workshop BTO Sync si collega a Steam come Isaac, quindi finche' e'
+GIOCA ONLINE
+  Online tutti devono avere le stesse mod dell'host, alla stessa versione.
+  Host: "Copia il mio codice" e incolla il codice (inizia con BTO1:) su Discord.
+  Gli altri: "Incolla", "Confronta", poi "Allinea ora": BTO Sync attiva, disattiva, scarica
+  da GitHub le mod BTO e dal Workshop quelle che mancano. Gli avvisi gialli vanno risolti a mano.
+
+PROFILI
+  Un profilo è un elenco di mod attive: salvane più di uno (es. "Run con The Future") e passa
+  dall'uno all'altro con "Applica". "Codice" copia il profilo da mandare agli altri;
+  "Importa un codice" crea un profilo e scarica le mod che ti mancano.
+
+NOTA SU STEAM: per usare il Workshop BTO Sync si collega a Steam come Isaac, quindi finché è
 collegato i tuoi amici ti vedono "in gioco" su Isaac. "Avvia Isaac" e "Scollega" lo staccano.
 
 Sorgente e nuove versioni: https://github.com/MICHELOSCO/BetterTBOIOnline

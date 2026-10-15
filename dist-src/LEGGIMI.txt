@@ -32,9 +32,9 @@ Se anche uno solo ha una versione vecchia (o non la ha), parte il desync all'avv
       Con il nostro set di mod (StageAPI, The Future, Fair Co-op Items...) mettetele TUTTE.
       Se una mod che serve a un fix non c'e', quel fix semplicemente non fa nulla.
    d) Controllo: in ogni cartella bto-... il file metadata.xml deve avere
-        <version>1.0</version>
+        <version>1.0.1</version>
       e in bettertboionline-diagnostics\metadata.xml
-        <version>0.4</version>
+        <version>0.4.1</version>
    e) Avvia il gioco, menu Mods: devono essere attive tutte le "BTO ..." e
       "BetterTBOIOnline Diagnostics".
       Servono anche, attive e uguali per tutti (Steam Workshop): StageAPI, The Future,

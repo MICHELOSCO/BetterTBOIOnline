@@ -53,6 +53,11 @@ namespace BtoSync
 				Assert(File.Exists(Path.Combine(me, "extra", "disable.it")), "extra disattivata");
 				Assert(File.Exists(Path.Combine(me, "old", "disable.it")), "old resta disattivata");
 
+				var missing = Core.ApplyProfile(new Profile { name = "t", keys = new List<string> { "bto-y", "nessuna" } }, Core.ScanMods(me));
+				var after = Core.ScanMods(me).ToDictionary(m => m.Folder, m => m.Enabled);
+				Assert(after["bto-y"] && !after["bto-x"] && !after["extra"] && !after["old"], "applica profilo: attive solo le sue mod");
+				Assert(missing.Count == 1 && missing[0] == "nessuna", "applica profilo: segnala le mod non installate");
+
 				// Workshop copy: named like Isaac does, keeps the disabled flag of the old copy
 				File.WriteAllText(Path.Combine(host, "wsmod_111", "main.lua"), "print(33)");
 				Mod(me, "wsmod_111", "Workshop Mod", "111", "print(3)"); File.WriteAllText(Path.Combine(me, "wsmod_111", "disable.it"), "");
@@ -61,6 +66,8 @@ namespace BtoSync
 				Assert(File.Exists(Path.Combine(me, "wsmod_111", "disable.it")), "la copia Workshop resta disattivata se lo era");
 				Core.RemoveWorkshopCopy("111", me);
 				Assert(!Core.HasWorkshopCopy("111", me), "copia Workshop rimossa");
+				Assert(Core.CleanDescription("[h1]Titolo[/h1]\r\n[img]http://x/y.png[/img]Testo [b]forte[/b] [url=http://a]link[/url]\n[list][*]uno[*]due[/list]")
+					== "Titolo\nTesto forte link\n• uno• due", "descrizione Workshop ripulita dal BBCode");
 				Console.WriteLine("OK");
 				return 0;
 			}

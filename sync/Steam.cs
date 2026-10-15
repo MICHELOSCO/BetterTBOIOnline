@@ -26,7 +26,7 @@ namespace BtoSync
 
 		public static async Task<(List<Item> items, int total)> Search(string text, int sort, int page)
 		{
-			var q = Query.ItemsReadyToUse.WithLongDescription(false);
+			var q = Query.ItemsReadyToUse.WithLongDescription(true);
 			if (!string.IsNullOrWhiteSpace(text)) q = q.WhereSearchText(text.Trim()).RankedByTextSearch();
 			else if (sort == 1) q = q.RankedByTotalUniqueSubscriptions();
 			else if (sort == 2) q = q.RankedByPublicationDate();
@@ -58,21 +58,27 @@ namespace BtoSync
 	public class WsItem : Notify
 	{
 		public ulong Id; public string Title { get; set; } public string Preview { get; set; } public string Description { get; set; }
-		public string SubsText { get; set; }
+		public string SubsText { get; set; } public string LongDescription;
+		bool expanded;
+		public bool IsExpanded { get => expanded; set => Set(ref expanded, value); }
+		public string Initial => string.IsNullOrEmpty(Title) ? "?" : Title.Substring(0, 1).ToUpperInvariant();
 		bool installed, busy; double progress; string error = "";
 		public bool Installed { get => installed; set { Set(ref installed, value); Raise(nameof(ButtonText)); } }
 		public bool Busy { get => busy; set { Set(ref busy, value); Raise(nameof(ButtonText)); Raise(nameof(CanAct)); } }
 		public double Progress { get => progress; set { Set(ref progress, value); Raise(nameof(ButtonText)); } }
 		public string Error { get => error; set => Set(ref error, value); }
 		public bool CanAct => !Busy;
-		public string ButtonText => Busy ? (Progress > 0 ? $"Scarico {Progress:P0}" : "Attendi…") : Installed ? "Rimuovi" : "Installa";
+		public string ButtonText => Busy ? (Progress > 0 ? $"Scarico {Progress:P0}" : "Attendi…") : Installed ? "Disinstalla" : "Installa";
+
+		static string Short(string s) => s == null ? null : s.Length > 300 ? s.Substring(0, 300) + "…" : s;
 
 		public static WsItem From(Item i, string modsDir) => new WsItem
 		{
 			Id = i.Id.Value,
 			Title = i.Title?.Trim(),
 			Preview = string.IsNullOrEmpty(i.PreviewImageUrl) ? null : i.PreviewImageUrl,
-			Description = string.IsNullOrWhiteSpace(i.Description) ? null : (i.Description.Length > 400 ? i.Description.Substring(0, 400) + "…" : i.Description),
+			LongDescription = Core.CleanDescription(i.Description),
+			Description = Short(Core.CleanDescription(i.Description)),
 			SubsText = $"{i.NumUniqueSubscriptions:N0} iscritti · aggiornata {i.Updated:dd/MM/yyyy}",
 			Installed = Core.HasWorkshopCopy(i.Id.Value.ToString(), modsDir),
 		};

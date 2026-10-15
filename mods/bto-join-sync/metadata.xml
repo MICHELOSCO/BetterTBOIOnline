@@ -2,7 +2,15 @@
 <metadata>
 	<name>BTO Join Sync</name>
 	<directory>bto-join-sync</directory>
-	<description>EXPERIMENTAL online fix for rejoining a run in progress: every client runs the mods' run-start code when someone joins, not only the joiner. Install on every player's PC (same BTO mods, same version).</description>
-	<version>1.0</version>
+	<description>SPERIMENTALE. Serve a rientrare in una run già iniziata dopo uno split, senza un nuovo desync.
+
+Quando qualcuno rientra, tutti i PC rieseguono il codice di inizio run delle mod, non solo chi entra.
+
+Come rientrare: chiudi il gioco, riaprilo ed entra nella lobby dell'host. L'host deve scendere con una botola normale al piano successivo: solo allora il rientro viene elaborato (uscire da The Future non basta).
+
+Se dopo un rientro la partita si divide di nuovo al piano successivo, mandate i log di tutti.
+
+Va installata su tutti i PC della partita, con la stessa versione (BTO Sync lo controlla per te).</description>
+	<version>1.0.1</version>
 	<visibility>Private</visibility>
 </metadata>

@@ -2,7 +2,13 @@
 <metadata>
 	<name>BTO Fair Co-op Crash Fix</name>
 	<directory>bto-faircoop-crash-fix</directory>
-	<description>Crash fix for Fair Co-op Items: after an online split it no longer touches removed players (simultaneous 'runtime error' crash of every client). Needs Fair Co-op Items. Install on every player's PC (same BTO mods, same version).</description>
-	<version>1.0</version>
+	<description>Evita il crash di tutti i giocatori insieme subito dopo uno split ("runtime error").
+
+Fair Co-op Items, nelle stanze del tesoro e dell'angelo, toccava i giocatori già rimossi dalla partita. Ora non succede più.
+
+Serve la mod Fair Co-op Items.
+
+Va installata su tutti i PC della partita, con la stessa versione (BTO Sync lo controlla per te).</description>
+	<version>1.0.1</version>
 	<visibility>Private</visibility>
 </metadata>

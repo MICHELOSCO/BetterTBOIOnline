@@ -2,7 +2,13 @@
 <metadata>
 	<name>BTO Render RNG Guard</name>
 	<directory>bto-render-rng-guard</directory>
-	<description>Online desync fix: random numbers drawn during rendering (fps-dependent) no longer touch the synced RNG. Works with any mod; also covers StageAPI and The Future helpers. Install on every player's PC (same BTO mods, same version).</description>
-	<version>1.0</version>
+	<description>Evita un desync online causato dal disegno dello schermo.
+
+Alcune mod usano numeri casuali mentre disegnano lo schermo. Quanti ne usano dipende dagli fps, quindi ogni PC ne consumava un numero diverso e la partita si divideva. Con questa mod quei numeri non toccano più quelli sincronizzati tra i giocatori.
+
+Vale per tutte le mod, anche senza mod aggiuntive.
+
+Va installata su tutti i PC della partita, con la stessa versione (BTO Sync lo controlla per te).</description>
+	<version>1.0.1</version>
 	<visibility>Private</visibility>
 </metadata>
