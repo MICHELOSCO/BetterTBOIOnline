@@ -12,6 +12,7 @@ patch al gioco, da finalizzare in una sessione di test con un secondo giocatore.
 
 | Cartella | Contenuto |
 |---|---|
+| `mods/bto-*/` | Mod di fix online, una per problema (`-sync` = evita un desync, `-fix` = evita crash/blocchi). Elenco e uso in `dist-src/LEGGIMI.txt`; zip per gli amici con `build-zip.sh`. |
 | `diagnostics-mod/` | Mod Lua: logger eventi (`main.lua`) + snapshot personaggio (`snapshot.lua`). |
 | `mod-online-patcher/` | Reimplementazione futura della patch "mod online" (vuota per ora). |
 | `tools/` | Script di analisi statica dell'exe (sola lettura). |

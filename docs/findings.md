@@ -911,3 +911,26 @@ callback), `HUD:SetVisible(false)` e `HUD:Render()` sono ignorati (metatable del
 schema di `resources/scripts/main.lua`): l'HUD lo disegna il gioco, non scurito, e il menu funziona. In
 singolo non cambia nulla. `VERSION_CODE` 10. Da verificare in partita: donare le monete in The Future e
 scegliere chi far rinascere.
+
+## 2026-10-15 — thefuture-onlinefix divisa in mod separate (`mods/bto-*`)
+
+La mod unica 0.9.3 e' stata divisa per funzione, ognuna installabile da sola, versione 1.0:
+`bto-render-rng-guard` (sezioni 1-2: RNG in render, anche StageAPI.Random e TheFuture.RandomInt),
+`bto-stageapi-sync` (3-5: re-seed RandomRNG, niente transizione animata online, preload uguale),
+`bto-join-sync` (6, sperimentale, compreso lo "swallow" del dispatch doppio, prima dentro il preload),
+`bto-thefuture-sync` (CircleAngle), `bto-trinket-sync` (7), `bto-faircoop-crash-fix` (9),
+`bto-treasure-jingle-sync` (10), `bto-thefuture-revive-fix` (11, con un suo rilevamento dell'handler
+shader di The Future al posto del flag condiviso).
+
+Ordine di caricamento: gli script Lua NON partono in ordine alfabetico (log 15/10: StageAPI, EID,
+Antibirth, poi le `bto-*`, diagnostica, Fair Co-op, The Future). Le `bto-*` partono prima di Fair Co-op e
+The Future, quindi gli agganci a `isRightRoom`, `TheFuture.RandomInt`, `TheFuture.FireProjectiles` (e per
+sicurezza quelli a StageAPI) vengono ritentati in `MC_POST_GAME_STARTED` a priorita' IMPORTANT. Verificato:
+le righe "guard installed / RandomInt guarded / circle angle pinned" compaiono all'avvio della run.
+
+Handshake: sostituisce `VERSION_CODE`. Ogni mod registra `BTO_MODS[nome] = versione`; un solo handler (del
+primo che carica) a inizio run online avanza l'RNG sincronizzato di `hash(nomi=versioni ordinati) % 1000 + 1`
+estrazioni, quindi set o versioni diverse falliscono al frame 1. Il blocco e' identico in tutte le mod
+(`build-zip.sh` lo verifica). Test da console: tutte e 8 -> 38, senza bto-trinket-sync -> 81, trinket 1.1 -> 69.
+ponytail: collisione 1/1000 tra due set diversi; `luamod` su una mod lascia l'handshake a quella scaricata.
+

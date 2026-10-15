@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+	<name>BTO The Future Revive Fix</name>
+	<directory>bto-thefuture-revive-fix</directory>
+	<description>Online soft-lock fix: in The Future the Revive Machine menu now appears and the game keeps taking input (the HUD is not tinted online). Needs The Future. Install on every player's PC (same BTO mods, same version).</description>
+	<version>1.0</version>
+	<visibility>Private</visibility>
+</metadata>
