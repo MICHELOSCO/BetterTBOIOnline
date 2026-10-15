@@ -10,5 +10,7 @@ rm -rf "${TMP:-/tmp}/pack" && mkdir -p "$P/mods/bettertboionline-diagnostics"
 cp -r mods/bto-* "$P/mods/"
 cp diagnostics-mod/main.lua diagnostics-mod/metadata.xml "$P/mods/bettertboionline-diagnostics/"
 cp dist-src/LEGGIMI.txt "$P/LEGGIMI.txt"
+cp sync/bto-sync.ps1 sync/BTO-Sync.bat "$P/"
+cp sync/LEGGIMI.txt "$P/LEGGIMI-BTO-Sync.txt"
 rm -f BetterTBOIOnline-per-amici.zip
 (cd "${TMP:-/tmp}/pack" && powershell -NoProfile -Command "Compress-Archive -Force -Path 'BetterTBOIOnline' -DestinationPath '$(cygpath -w "$OLDPWD")\BetterTBOIOnline-per-amici.zip'")
