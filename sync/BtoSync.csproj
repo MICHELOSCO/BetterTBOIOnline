@@ -10,6 +10,8 @@
     <AssemblyName>BTO-Sync</AssemblyName>
     <RootNamespace>BtoSync</RootNamespace>
     <Version>2.0.0</Version>
+    <!-- no PDB path (it holds the local user folder) in the published exe -->
+    <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Facepunch.Steamworks" Version="2.3.3" />
