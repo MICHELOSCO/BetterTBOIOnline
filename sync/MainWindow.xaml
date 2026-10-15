@@ -38,6 +38,7 @@
           <RadioButton x:Name="NavWs" Style="{StaticResource Nav}" Tag="&#xE774;" Content="Workshop" Checked="Nav_Checked"/>
           <RadioButton x:Name="NavOnline" Style="{StaticResource Nav}" Tag="&#xE716;" Content="Gioca online" Checked="Nav_Checked"/>
           <RadioButton x:Name="NavProfiles" Style="{StaticResource Nav}" Tag="&#xE8B9;" Content="Profili" Checked="Nav_Checked"/>
+          <RadioButton x:Name="NavSaves" Style="{StaticResource Nav}" Tag="&#xE74E;" Content="Salvataggi" Checked="Nav_Checked"/>
           <RadioButton x:Name="NavSettings" Style="{StaticResource Nav}" Tag="&#xE713;" Content="Impostazioni" Checked="Nav_Checked"/>
         </StackPanel>
 
@@ -64,7 +65,7 @@
       <Border x:Name="IsaacBanner" DockPanel.Dock="Top" Background="#2A1A1D" BorderBrush="#4A262A" BorderThickness="0,0,0,1" Padding="32,11" Visibility="Collapsed">
         <StackPanel Orientation="Horizontal">
           <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" Foreground="{StaticResource Accent}" FontSize="15" Margin="0,0,10,0"/>
-          <TextBlock Foreground="#F3C6C8" Text="Isaac è aperto: chiudilo per attivare, disattivare o installare mod (il gioco le carica solo all'avvio)."/>
+          <TextBlock Foreground="#F3C6C8" Text="Isaac è aperto: chiudilo per cambiare mod o salvataggi (il gioco li legge all'avvio e li riscrive mentre gira)."/>
         </StackPanel>
       </Border>
       <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="32,0,32,12" Style="{StaticResource Sub}" FontSize="12" Text="Pronto."/>
@@ -376,6 +377,86 @@
                         <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Salva attive"/></StackPanel>
                       </Button>
                       <Button Style="{StaticResource Danger}" Click="DeleteProfile_Click" ToolTip="Elimina il profilo (le mod restano installate)">
+                        <TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="13"/>
+                      </Button>
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+
+        <!-- Salvataggi -->
+        <DockPanel x:Name="PageSaves" Visibility="Collapsed">
+          <DockPanel DockPanel.Dock="Top" Margin="0,0,8,0">
+            <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Click="OpenBackups_Click" VerticalAlignment="Center" ToolTip="Apri la cartella dei backup di BTO Sync">
+              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8B7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Cartella backup"/></StackPanel>
+            </Button>
+            <StackPanel>
+              <TextBlock Text="Salvataggi" Style="{StaticResource H1}"/>
+              <TextBlock Style="{StaticResource Sub}" Margin="0,3,0,0" Text="I 3 slot di Isaac, con i dati che le mod salvano per ogni slot. Prima di sovrascrivere uno slot BTO Sync ne salva un backup."/>
+            </StackPanel>
+          </DockPanel>
+          <ItemsControl x:Name="SlotsList" DockPanel.Dock="Top" Margin="0,18,0,0" Focusable="False">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3" Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Style="{StaticResource Card}" Margin="0,0,8,0" Padding="18,16">
+                  <StackPanel>
+                    <DockPanel>
+                      <Border DockPanel.Dock="Right" Style="{StaticResource Badge}" BorderBrush="{StaticResource Warn}" Background="{StaticResource WarnSoft}"
+                              Visibility="{Binding HasRun, Converter={StaticResource Vis}}" ToolTip="C'è una partita salvata da continuare">
+                        <TextBlock Text="Partita in corso" Foreground="{StaticResource Warn}" FontSize="11" FontWeight="SemiBold"/>
+                      </Border>
+                      <TextBlock Text="{Binding Title}" Style="{StaticResource H2}"/>
+                    </DockPanel>
+                    <TextBlock Margin="0,14,0,0">
+                      <Run Text="{Binding AchText, Mode=OneWay}" FontSize="24" FontWeight="SemiBold"/><Run Text="  obiettivi" Foreground="{StaticResource Muted}" FontSize="13"/>
+                    </TextBlock>
+                    <ProgressBar Value="{Binding AchPct, Mode=OneWay}" Maximum="100" Margin="0,8,0,12"/>
+                    <TextBlock Text="{Binding Line1}" Foreground="{StaticResource Body}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding Line2}" Foreground="{StaticResource Body}" Margin="0,2,0,0"/>
+                    <TextBlock Text="{Binding ModifiedText}" Style="{StaticResource Sub}" FontSize="12" Margin="0,8,0,14"/>
+                    <StackPanel Orientation="Horizontal">
+                      <Button Style="{StaticResource Primary}" Click="SlotBackup_Click" IsEnabled="{Binding Exists}" Margin="0,0,8,0" ToolTip="Salva una copia dello slot com'è adesso">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Backup"/></StackPanel>
+                      </Button>
+                      <Button Style="{StaticResource Btn}" Click="SlotCopy_Click" IsEnabled="{Binding Exists}" ToolTip="Copia questo slot in un altro slot">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8C8;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Copia in…"/></StackPanel>
+                      </Button>
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <DockPanel DockPanel.Dock="Top" Margin="0,24,8,10">
+            <TextBlock x:Name="BackupsCount" DockPanel.Dock="Right" Style="{StaticResource Sub}" VerticalAlignment="Bottom"/>
+            <TextBlock Text="Backup" Style="{StaticResource H2}"/>
+          </DockPanel>
+          <TextBlock x:Name="SavesDirText" DockPanel.Dock="Bottom" Style="{StaticResource Sub}" FontSize="12" Margin="2,6,8,0" TextTrimming="CharacterEllipsis"/>
+          <TextBlock x:Name="BackupsEmpty" DockPanel.Dock="Top" Style="{StaticResource Sub}" Margin="2,0,0,0"
+                     Text="Nessun backup ancora: premi Backup su uno slot."/>
+          <ListBox x:Name="BackupsList" Style="{StaticResource Plain}" ItemContainerStyle="{StaticResource CardItem}">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Border Style="{StaticResource RowCard}">
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <Border Width="38" Height="38" CornerRadius="8" Background="{StaticResource Surface2}" Margin="0,0,12,0">
+                      <TextBlock Text="{Binding Icon}" Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{StaticResource Muted}"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding Sub}" Style="{StaticResource Sub}" FontSize="12" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                      <Button Style="{StaticResource Btn}" Click="BackupRestore_Click" Margin="0,0,8,0" ToolTip="Rimetti questo backup in uno slot">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE777;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Ripristina in…"/></StackPanel>
+                      </Button>
+                      <Button Style="{StaticResource Danger}" Click="BackupDelete_Click" ToolTip="Elimina il backup"
+                              Visibility="{Binding DeleteVis}">
                         <TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="13"/>
                       </Button>
                     </StackPanel>

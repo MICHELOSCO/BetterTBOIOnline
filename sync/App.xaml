@@ -259,6 +259,35 @@
       </Setter>
     </Style>
 
+    <!-- Dropdown menus (slot picker) -->
+    <Style TargetType="ContextMenu">
+      <Setter Property="Foreground" Value="{StaticResource Fg}"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="FontSize" Value="13"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ContextMenu">
+            <Border Background="{StaticResource Surface2}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="4" Margin="0,4,0,0">
+              <ItemsPresenter/>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style TargetType="MenuItem">
+      <Setter Property="Foreground" Value="{StaticResource Fg}"/><Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="MenuItem">
+            <Border x:Name="b" CornerRadius="6" Padding="12,8" Background="Transparent">
+              <ContentPresenter ContentSource="Header" TextElement.Foreground="{TemplateBinding Foreground}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource Hover}"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <Style TargetType="ToolTip">
       <Setter Property="Background" Value="{StaticResource Surface2}"/><Setter Property="Foreground" Value="{StaticResource Fg}"/>
       <Setter Property="BorderBrush" Value="{StaticResource Line}"/><Setter Property="Padding" Value="9,6"/><Setter Property="MaxWidth" Value="420"/>

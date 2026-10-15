@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -112,8 +113,10 @@ namespace BtoSync
 			PageWs.Visibility = NavWs.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
 			PageOnline.Visibility = NavOnline.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
 			PageProfiles.Visibility = NavProfiles.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+			PageSaves.Visibility = NavSaves.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
 			PageSettings.Visibility = NavSettings.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
 			if (NavWs.IsChecked == true && !wsOpened) { wsOpened = true; _ = Search(true); }
+			if (NavSaves.IsChecked == true) RefreshSaves();
 		}
 
 		void ProfileCard_Click(object sender, MouseButtonEventArgs e) => NavProfiles.IsChecked = true;
@@ -461,6 +464,92 @@ namespace BtoSync
 			NavOnline.IsChecked = true;
 			await Compare();
 			Status($"Profilo \"{name}\" creato: per attivarlo e scaricare ciò che manca usa Allinea ora.");
+		}
+
+		// ---------- saves ----------
+		List<SaveSlot> slots = new List<SaveSlot>();
+
+		void RefreshSaves()
+		{
+			try
+			{
+				Saves.Init(modsDir);
+				slots = Saves.Slots();
+				var backups = Saves.Backups();
+				SlotsList.ItemsSource = slots;
+				BackupsList.ItemsSource = backups;
+				BackupsEmpty.Visibility = backups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+				int game = backups.Count(b => b.FromGame);
+				BackupsCount.Text = backups.Count == 0 ? "" : $"{backups.Count - game} di BTO Sync · {game} copie automatiche del gioco";
+				SavesDirText.Text = "Salvataggi del gioco: " + Saves.SaveDir;
+			}
+			catch (Exception ex) { ShowError("Non riesco a leggere i salvataggi.", ex); }
+		}
+
+		static readonly string NL = Environment.NewLine + Environment.NewLine;
+		bool Ask(string text) => MessageBox.Show(this, text, "BTO Sync", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+
+		void SaveAction(string done, Action act)
+		{
+			UpdateState();
+			if (isaac) { MessageBox.Show(this, "Chiudi Isaac prima: mentre è aperto il gioco riscrive i salvataggi.", "BTO Sync", MessageBoxButton.OK, MessageBoxImage.Information); return; }
+			try { act(); Status(done); }
+			catch (Exception ex) { ShowError("Operazione sui salvataggi non riuscita.", ex); }
+			RefreshSaves();
+		}
+
+		// Small menu under the button to choose the target slot.
+		void PickSlot(object button, int except, Action<SaveSlot> pick)
+		{
+			var menu = new ContextMenu { PlacementTarget = (UIElement)button, Placement = PlacementMode.Bottom };
+			foreach (var s in slots.Where(s => s.Slot != except))
+			{
+				var item = new MenuItem { Header = $"{s.Title}  ·  {s.Short}" };
+				item.Click += (o, e) => pick(s);
+				menu.Items.Add(item);
+			}
+			menu.IsOpen = true;
+		}
+
+		static string Overwrites(SaveSlot s) => s.Exists ? $"Lo {s.Title.ToLower()} ({s.Short}) viene sostituito: prima ne salvo un backup." : $"Lo {s.Title.ToLower()} è vuoto.";
+
+		void SlotBackup_Click(object sender, RoutedEventArgs e)
+		{
+			var s = Ctx<SaveSlot>(sender);
+			SaveAction($"Backup dello {s.Title.ToLower()} salvato.", () => Saves.Backup(s.Slot, "Backup manuale"));
+		}
+
+		void SlotCopy_Click(object sender, RoutedEventArgs e)
+		{
+			var s = Ctx<SaveSlot>(sender);
+			PickSlot(sender, s.Slot, to =>
+			{
+				if (Ask($"Copiare lo {s.Title.ToLower()} nello {to.Title.ToLower()}?{NL}{Overwrites(to)}"))
+					SaveAction($"{s.Title} copiato nello {to.Title.ToLower()}.", () => Saves.Copy(s.Slot, to.Slot));
+			});
+		}
+
+		void BackupRestore_Click(object sender, RoutedEventArgs e)
+		{
+			var b = Ctx<SaveBackup>(sender);
+			PickSlot(sender, 0, to =>
+			{
+				if (Ask($"Ripristinare il backup \"{b.Title}\" nello {to.Title.ToLower()}?{NL}{b.Sub}{NL}{Overwrites(to)}"))
+					SaveAction($"Backup ripristinato nello {to.Title.ToLower()}.", () => Saves.Restore(b, to.Slot));
+			});
+		}
+
+		void BackupDelete_Click(object sender, RoutedEventArgs e)
+		{
+			var b = Ctx<SaveBackup>(sender);
+			if (Ask($"Eliminare il backup \"{b.Title}\"?{NL}{b.Sub}"))
+				SaveAction("Backup eliminato.", () => Saves.Delete(b));
+		}
+
+		void OpenBackups_Click(object sender, RoutedEventArgs e)
+		{
+			System.IO.Directory.CreateDirectory(Saves.BackupDir);
+			Process.Start("explorer.exe", "\"" + Saves.BackupDir + "\"");
 		}
 
 		// ---------- settings ----------
