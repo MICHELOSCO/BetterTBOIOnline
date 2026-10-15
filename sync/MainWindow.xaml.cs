@@ -42,7 +42,7 @@ namespace BtoSync
 			timer.Tick += (s, e) => UpdateState();
 			timer.Start();
 			RefreshProfiles();
-			Loaded += async (s, e) => { UpdateState(); await Reload(); };
+			Loaded += async (s, e) => { UpdateState(); _ = CheckUpdate(); await Reload(); };
 			Closing += (s, e) => Steam.Disconnect();
 			SourceInitialized += (s, e) => { int on = 1; DwmSetWindowAttribute(new System.Windows.Interop.WindowInteropHelper(this).Handle, 20, ref on, 4); };  // dark title bar
 		}
@@ -565,6 +565,56 @@ namespace BtoSync
 		}
 
 		void GitHub_Click(object sender, RoutedEventArgs e) => Process.Start("https://github.com/" + Core.Repo);
+
+		// ---------- self-update ----------
+		AppRelease update;
+
+		async Task CheckUpdate()
+		{
+			UpdateText.Text = "Controllo gli aggiornamenti su GitHub…";
+			try
+			{
+				var r = await Updater.Latest();
+				update = r != null && r.Version > Updater.Current ? r : null;
+				UpdateText.Text = update != null ? $"È disponibile la versione {update.VersionText}: premi Aggiorna."
+					: r == null ? "Nessuna versione pubblicata su GitHub." : "Hai l'ultima versione.";
+			}
+			catch (Exception ex) { update = null; UpdateText.Text = "Non riesco a controllare gli aggiornamenti: " + ex.Message; }
+			var vis = update != null ? Visibility.Visible : Visibility.Collapsed;
+			UpdateBanner.Visibility = UpdateNowBtn.Visibility = vis;
+			if (update == null) return;
+			UpdateBannerText.Text = $"È disponibile BTO Sync {update.VersionText} (hai la {Updater.Current.ToString(3)}).";
+			UpdateNowText.Text = "Aggiorna a " + update.VersionText;
+		}
+
+		async void CheckUpdate_Click(object sender, RoutedEventArgs e) => await CheckUpdate();
+		void UpdateNotes_Click(object sender, RoutedEventArgs e) { if (update?.Page != null) Process.Start(update.Page); }
+
+		async void Update_Click(object sender, RoutedEventArgs e)
+		{
+			if (update == null) return;
+			if (busy) { MessageBox.Show(this, "Aspetta che finisca l'operazione in corso.", "BTO Sync"); return; }
+			var notes = update.Notes.Replace("**", "").Trim();
+			if (notes.Length > 700) notes = notes.Substring(0, 700) + "…";
+			if (!Ask($"Aggiornare BTO Sync alla versione {update.VersionText}?{NL}{notes}{NL}Scarico l'aggiornamento da GitHub, sostituisco i file del programma e lo riavvio. Profili e backup restano.")) return;
+			busy = true; UpdateState();
+			Status($"Scarico BTO Sync {update.VersionText}…");
+			try
+			{
+				var zip = await Updater.Download(update);
+				await Task.Run(() => Updater.Apply(zip, Updater.AppDir));
+				try { System.IO.File.Delete(zip); } catch { }
+				Steam.Disconnect();
+				Updater.Restart();
+				Application.Current.Shutdown();
+			}
+			catch (Exception ex)
+			{
+				busy = false; UpdateState();
+				Status("Aggiornamento non riuscito.");
+				ShowError("Aggiornamento non riuscito: il programma è rimasto alla versione di prima.", ex);
+			}
+		}
 	}
 
 	// Plain Win32 clipboard: WPF/WinForms go through OLE, which fails with CLIPBRD_E_CANT_OPEN on some PCs (seen on the dev PC).

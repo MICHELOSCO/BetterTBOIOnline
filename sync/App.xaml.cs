@@ -9,6 +9,7 @@ namespace BtoSync
 		{
 			base.OnStartup(e);
 			if (e.Args.Contains("--selftest")) { Shutdown(SelfTest.Run()); return; }
+			Updater.CleanOld(Updater.AppDir);
 			DispatcherUnhandledException += (s, x) =>  // an unexpected error must not close the window mid-sync
 			{
 				MessageBox.Show("Errore imprevisto:\n\n" + x.Exception.Message, "BTO Sync", MessageBoxButton.OK, MessageBoxImage.Error);

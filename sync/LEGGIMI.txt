@@ -35,4 +35,7 @@ SALVATAGGI
 NOTA SU STEAM: per usare il Workshop BTO Sync si collega a Steam come Isaac, quindi finché è
 collegato i tuoi amici ti vedono "in gioco" su Isaac. "Avvia Isaac" e "Scollega" lo staccano.
 
+AGGIORNAMENTI: all'avvio BTO Sync controlla se su GitHub c'è una versione nuova e lo dice in alto;
+"Aggiorna ora" (o Impostazioni > Aggiorna) la scarica, sostituisce i file e riavvia il programma.
+
 Sorgente e nuove versioni: https://github.com/MICHELOSCO/BetterTBOIOnline

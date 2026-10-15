@@ -68,6 +68,20 @@
           <TextBlock Foreground="#F3C6C8" Text="Isaac è aperto: chiudilo per cambiare mod o salvataggi (il gioco li legge all'avvio e li riscrive mentre gira)."/>
         </StackPanel>
       </Border>
+      <Border x:Name="UpdateBanner" DockPanel.Dock="Top" Background="#14243F" BorderBrush="#24406B" BorderThickness="0,0,0,1" Padding="32,8" Visibility="Collapsed">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+            <Button Content="Novità" Style="{StaticResource Ghost}" Padding="10,4" Click="UpdateNotes_Click" Margin="0,0,6,0"/>
+            <Button Style="{StaticResource Primary}" Padding="12,4" Click="Update_Click">
+              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Aggiorna ora"/></StackPanel>
+            </Button>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="&#xE946;" Style="{StaticResource Icon}" Foreground="#7FB0FF" FontSize="15" Margin="0,0,10,0"/>
+            <TextBlock x:Name="UpdateBannerText" Foreground="#CFE0FF"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
       <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="32,0,32,12" Style="{StaticResource Sub}" FontSize="12" Text="Pronto."/>
 
       <Grid Margin="32,24,24,8">
@@ -494,12 +508,20 @@
           </Border>
           <Border Style="{StaticResource Card}">
             <DockPanel>
-              <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Click="GitHub_Click" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="GitHub"/></StackPanel>
-              </Button>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="UpdateNowBtn" Style="{StaticResource Primary}" Click="Update_Click" Margin="0,0,8,0" Visibility="Collapsed">
+                  <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock x:Name="UpdateNowText" Text="Aggiorna"/></StackPanel>
+                </Button>
+                <Button Style="{StaticResource Btn}" Click="CheckUpdate_Click" Margin="0,0,8,0">
+                  <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Controlla"/></StackPanel>
+                </Button>
+                <Button Style="{StaticResource Btn}" Click="GitHub_Click">
+                  <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="GitHub"/></StackPanel>
+                </Button>
+              </StackPanel>
               <StackPanel>
                 <TextBlock x:Name="AboutText" Text="BTO Sync" Style="{StaticResource H2}" FontSize="14"/>
-                <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="Sorgente, mod BTO e nuove versioni su GitHub (MICHELOSCO/BetterTBOIOnline)."/>
+                <TextBlock x:Name="UpdateText" Style="{StaticResource Sub}" Margin="0,4,0,0" Text="Aggiornamenti da GitHub (MICHELOSCO/BetterTBOIOnline): controllo all'avvio."/>
               </StackPanel>
             </DockPanel>
           </Border>

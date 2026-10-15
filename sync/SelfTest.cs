@@ -72,6 +72,32 @@ namespace BtoSync
 			Assert(!Directory.Exists(before.Path), "backup eliminato");
 		}
 
+		static void TestUpdater(string t)
+		{
+			string Rel(string tag, string asset, bool pre = false) =>
+				$"{{\"tag_name\":\"{tag}\",\"draft\":false,\"prerelease\":{(pre ? "true" : "false")},\"body\":\"n\",\"html_url\":\"p/{tag}\",\"assets\":[{{\"name\":\"{asset}\",\"browser_download_url\":\"u/{asset}\"}}]}}";
+			var json = "[" + string.Join(",", Rel("v1.0.1", "bto-x-1.0.1.zip"), Rel("sync-v1.0", "BTO-Sync-1.0.zip"), Rel("sync-v2.1.0", "BTO-Sync-2.1.0.zip"),
+				Rel("sync-v9.0.0", "BTO-Sync-9.0.0.zip", pre: true), Rel("sync-v2.0.3", "BTO-Sync-2.0.3.zip"), Rel("sync-v3.0.0", "altro.zip")) + "]";
+			var r = Updater.Pick(json);
+			Assert(r.VersionText == "2.1.0" && r.Url == "u/BTO-Sync-2.1.0.zip", "aggiornamento: la versione più alta del programma, senza prerelease né release delle mod");
+			Assert(Updater.Pick("[]") == null && new Version(1, 0, 0) < r.Version, "aggiornamento: niente release = niente da fare");
+
+			string app = Path.Combine(t, "app"), src = Path.Combine(t, "upd", "BTO-Sync"), zip = Path.Combine(t, "upd.zip");
+			Directory.CreateDirectory(app); Directory.CreateDirectory(src);
+			File.WriteAllText(Path.Combine(app, "BTO-Sync.exe"), "old exe"); File.WriteAllText(Path.Combine(app, "lib.dll"), "old dll");
+			File.WriteAllText(Path.Combine(src, "BTO-Sync.exe"), "new exe"); File.WriteAllText(Path.Combine(src, "new.dll"), "new dll");
+			System.IO.Compression.ZipFile.CreateFromDirectory(Path.Combine(t, "upd"), zip);
+			Updater.Apply(zip, app);  // replacing the running exe is checked for real by updating an older build
+			Assert(File.ReadAllText(Path.Combine(app, "BTO-Sync.exe")) == "new exe" && File.ReadAllText(Path.Combine(app, "new.dll")) == "new dll", "aggiornamento: file nuovi al loro posto");
+			Assert(File.ReadAllText(Path.Combine(app, "BTO-Sync.exe.old")) == "old exe" && File.ReadAllText(Path.Combine(app, "lib.dll")) == "old dll", "aggiornamento: vecchio exe messo da parte, altri file lasciati");
+			Updater.CleanOld(app);
+			Assert(!File.Exists(Path.Combine(app, "BTO-Sync.exe.old")), "aggiornamento: .old tolti al riavvio");
+
+			File.WriteAllText(Path.Combine(t, "rotto.zip"), "non è uno zip");
+			bool failed = false; try { Updater.Apply(Path.Combine(t, "rotto.zip"), app); } catch { failed = true; }
+			Assert(failed && File.ReadAllText(Path.Combine(app, "BTO-Sync.exe")) == "new exe", "aggiornamento rotto: il programma resta com'era");
+		}
+
 		public static int Run()
 		{
 			var t = Path.Combine(Path.GetTempPath(), "bto-sync-test-" + Guid.NewGuid().ToString("N"));
@@ -124,6 +150,7 @@ namespace BtoSync
 				Assert(Core.CleanDescription("[h1]Titolo[/h1]\r\n[img]http://x/y.png[/img]Testo [b]forte[/b] [url=http://a]link[/url]\n[list][*]uno[*]due[/list]")
 					== "Titolo\nTesto forte link\n• uno• due", "descrizione Workshop ripulita dal BBCode");
 				TestSaves(t);
+				TestUpdater(t);
 				Console.WriteLine("OK");
 				return 0;
 			}

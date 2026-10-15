@@ -1,5 +1,6 @@
 #!/bin/sh
-# Builds BetterTBOIOnline-per-amici.zip from the repo sources (mods/bto-* + diagnostics + dist-src/LEGGIMI.txt).
+# Builds BetterTBOIOnline-per-amici.zip from the repo sources (mods/bto-* + diagnostics + dist-src/LEGGIMI.txt)
+# and BTO-Sync-<version>.zip, the asset of the "sync-v<version>" release that BTO Sync updates itself from.
 set -e
 cd "$(dirname "$0")"
 # check: the handshake block must be identical in every BTO mod, or parties with different mods would agree
@@ -17,3 +18,7 @@ cp "$B/BTO-Sync.exe" "$B/BTO-Sync.exe.config" "$B/Facepunch.Steamworks.Win64.dll
 cp sync/LEGGIMI.txt "$P/BTO-Sync/LEGGIMI.txt"
 rm -f BetterTBOIOnline-per-amici.zip
 (cd "${TMP:-/tmp}/pack" && powershell -NoProfile -Command "Compress-Archive -Force -Path 'BetterTBOIOnline' -DestinationPath '$(cygpath -w "$OLDPWD")\BetterTBOIOnline-per-amici.zip'")
+V=$(grep -o '<Version>[^<]*' sync/BtoSync.csproj | cut -d'>' -f2)
+rm -f BTO-Sync-*.zip
+(cd "$P" && powershell -NoProfile -Command "Compress-Archive -Force -Path 'BTO-Sync' -DestinationPath '$(cygpath -w "$OLDPWD")\BTO-Sync-$V.zip'")
+echo "BetterTBOIOnline-per-amici.zip, BTO-Sync-$V.zip"

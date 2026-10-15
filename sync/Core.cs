@@ -117,7 +117,7 @@ namespace BtoSync
 		public const string Repo = "MICHELOSCO/BetterTBOIOnline";
 		public const uint AppId = 250900;
 		static readonly string[] TextExt = { ".lua", ".xml", ".txt", ".json", ".md", ".anm2", ".ini", ".csv" };
-		static readonly HttpClient Http = MakeHttp();
+		internal static readonly HttpClient Http = MakeHttp();
 
 		static HttpClient MakeHttp()
 		{
@@ -266,7 +266,7 @@ namespace BtoSync
 			{ throw new FormatException("Codice incompleto o rovinato: copialo di nuovo tutto, da BTO1: alla fine."); }
 		}
 
-		static System.Collections.IEnumerable Arr(object o) => o as System.Collections.IEnumerable ?? new object[0];
+		internal static System.Collections.IEnumerable Arr(object o) => o as System.Collections.IEnumerable ?? new object[0];
 
 		public static readonly Dictionary<string, string> Previews = new Dictionary<string, string>();  // Workshop id -> preview image url
 
