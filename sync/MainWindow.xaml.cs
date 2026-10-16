@@ -35,6 +35,7 @@ namespace BtoSync
 			ProfilesList.ItemsSource = profiles;
 			CollectionViewSource.GetDefaultView(mods).Filter = ModFilter;
 			AboutText.Text = "BTO Sync " + typeof(MainWindow).Assembly.GetName().Version.ToString(3);
+			InfoVersion.Text = AboutText.Text + " · gestore di mod open source del progetto BetterTBOIOnline, per giocare online con le stesse mod degli amici.";
 			modsDir = Core.FindModsDir();
 			var (list, active) = Core.LoadProfiles();
 			foreach (var p in list) profiles.Add(p);
@@ -124,7 +125,7 @@ namespace BtoSync
 		// Installs, enables or disables the BTO fixes so they follow the Workshop mods they fix (Core.TiePlan).
 		async Task Tie()
 		{
-			if (modsDir == null || busy || Core.IsaacRunning) return;
+			if (modsDir == null || busy || Core.IsaacRunning || Core.Screenshots) return;  // never write mods while only pretending the game is closed
 			Dictionary<string, (string version, string url)> catalog;
 			try { catalog = Core.Catalog(await Assets()); }
 			catch { catalog = local.Where(m => m.Managed).ToDictionary(m => m.Folder, m => (m.Version, (string)null)); }  // offline: on/off only
@@ -190,6 +191,7 @@ namespace BtoSync
 			PageProfiles.Visibility = NavProfiles.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
 			PageSaves.Visibility = NavSaves.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
 			PageSettings.Visibility = NavSettings.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+			PageInfo.Visibility = NavInfo.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
 			if (NavWs.IsChecked == true && !wsOpened) { wsOpened = true; _ = Search(true); }
 			if (NavSaves.IsChecked == true) RefreshSaves();
 		}
@@ -773,6 +775,8 @@ namespace BtoSync
 		}
 
 		void GitHub_Click(object sender, RoutedEventArgs e) => Process.Start("https://github.com/" + Core.Repo);
+		void InfoDoc_Click(object sender, RoutedEventArgs e) => Process.Start($"https://github.com/{Core.Repo}/blob/master/docs/BTO-Sync.md");
+		void InfoSource_Click(object sender, RoutedEventArgs e) => Process.Start($"https://github.com/{Core.Repo}/tree/master/sync");
 
 		// ---------- online patch ----------
 		string GameExe => modsDir == null ? null : System.IO.Path.Combine(System.IO.Directory.GetParent(modsDir).FullName, "isaac-ng.exe");

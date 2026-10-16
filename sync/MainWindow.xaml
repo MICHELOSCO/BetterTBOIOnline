@@ -40,6 +40,7 @@
           <RadioButton x:Name="NavProfiles" Style="{StaticResource Nav}" Tag="&#xE8B9;" Content="Profili" Checked="Nav_Checked"/>
           <RadioButton x:Name="NavSaves" Style="{StaticResource Nav}" Tag="&#xE74E;" Content="Salvataggi" Checked="Nav_Checked"/>
           <RadioButton x:Name="NavSettings" Style="{StaticResource Nav}" Tag="&#xE713;" Content="Impostazioni" Checked="Nav_Checked"/>
+          <RadioButton x:Name="NavInfo" Style="{StaticResource Nav}" Tag="&#xE946;" Content="Info" Checked="Nav_Checked"/>
         </StackPanel>
 
         <StackPanel DockPanel.Dock="Bottom">
@@ -530,6 +531,56 @@
           </ListBox>
           </Grid>
         </DockPanel>
+
+        <!-- Info -->
+        <ScrollViewer x:Name="PageInfo" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="0,0,8,0">
+            <StackPanel.Resources>
+              <Style x:Key="Point" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource Body}"/><Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="LineHeight" Value="20"/><Setter Property="Margin" Value="0,10,0,0"/>
+              </Style>
+            </StackPanel.Resources>
+            <TextBlock Text="Info su BTO Sync" Style="{StaticResource H1}"/>
+            <TextBlock x:Name="InfoVersion" Style="{StaticResource Sub}" Margin="0,4,0,0"/>
+            <Grid Margin="0,18,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE8FD;" Style="{StaticResource Icon}" Foreground="{StaticResource Muted}" FontSize="15" Margin="0,0,10,0"/>
+                    <TextBlock Text="Come funziona" Style="{StaticResource H2}"/>
+                  </StackPanel>
+                  <TextBlock Style="{StaticResource Point}" Text="Attiva e disattiva le mod con il file disable.it, come il menu Mods del gioco: non cancella nulla."/>
+                  <TextBlock Style="{StaticResource Point}" Text="Le mod del Workshop passano dal tuo client Steam; le mod BTO arrivano dalle release GitHub di questo progetto, ognuna insieme alla mod che sistema."/>
+                  <TextBlock Style="{StaticResource Point}" Text="Il codice dell'host contiene solo l'elenco delle mod (nome, versione, hash dei file): niente dati personali."/>
+                  <TextBlock Style="{StaticResource Point}" Text="Prima di sovrascrivere un salvataggio ne fa sempre un backup."/>
+                </StackPanel>
+              </Border>
+              <Border Grid.Column="2" Style="{StaticResource Card}">
+                <StackPanel>
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE83D;" Style="{StaticResource Icon}" Foreground="{StaticResource Ok}" FontSize="15" Margin="0,0,10,0"/>
+                    <TextBlock Text="Perché è sicuro" Style="{StaticResource H2}"/>
+                  </StackPanel>
+                  <TextBlock Style="{StaticResource Point}" Text="Il codice è pubblico su GitHub: chiunque può leggerlo e compilarlo."/>
+                  <TextBlock Style="{StaticResource Point}" Text="Niente password, account o telemetria: parla solo con GitHub, con l'API pubblica di Steam e con il tuo client Steam."/>
+                  <TextBlock Style="{StaticResource Point}" Text="Non modifica isaac-ng.exe: controlla solo se c'è la patch per l'online, che applica Isaac-Online-Modded se lo scarichi tu."/>
+                  <TextBlock Style="{StaticResource Point}" Text="Non si installa e non chiede i permessi di amministratore: per toglierlo basta cancellare la sua cartella."/>
+                  <TextBlock Style="{StaticResource Point}" Text="L'exe non ha una firma digitale: per questo Windows può dire &quot;PC protetto&quot;."/>
+                </StackPanel>
+              </Border>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+              <Button Style="{StaticResource Primary}" Click="InfoDoc_Click" Margin="0,0,8,0">
+                <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Leggi tutto su GitHub"/></StackPanel>
+              </Button>
+              <Button Style="{StaticResource Btn}" Click="InfoSource_Click">
+                <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE943;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Codice sorgente"/></StackPanel>
+              </Button>
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
 
         <!-- Impostazioni -->
         <StackPanel x:Name="PageSettings" Visibility="Collapsed" Margin="0,0,8,0">

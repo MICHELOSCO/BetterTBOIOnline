@@ -130,7 +130,8 @@ namespace BtoSync
 			return h;
 		}
 
-		public static bool IsaacRunning => Process.GetProcessesByName("isaac-ng").Length > 0;
+		public static bool Screenshots;  // --screenshots: the README's pictures, taken while the game may be open
+		public static bool IsaacRunning => !Screenshots && Process.GetProcessesByName("isaac-ng").Length > 0;
 		public static bool IsBto(string folder) => !IsPrivate(folder) && (folder.StartsWith("bto-", StringComparison.OrdinalIgnoreCase) || folder.Equals("bettertboionline-diagnostics", StringComparison.OrdinalIgnoreCase));
 		// Mods only for this PC: never in a host code, never touched by an alignment, never released.
 		// ponytail: one fixed name; move to a marker file if more appear
