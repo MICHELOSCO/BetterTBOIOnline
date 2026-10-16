@@ -225,6 +225,8 @@
 
     <Style x:Key="Plain" TargetType="ListBox">
       <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+      <!-- scroll by pixels, not by item: a group (the BTO fixes) counts as one huge item and made the list jump -->
+      <Setter Property="ScrollViewer.CanContentScroll" Value="False"/>
       <Setter Property="Foreground" Value="{StaticResource Fg}"/>
       <Setter Property="Template">
         <Setter.Value>
