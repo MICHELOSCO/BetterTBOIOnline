@@ -150,6 +150,28 @@ namespace BtoSync
 			Assert(notes.Any(n => n.Contains("bto-thefuture-sync")), "avviso: l'host ha The Future senza la sua mod BTO");
 		}
 
+		static void TestDeps(string t)
+		{
+			var page = "<div class=\"requiredItemsContainer\" id=\"RequiredItems\">\n<a href=\"https://steamcommunity.com/workshop/filedetails/?id=1348031964\" target=\"_blank\" data-subscribed=\"0\">\n"
+				+ "<div class=\"requiredItem\">\n\t Custom Stage API &amp; co\t</div>\n</a>\n</div><a href=\"https://steamcommunity.com/sharedfiles/filedetails/?id=42\">altro</a>";
+			var req = Core.ParseRequired(page);
+			Assert(req.Count == 1 && req[0].id == "1348031964" && req[0].name == "Custom Stage API & co", "dipendenze lette dalla pagina Steam (solo gli oggetti richiesti)");
+			Assert(Core.ParseRequired("<html>niente</html>").Count == 0, "mod senza dipendenze");
+
+			var me = Path.Combine(t, "deps", "mods");
+			Mod(me, "thefuture_2993558907", "The Future", "2993558907", "");
+			Mod(me, "stageapi_1348031964", "StageAPI", "1348031964", ""); File.WriteAllText(Path.Combine(me, "stageapi_1348031964", "disable.it"), "");
+			Mod(me, "fair_2678027825", "Fair", "2678027825", "");
+			Core.SetRequired("2993558907", new List<(string id, string name)> { ("1348031964", "Custom Stage API") });
+			Core.SetRequired("2678027825", new List<(string id, string name)> { ("999", "Una mod che manca") });
+			var issues = Core.DepIssues(Core.ScanMods(me));
+			Assert(issues.Count == 2 && issues.Any(d => d.Id == "1348031964" && d.Req != null && !d.Req.Enabled) && issues.Any(d => d.Id == "999" && d.Req == null),
+				"dipendenze: The Future con StageAPI spenta, una mod richiesta che manca");
+			File.Delete(Path.Combine(me, "stageapi_1348031964", "disable.it"));
+			File.WriteAllText(Path.Combine(me, "fair_2678027825", "disable.it"), "");
+			Assert(Core.DepIssues(Core.ScanMods(me)).Count == 0, "dipendenze a posto, e una mod spenta non conta");
+		}
+
 		static void TestPatch(string t)
 		{
 			byte[] orig = { 0x83, 0xE8, 0x02, 0x74, 0x2A, 0x83, 0xE8, 0x01, 0x74, 0x1E, 0x83, 0xE8, 0x01, 0x74, 0x12, 0x32, 0xC0 },
@@ -225,6 +247,7 @@ namespace BtoSync
 				TestUpdater(t);
 				TestTies(t);
 				TestPatch(t);
+				TestDeps(t);
 				Console.WriteLine("OK");
 				return 0;
 			}

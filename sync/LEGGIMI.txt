@@ -25,8 +25,17 @@ PATCH PER L'ONLINE
   "Scarica la patch" scarica e apre Isaac-Online-Modded (di xADDBx, da GitHub), che la applica.
 
 WORKSHOP
-  Cerca per nome o sfoglia per tendenza, iscritti o novità. Clicca una mod per la descrizione.
-  "Installa" ti iscrive, la scarica e la mette già attiva nella cartella mods.
+  Le mod del Workshop in una griglia. La ricerca parte mentre scrivi; "Ordina" ha gli stessi criteri
+  di Steam (più popolari oggi/settimana/3 mesi/anno/sempre, più votate, più iscritti, più recenti,
+  aggiornate di recente) e "Tag" filtra per categoria. Le schede dicono se una mod è solo grafica e
+  suoni o può cambiare il gameplay (secondo i tag dell'autore) e se richiede altre mod. Clicca una
+  mod per i dettagli (Esc li chiude). "Installa" ti iscrive, la scarica e la mette già attiva,
+  insieme alle mod che richiede.
+
+MOD RICHIESTE
+  Su Steam una mod può richiederne altre (The Future richiede Custom Stage API). BTO Sync lo legge:
+  lo vedi nei dettagli della mod, accendendo una mod accende anche quelle che le servono, e se una
+  mod richiesta è spenta o manca lo dice in alto, con "Sistema" che la attiva o la scarica.
 
 GIOCA ONLINE
   Online tutti devono avere le stesse mod dell'host, alla stessa versione.

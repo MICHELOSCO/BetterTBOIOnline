@@ -9,7 +9,8 @@ stessa versione, e BTO Sync le mette in pari con un clic.
 - **Le mie mod.** Legge la cartella `mods` del gioco. Per attivare o disattivare una mod crea o
   toglie il file `disable.it` nella sua cartella, come fa il menu Mods di Isaac. Non cancella nulla.
 - **Workshop.** Cerca, installa e aggiorna le mod tramite il client Steam già aperto sul tuo PC,
-  presentandosi come Isaac. Per questo, finché è collegato, gli amici ti vedono "in gioco".
+  presentandosi come Isaac. Le "mod richieste" di una mod le legge dalla sua pagina pubblica sul
+  Workshop (`steamcommunity.com`), senza account, e le installa insieme a lei. Per questo, finché è collegato, gli amici ti vedono "in gioco".
   Si scollega quando avvii il gioco.
 - **Mod BTO.** Sono i fix per l'online di questo progetto. BTO Sync le scarica dalle release di
   questa pagina GitHub e le lega alla mod che sistemano: per esempio BTO The Future Sync si
@@ -42,6 +43,7 @@ stessa versione, e BTO Sync le mette in pari con un clic.
     solo se lo chiedi, quella di Isaac-Online-Modded;
   - `api.steampowered.com`: l'API pubblica del Workshop, senza chiave, per sapere se una mod ha
     aggiornamenti e per le immagini di anteprima;
+  - `steamcommunity.com`: la pagina pubblica di una mod, per leggere quali altre mod richiede;
   - il client Steam del tuo PC, per iscriverti alle mod e scaricarle.
 - **Dove scrive:**
   - la cartella `mods` del gioco;

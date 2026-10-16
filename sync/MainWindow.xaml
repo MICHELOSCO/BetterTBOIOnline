@@ -1,7 +1,7 @@
 <Window x:Class="BtoSync.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="BTO Sync" Width="1200" Height="780" MinWidth="960" MinHeight="580"
+        Title="BTO Sync" Width="1440" Height="900" MinWidth="1040" MinHeight="640"
         WindowStartupLocation="CenterScreen" Background="{StaticResource Bg}"
         FontFamily="Segoe UI" FontSize="14" Foreground="{StaticResource Fg}" UseLayoutRounding="True">
   <Grid>
@@ -100,6 +100,17 @@
           </StackPanel>
         </DockPanel>
       </Border>
+      <Border x:Name="DepBanner" DockPanel.Dock="Top" Background="#2A2315" BorderBrush="#4A3B1E" BorderThickness="0,0,0,1" Padding="32,8" Visibility="Collapsed">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Style="{StaticResource Primary}" Padding="12,4" Click="FixDeps_Click" ToolTip="Attiva le mod richieste spente e scarica dal Workshop quelle che mancano">
+            <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE90F;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Sistema"/></StackPanel>
+          </Button>
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" Foreground="{StaticResource Warn}" FontSize="15" Margin="0,0,10,0"/>
+            <TextBlock x:Name="DepBannerText" Foreground="#F1DEB4" TextWrapping="Wrap" MaxWidth="680"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
       <Border x:Name="BaseBanner" DockPanel.Dock="Top" Background="#14243F" BorderBrush="#24406B" BorderThickness="0,0,0,1" Padding="32,8" Visibility="Collapsed">
         <DockPanel>
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
@@ -180,6 +191,7 @@
                     </Grid>
                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource Vis}}" Margin="110,12,8,2">
                       <TextBlock Text="{Binding DescriptionText}" Foreground="{StaticResource Body}" TextWrapping="Wrap" LineHeight="21" MaxWidth="860" HorizontalAlignment="Left"/>
+                      <TextBlock Text="{Binding RequiresText}" Foreground="{StaticResource Body}" FontSize="12" Margin="0,12,0,0" Visibility="{Binding HasRequires, Converter={StaticResource Vis}}"/>
                       <TextBlock Text="{Binding DetailsText}" Style="{StaticResource Sub}" FontSize="12" Margin="0,12,0,0"/>
                       <WrapPanel Margin="0,12,0,0">
                         <Button Style="{StaticResource Primary}" Click="UpdateMod_Click" Margin="0,0,8,0" IsEnabled="{Binding Unlocked}"
@@ -211,67 +223,198 @@
             <TextBlock Text="Workshop" Style="{StaticResource H1}"/>
             <TextBlock x:Name="WsInfo" Style="{StaticResource Sub}" Margin="0,3,0,0" Text="Cerca e installa mod dal Workshop di Steam."/>
           </StackPanel>
-          <DockPanel DockPanel.Dock="Top" Margin="0,18,8,14">
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
-              <RadioButton x:Name="SortTrend" Style="{StaticResource Pill}" GroupName="sort" Content="Di tendenza" IsChecked="True" Checked="Sort_Checked"/>
-              <RadioButton x:Name="SortSubs" Style="{StaticResource Pill}" GroupName="sort" Content="Più iscritti" Checked="Sort_Checked"/>
-              <RadioButton x:Name="SortNew" Style="{StaticResource Pill}" GroupName="sort" Content="Più recenti" Checked="Sort_Checked" Margin="0"/>
+          <DockPanel DockPanel.Dock="Top" Margin="0,18,8,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="10,0,0,0">
+              <Button x:Name="SortBtn" Style="{StaticResource Btn}" Click="Sort_Click" Margin="0,0,8,0" ToolTip="Come ordinare le mod" AutomationProperties.Name="Ordina">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="&#xE8CB;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/>
+                  <TextBlock x:Name="SortText" Text="Più popolari · settimana"/>
+                  <TextBlock Text="&#xE70D;" Style="{StaticResource Icon}" FontSize="9" Margin="9,1,0,0" Foreground="{StaticResource Muted}"/>
+                </StackPanel>
+              </Button>
+              <Button x:Name="TagsBtn" Style="{StaticResource Btn}" Click="Filters_Click" ToolTip="Filtra per tag, come su Steam" AutomationProperties.Name="Tag">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="&#xE71C;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/>
+                  <TextBlock x:Name="FiltersText" Text="Tag"/>
+                  <TextBlock Text="&#xE70D;" Style="{StaticResource Icon}" FontSize="9" Margin="9,1,0,0" Foreground="{StaticResource Muted}"/>
+                </StackPanel>
+              </Button>
+              <Popup x:Name="TagsPopup" PlacementTarget="{Binding ElementName=TagsBtn}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                <Border Background="{StaticResource Surface2}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="10" Padding="16,12,16,16" Margin="10,6,10,14" Width="540">
+                  <Border.Effect><DropShadowEffect BlurRadius="22" ShadowDepth="6" Opacity="0.45" Color="Black"/></Border.Effect>
+                  <StackPanel>
+                    <DockPanel>
+                      <Button DockPanel.Dock="Right" Content="Togli tutti" Style="{StaticResource Ghost}" Padding="10,3" Click="ClearTags_Click"/>
+                      <StackPanel>
+                        <TextBlock Text="Tag" Style="{StaticResource H2}" FontSize="14"/>
+                        <TextBlock Text="Mostra solo le mod che hanno tutti i tag scelti. I tag li sceglie l'autore della mod." Style="{StaticResource Sub}" FontSize="12" Margin="0,2,0,0"/>
+                      </StackPanel>
+                    </DockPanel>
+                    <ItemsControl x:Name="TagsList" Margin="0,4,0,0">
+                      <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate><CheckBox Style="{StaticResource Chip}" Content="{Binding Label}" IsChecked="{Binding On, Mode=TwoWay}" Click="Tag_Click"/></DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Border>
+              </Popup>
             </StackPanel>
             <Grid>
-              <TextBox x:Name="SearchBox" Tag="Cerca mod nel Workshop di Isaac e premi Invio" Padding="36,8,12,8" KeyDown="SearchBox_KeyDown"/>
+              <TextBox x:Name="SearchBox" Tag="Cerca mod nel Workshop di Isaac" Padding="36,8,12,8" KeyDown="SearchBox_KeyDown" TextChanged="SearchBox_TextChanged"/>
               <TextBlock Text="&#xE721;" Style="{StaticResource Icon}" Foreground="{StaticResource Muted}" FontSize="13" Margin="13,0,0,0" HorizontalAlignment="Left" IsHitTestVisible="False"/>
             </Grid>
           </DockPanel>
+          <ItemsControl x:Name="ActiveTags" DockPanel.Dock="Top" Margin="0,4,8,0">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <CheckBox Style="{StaticResource Chip}" IsChecked="{Binding On, Mode=TwoWay}" Click="Tag_Click" ToolTip="Togli questo filtro" AutomationProperties.Name="{Binding Label}">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding Label}"/>
+                    <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="9" Margin="8,1,0,0"/>
+                  </StackPanel>
+                </CheckBox>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Border DockPanel.Dock="Top" Height="14"/>
           <Button x:Name="MoreBtn" DockPanel.Dock="Bottom" Content="Mostra altri risultati" Style="{StaticResource Btn}" HorizontalAlignment="Center"
                   Margin="0,6,0,0" Click="More_Click" Visibility="Collapsed"/>
-          <ListBox x:Name="WsList" Style="{StaticResource Plain}" ItemContainerStyle="{StaticResource CardItem}">
-            <ListBox.ItemTemplate>
-              <DataTemplate>
-                <Border Style="{StaticResource RowCard}">
-                  <StackPanel>
-                    <Grid Background="Transparent" Cursor="Hand" MouseLeftButtonUp="WsRow_Click" Focusable="True" KeyDown="WsRow_KeyDown"
-                          FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="{Binding Title}">
-                      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                      <Border Width="72" Height="72" CornerRadius="8" Background="{StaticResource Surface2}" Margin="0,0,16,0">
-                        <Grid>
-                          <TextBlock Text="{Binding Initial}" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                          <Border CornerRadius="8">
-                            <Border.Background><ImageBrush ImageSource="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill"/></Border.Background>
-                          </Border>
-                        </Grid>
-                      </Border>
-                      <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal">
-                          <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                          <Border Style="{StaticResource Badge}" BorderBrush="{StaticResource Ok}" Margin="10,0,0,0" Visibility="{Binding Installed, Converter={StaticResource Vis}}">
-                            <TextBlock Text="Installata" Foreground="{StaticResource Ok}" FontSize="11" FontWeight="SemiBold"/>
-                          </Border>
+          <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition x:Name="DetailCol" Width="0"/></Grid.ColumnDefinitions>
+            <StackPanel x:Name="WsEmpty" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,60,0,0" Visibility="Collapsed">
+              <TextBlock Text="Nessuna mod trovata" Style="{StaticResource H2}" HorizontalAlignment="Center"/>
+              <TextBlock x:Name="WsEmptySub" Style="{StaticResource Sub}" HorizontalAlignment="Center" Margin="0,6,0,0" Text="Prova con meno tag o con altre parole."/>
+              <Button x:Name="WsEmptyClear" Content="Togli i tag" Style="{StaticResource Btn}" HorizontalAlignment="Center" Margin="0,14,0,0" Click="ClearTags_Click"/>
+            </StackPanel>
+            <ListBox x:Name="WsList" Style="{StaticResource Plain}" ItemContainerStyle="{StaticResource TileItem}" SizeChanged="WsList_SizeChanged" Tag="4">
+              <ListBox.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="{Binding Tag, RelativeSource={RelativeSource AncestorType=ListBox}}" VerticalAlignment="Top"/></ItemsPanelTemplate></ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <Border x:Name="tile" Style="{StaticResource RowCard}" Padding="0" Cursor="Hand" MouseLeftButtonUp="WsTile_Click"
+                          Focusable="True" KeyDown="WsTile_KeyDown" FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="{Binding Title}">
+                    <StackPanel>
+                      <Grid Height="134">
+                        <Border CornerRadius="9,9,0,0" Background="{StaticResource Surface2}"/>
+                        <Border CornerRadius="9,9,0,0">
+                          <Border.Background><ImageBrush ImageSource="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill"/></Border.Background>
+                        </Border>
+                        <Border Background="#E6101318" CornerRadius="6" Padding="7,3,8,4" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                Visibility="{Binding Installed, Converter={StaticResource Vis}}">
+                          <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource Ok}" Margin="0,0,6,0"/>
+                            <TextBlock Text="Installata" Foreground="{StaticResource Fg}" FontSize="11" FontWeight="SemiBold"/>
+                          </StackPanel>
+                        </Border>
+                      </Grid>
+                      <StackPanel x:Name="info" Margin="12,10,12,12">
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" Height="38" LineHeight="19"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                          <StackPanel Orientation="Horizontal" Visibility="{Binding HasScore, Converter={StaticResource Vis}}" ToolTip="Voti positivi su Steam" Margin="0,0,14,0">
+                            <TextBlock Text="&#xE8E1;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ScoreText}" Style="{StaticResource Sub}" FontSize="12"/>
+                          </StackPanel>
+                          <TextBlock Text="&#xE77B;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,0,5,0" ToolTip="Iscritti"/>
+                          <TextBlock Text="{Binding SubsShort}" Style="{StaticResource Sub}" FontSize="12" ToolTip="Iscritti"/>
                         </StackPanel>
-                        <TextBlock Text="{Binding Description}" Foreground="{StaticResource Body}" FontSize="13" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
-                                   MaxHeight="38" Margin="0,4,0,4"/>
-                        <TextBlock Text="{Binding SubsText}" Style="{StaticResource Sub}" FontSize="12"/>
+                        <WrapPanel Margin="0,8,0,0">
+                          <Border x:Name="kind" CornerRadius="5" Padding="7,2,7,3" Margin="0,0,5,0" Background="#1B2D4D" Visibility="{Binding HasKind, Converter={StaticResource Vis}}">
+                            <TextBlock x:Name="kindText" Text="{Binding KindText}" FontSize="11" Foreground="#CFE0FF"/>
+                          </Border>
+                          <Border CornerRadius="5" Padding="7,2,7,3" Background="#2A2315" Visibility="{Binding NeedsOthers, Converter={StaticResource Vis}}"
+                                  ToolTip="Su Steam richiede altre mod: BTO Sync le installa insieme">
+                            <TextBlock Text="Richiede altre mod" FontSize="11" Foreground="#F1DEB4"/>
+                          </Border>
+                        </WrapPanel>
                       </StackPanel>
-                      <Button Grid.Column="2" x:Name="act" Content="{Binding ButtonText}" Style="{StaticResource Primary}" IsEnabled="{Binding CanAct}" Click="WsAct_Click"
-                              VerticalAlignment="Center" MinWidth="104" Margin="16,0,8,0"/>
-                      <TextBlock Grid.Column="3" x:Name="chev" Text="&#xE70D;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Muted}" Margin="4,0,2,0"/>
-                    </Grid>
-                    <ProgressBar Maximum="1" Value="{Binding Progress}" Margin="88,10,8,0" Visibility="{Binding Busy, Converter={StaticResource Vis}}"/>
-                    <TextBlock Text="{Binding Error}" Foreground="#F0616D" FontSize="12" TextWrapping="Wrap" Margin="88,6,8,0"/>
-                    <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource Vis}}" Margin="88,10,8,2">
-                      <TextBlock Text="{Binding LongDescription}" Foreground="{StaticResource Body}" TextWrapping="Wrap" LineHeight="21" MaxWidth="860" HorizontalAlignment="Left"/>
-                      <Button Style="{StaticResource Btn}" Click="WsPage_Click" Margin="0,14,0,0" HorizontalAlignment="Left">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Pagina Workshop"/></StackPanel>
-                      </Button>
+                      <StackPanel x:Name="skel" Margin="12,12,12,16" Visibility="Collapsed">
+                        <Border Height="12" CornerRadius="4" Background="{StaticResource Surface2}" Margin="0,0,40,8"/>
+                        <Border Height="12" CornerRadius="4" Background="{StaticResource Surface2}" Margin="0,0,90,14"/>
+                        <Border Height="16" Width="70" CornerRadius="5" Background="{StaticResource Surface2}" HorizontalAlignment="Left"/>
+                      </StackPanel>
                     </StackPanel>
-                  </StackPanel>
-                </Border>
-                <DataTemplate.Triggers>
-                  <DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter TargetName="chev" Property="Text" Value="&#xE70E;"/></DataTrigger>
-                  <DataTrigger Binding="{Binding Installed}" Value="True"><Setter TargetName="act" Property="Style" Value="{StaticResource Danger}"/></DataTrigger>
-                </DataTemplate.Triggers>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
+                  </Border>
+                  <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="tile" Property="BorderBrush" Value="#7FB0FF"/></DataTrigger>
+                    <DataTrigger Binding="{Binding IsVisualOnly}" Value="False">
+                      <Setter TargetName="kind" Property="Background" Value="{StaticResource Surface2}"/><Setter TargetName="kindText" Property="Foreground" Value="{StaticResource Body}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Skeleton}" Value="True">
+                      <Setter TargetName="info" Property="Visibility" Value="Collapsed"/><Setter TargetName="skel" Property="Visibility" Value="Visible"/>
+                      <Setter TargetName="tile" Property="Cursor" Value="Arrow"/>
+                    </DataTrigger>
+                  </DataTemplate.Triggers>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <ContentControl x:Name="WsDetail" Grid.Column="1" Margin="0,0,8,12" Visibility="Collapsed" Focusable="False">
+              <ContentControl.ContentTemplate>
+                <DataTemplate>
+                  <Border Style="{StaticResource Card}" Padding="0">
+                    <DockPanel>
+                      <Grid DockPanel.Dock="Top" Height="150">
+                        <Border CornerRadius="9,9,0,0" Background="{StaticResource Surface2}"/>
+                        <Border CornerRadius="9,9,0,0">
+                          <Border.Background><ImageBrush ImageSource="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill"/></Border.Background>
+                        </Border>
+                        <Button Style="{StaticResource Btn}" Padding="8,6" Margin="10" HorizontalAlignment="Right" VerticalAlignment="Top" Click="CloseDetail_Click"
+                                ToolTip="Chiudi" AutomationProperties.Name="Chiudi i dettagli">
+                          <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="11"/>
+                        </Button>
+                      </Grid>
+                      <StackPanel DockPanel.Dock="Top" Margin="18,14,18,0">
+                        <TextBlock Text="{Binding Title}" Style="{StaticResource H2}" TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                          <Button x:Name="act" Content="{Binding ButtonText}" Style="{StaticResource Primary}" IsEnabled="{Binding CanAct}" Click="WsAct_Click" MinWidth="110" Margin="0,0,8,0"/>
+                          <Button Style="{StaticResource Btn}" Click="WsPage_Click">
+                            <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Pagina Workshop"/></StackPanel>
+                          </Button>
+                        </StackPanel>
+                        <ProgressBar Maximum="1" Value="{Binding Progress}" Margin="0,10,0,0" Visibility="{Binding Busy, Converter={StaticResource Vis}}"/>
+                        <TextBlock Text="{Binding Error}" Foreground="#F0616D" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                      </StackPanel>
+                      <ScrollViewer Margin="18,8,6,14" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
+                        <StackPanel>
+                          <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                            <StackPanel Margin="0,0,0,10"><TextBlock Text="Iscritti" Style="{StaticResource Sub}" FontSize="11"/><TextBlock Text="{Binding SubsFull}" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="0,0,0,10"><TextBlock Text="Voti positivi" Style="{StaticResource Sub}" FontSize="11"/><TextBlock Text="{Binding VotesText}" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
+                            <StackPanel Grid.Row="1"><TextBlock Text="Dimensione" Style="{StaticResource Sub}" FontSize="11"/><TextBlock Text="{Binding SizeText}" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="1"><TextBlock Text="Aggiornata" Style="{StaticResource Sub}" FontSize="11"/><TextBlock Text="{Binding UpdatedText}" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
+                          </Grid>
+                          <Border CornerRadius="6" Padding="10,6" Margin="0,12,0,0" Background="#1B2D4D" Visibility="{Binding HasKind, Converter={StaticResource Vis}}">
+                            <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="#CFE0FF">
+                              <Run Text="{Binding KindText, Mode=OneWay}" FontWeight="SemiBold"/><Run Text=", secondo i tag dell'autore. Online servono comunque le stesse mod per tutti."/>
+                            </TextBlock>
+                          </Border>
+                          <Border Background="#2A2315" BorderBrush="#4A3B1E" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,10,0,0"
+                                  Visibility="{Binding HasRequires, Converter={StaticResource Vis}}">
+                            <TextBlock Text="{Binding RequiresText}" Foreground="#F1DEB4" FontSize="12" TextWrapping="Wrap"/>
+                          </Border>
+                          <ItemsControl ItemsSource="{Binding Tags}" Margin="0,4,0,0">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate>
+                                <Border Background="{StaticResource Surface2}" CornerRadius="5" Padding="7,2,7,3" Margin="0,6,5,0">
+                                  <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource Muted}"/>
+                                </Border>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          <TextBlock Text="{Binding LongDescription}" Foreground="{StaticResource Body}" TextWrapping="Wrap" LineHeight="21" Margin="0,14,0,0"/>
+                        </StackPanel>
+                      </ScrollViewer>
+                    </DockPanel>
+                  </Border>
+                  <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Installed}" Value="True"><Setter TargetName="act" Property="Style" Value="{StaticResource Danger}"/></DataTrigger>
+                  </DataTemplate.Triggers>
+                </DataTemplate>
+              </ContentControl.ContentTemplate>
+            </ContentControl>
+          </Grid>
         </DockPanel>
 
         <!-- Gioca online -->

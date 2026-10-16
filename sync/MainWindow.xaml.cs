@@ -32,6 +32,7 @@ namespace BtoSync
 			InitializeComponent();
 			ModsList.ItemsSource = mods;
 			WsList.ItemsSource = ws;
+			TagsList.ItemsSource = tagChips;
 			ProfilesList.ItemsSource = profiles;
 			CollectionViewSource.GetDefaultView(mods).Filter = ModFilter;
 			AboutText.Text = "BTO Sync " + typeof(MainWindow).Assembly.GetName().Version.ToString(3);
@@ -47,7 +48,12 @@ namespace BtoSync
 			timer.Start();
 			RefreshProfiles();
 			Loaded += async (s, e) => { UpdateState(); _ = CheckUpdate(); await Reload(); CheckPatch(); OpenHostCodeFromClipboard(); };
-			Closing += (s, e) => Steam.Disconnect();
+			Closing += (s, e) => { Steam.Disconnect(); SaveWindow(); };
+			RestoreWindow();
+			KeyDown += (s, e) =>  // Esc closes the Workshop detail pane
+			{
+				if (e.Key == Key.Escape && WsDetail.Visibility == Visibility.Visible) { ShowDetail(null); e.Handled = true; }
+			};
 			KeyDown += (s, e) =>  // Ctrl+F: search the page that has a search box
 			{
 				if (e.Key != Key.F || Keyboard.Modifiers != ModifierKeys.Control) return;
@@ -56,6 +62,35 @@ namespace BtoSync
 				e.Handled = true;
 			};
 			SourceInitialized += (s, e) => { int on = 1; DwmSetWindowAttribute(new System.Windows.Interop.WindowInteropHelper(this).Handle, 20, ref on, 4); };  // dark title bar
+		}
+
+		// Window size: the last one used, else 1440x900; never larger than the screen's work area.
+		static string WindowFile => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BtoSync", "window.txt");
+
+		void RestoreWindow()
+		{
+			double w = Width, h = Height; bool max = false;
+			try
+			{
+				var p = System.IO.File.ReadAllText(WindowFile).Split(' ');
+				w = double.Parse(p[0], System.Globalization.CultureInfo.InvariantCulture); h = double.Parse(p[1], System.Globalization.CultureInfo.InvariantCulture); max = p.Length > 2 && p[2] == "max";
+			}
+			catch { }  // first start: the XAML default
+			var area = SystemParameters.WorkArea;
+			Width = Math.Max(MinWidth, Math.Min(w, area.Width * 0.95));
+			Height = Math.Max(MinHeight, Math.Min(h, area.Height * 0.95));
+			if (max) WindowState = WindowState.Maximized;
+		}
+
+		void SaveWindow()
+		{
+			try
+			{
+				var r = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+				System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(WindowFile));
+				System.IO.File.WriteAllText(WindowFile, string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0} {1:0}{2}", r.Width, r.Height, WindowState == WindowState.Maximized ? " max" : ""));
+			}
+			catch { }
 		}
 
 		[System.Runtime.InteropServices.DllImport("dwmapi.dll")]
@@ -117,6 +152,7 @@ namespace BtoSync
 			catch { foreach (var m in local) m.UpdateStatus(new Dictionary<string, string>()); Status("Workshop non raggiungibile: non posso controllare gli aggiornamenti."); }
 			foreach (var w in ws) w.Installed = Core.HasWorkshopCopy(w.Id.ToString(), modsDir);
 			RefreshSummary();
+			_ = CheckDeps();
 			if (tie) await Tie();
 			else if (assets != null) ShowMissingBase(Core.MissingBase(local, Core.Catalog(assets)));  // an alignment may have installed some
 		}
@@ -190,6 +226,7 @@ namespace BtoSync
 		void Nav_Checked(object sender, RoutedEventArgs e)
 		{
 			if (PageMods == null) return;  // during InitializeComponent
+			Status("");  // a message belongs to the page that wrote it
 			PageMods.Visibility = NavMods.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
 			PageWs.Visibility = NavWs.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
 			PageOnline.Visibility = NavOnline.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
@@ -245,6 +282,8 @@ namespace BtoSync
 				Status((m.Enabled ? "Attivata: " : "Disattivata: ") + m.Name);
 			}
 			catch (Exception ex) { m.Enabled = !m.Enabled; ShowError("Non posso cambiare " + m.Name + ".", ex); return; }
+			if (m.Enabled && m.Id != "") EnableRequired(m);
+			_ = CheckDeps();
 			if (Core.Ties.Values.Any(t => t.id == m.Id)) await Tie();  // its BTO fixes follow it
 		}
 
@@ -401,13 +440,88 @@ namespace BtoSync
 		}
 
 		// ---------- workshop ----------
-		int SortIndex => SortSubs.IsChecked == true ? 1 : SortNew.IsChecked == true ? 2 : 0;
+		readonly List<TagChip> tagChips = TagChip.All.Select(t => new TagChip { Name = t.name, Label = t.label }).ToList();
+		int sortIndex, trendDays = 7;  // see Steam.Search; 5 = relevance, only with a text
+		bool sortByHand;               // the user picked an order: typing no longer switches it to relevance
+		DispatcherTimer typing;
+
+		static readonly (int sort, int days, string text)[] Sorts =
+		{
+			(0, 1, "Più popolari · oggi"), (0, 7, "Più popolari · settimana"), (0, 90, "Più popolari · 3 mesi"), (0, 365, "Più popolari · anno"), (0, -1, "Più popolari · sempre"),
+			(1, 7, "Più votate"), (2, 7, "Più iscritti"), (3, 7, "Più recenti"), (4, 7, "Aggiornate di recente"), (5, 7, "Più pertinenti alla ricerca"),
+		};
+
+		string SortName => Sorts.First(x => x.sort == sortIndex && (x.sort != 0 || x.days == trendDays)).text;
+
+		void Sort_Click(object sender, RoutedEventArgs e)
+		{
+			var menu = new ContextMenu { PlacementTarget = SortBtn, Placement = PlacementMode.Bottom };
+			bool hasText = !string.IsNullOrWhiteSpace(SearchBox.Text);
+			foreach (var x in Sorts)
+			{
+				if (x.sort == 5 && !hasText) continue;
+				if (x.sort == 1 || x.sort == 5) menu.Items.Add(new Separator { Background = Res("Line"), Margin = new Thickness(6, 4, 6, 4) });
+				bool on = x.sort == sortIndex && (x.sort != 0 || x.days == trendDays);
+				var head = new StackPanel { Orientation = Orientation.Horizontal };
+				head.Children.Add(new TextBlock { Text = on ? "" : "", Width = 22, FontFamily = (FontFamily)FindResource("Icons"), FontSize = 11, Foreground = Res("Accent"), VerticalAlignment = VerticalAlignment.Center });
+				head.Children.Add(new TextBlock { Text = x.text });
+				var item = new MenuItem { Header = head };
+				item.Click += async (o, a) => { sortIndex = x.sort; trendDays = x.days; sortByHand = true; SortText.Text = SortName; await Search(true); };
+				menu.Items.Add(item);
+			}
+			menu.IsOpen = true;
+		}
+
 		async void More_Click(object sender, RoutedEventArgs e) => await Search(false);
-		async void SearchBox_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) await Search(true); }
-		async void Sort_Checked(object sender, RoutedEventArgs e) { if (IsLoaded && wsOpened) await Search(true); }
-		void WsRow_Click(object sender, MouseButtonEventArgs e) { var w = Ctx<WsItem>(sender); w.IsExpanded = !w.IsExpanded; }
-		void WsRow_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter || e.Key == Key.Space) { WsRow_Click(sender, null); e.Handled = true; } }
+		async void SearchBox_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) { typing?.Stop(); await Search(true); } }
+
+		// Searches by itself after a short pause in typing; an empty box goes back to the chosen order.
+		void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+		{
+			if (!IsLoaded || !wsOpened) return;
+			bool hasText = !string.IsNullOrWhiteSpace(SearchBox.Text);
+			if (hasText && !sortByHand) sortIndex = 5;
+			if (!hasText && sortIndex == 5) { sortIndex = 0; sortByHand = false; }
+			SortText.Text = SortName;
+			if (typing == null)
+			{
+				typing = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+				typing.Tick += async (s, a) => { typing.Stop(); await Search(true); };
+			}
+			typing.Stop(); typing.Start();
+		}
+
+		void Filters_Click(object sender, RoutedEventArgs e)
+		{
+			TagsPopup.HorizontalOffset = TagsBtn.ActualWidth - 560;  // right-aligned under the button
+			TagsPopup.IsOpen = !TagsPopup.IsOpen;
+		}
+
+		async void Tag_Click(object sender, RoutedEventArgs e) => await Search(true);
+		async void ClearTags_Click(object sender, RoutedEventArgs e) { foreach (var t in tagChips) t.On = false; await Search(true); }
+		void WsList_SizeChanged(object sender, SizeChangedEventArgs e) => WsList.Tag = Math.Max(2, (int)((e.NewSize.Width - 4) / 236));
 		void WsPage_Click(object sender, RoutedEventArgs e) => Process.Start("steam://url/CommunityFilePage/" + Ctx<WsItem>(sender).Id);
+		void WsTile_KeyDown(object sender, KeyEventArgs e) { if ((e.Key == Key.Enter || e.Key == Key.Space) && !Ctx<WsItem>(sender).Skeleton) { ShowDetail(Ctx<WsItem>(sender)); e.Handled = true; } }
+		void WsTile_Click(object sender, MouseButtonEventArgs e) { if (!Ctx<WsItem>(sender).Skeleton) ShowDetail(Ctx<WsItem>(sender)); }
+		void CloseDetail_Click(object sender, RoutedEventArgs e) => ShowDetail(null);
+
+		// The detail pane on the right: big preview, numbers, tags, required mods, description, install.
+		async void ShowDetail(WsItem w)
+		{
+			foreach (var x in ws) x.IsSelected = x == w;
+			WsDetail.Content = w;
+			WsDetail.Visibility = w == null ? Visibility.Collapsed : Visibility.Visible;
+			DetailCol.Width = w == null ? new GridLength(0) : new GridLength(400);
+			if (w == null) return;
+			try
+			{
+				var r = await Core.RequiredItems(w.Id.ToString());
+				w.RequiresText = r.Count == 0 ? "" : "Richiede " + string.Join(", ", r.Select(x => x.name)) + ": BTO Sync la installa insieme a questa mod.";
+			}
+			catch { }
+		}
+
+		int searchId;
 
 		async Task Search(bool reset)
 		{
@@ -416,18 +530,40 @@ namespace BtoSync
 			var err = Steam.Connect();
 			UpdateState();
 			if (err != null) { WsInfo.Text = err; return; }
-			if (reset) { ws.Clear(); wsPage = 1; }
+			var on = tagChips.Where(t => t.On).ToList();
+			ActiveTags.ItemsSource = on;
+			ActiveTags.Visibility = on.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+			FiltersText.Text = on.Count == 0 ? "Tag" : $"Tag ({on.Count})";
+			SortText.Text = SortName;
+			if (reset)
+			{
+				ShowDetail(null);
+				ws.Clear(); wsPage = 1;
+				for (int k = 0; k < 8; k++) ws.Add(new WsItem { Skeleton = true });  // shape of what is coming, not an empty page
+			}
+			WsEmpty.Visibility = Visibility.Collapsed;
 			WsInfo.Text = "Cerco…";
 			MoreBtn.Visibility = Visibility.Collapsed;
+			int search = ++searchId;
 			try
 			{
-				var (items, total) = await Steam.Search(SearchBox.Text, SortIndex, wsPage);
+				var (items, total) = await Steam.Search(SearchBox.Text, sortIndex, trendDays, on.Select(t => t.Name), wsPage);
+				if (search != searchId) return;  // a newer search started meanwhile
+				foreach (var sk in ws.Where(x => x.Skeleton).ToList()) ws.Remove(sk);
 				foreach (var i in items) ws.Add(WsItem.From(i, modsDir));
 				wsPage++;
-				WsInfo.Text = total == 0 ? "Nessuna mod trovata." : $"{total:N0} mod trovate · ne vedi {ws.Count} · clicca una mod per la descrizione completa";
+				WsInfo.Text = total == 0 ? "Nessuna mod trovata." : $"{total:N0} mod trovate · ne vedi {ws.Count} · clicca una mod per i dettagli";
 				MoreBtn.Visibility = ws.Count < total ? Visibility.Visible : Visibility.Collapsed;
+				WsEmpty.Visibility = total == 0 ? Visibility.Visible : Visibility.Collapsed;
+				WsEmptyClear.Visibility = on.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+				WsEmptySub.Text = on.Count > 0 ? "Prova con meno tag o con altre parole." : "Prova con altre parole.";
 			}
-			catch (Exception ex) { WsInfo.Text = "Ricerca non riuscita: " + ex.Message; }
+			catch (Exception ex)
+			{
+				if (search != searchId) return;
+				foreach (var sk in ws.Where(x => x.Skeleton).ToList()) ws.Remove(sk);
+				WsInfo.Text = "Ricerca non riuscita: " + ex.Message;
+			}
 		}
 
 		async void WsAct_Click(object sender, RoutedEventArgs e)
@@ -452,7 +588,17 @@ namespace BtoSync
 				{
 					await Steam.SubscribeAndInstall(w.Id, modsDir, p => Dispatcher.BeginInvoke(new Action(() => w.Progress = p)));
 					w.Installed = true;
-					Status("Installata e attiva: " + w.Title);
+					// Steam asks for the required items only on its web page: here they are installed with the mod
+					var with = new List<string>();
+					List<(string id, string name)> reqs;
+					try { reqs = await Core.RequiredItems(w.Id.ToString()); } catch { reqs = new List<(string id, string name)>(); }
+					foreach (var r in reqs.Where(r => !Core.HasWorkshopCopy(r.id, modsDir)))
+					{
+						w.Progress = 0;
+						await Steam.SubscribeAndInstall(ulong.Parse(r.id), modsDir, p => Dispatcher.BeginInvoke(new Action(() => w.Progress = p)));
+						with.Add(r.name);
+					}
+					Status("Installata e attiva: " + w.Title + (with.Count > 0 ? $", con {string.Join(", ", with)} (le serve)." : "."));
 				}
 				catch (Exception ex) { w.Error = ex.Message; }
 			}
@@ -874,6 +1020,65 @@ namespace BtoSync
 			}
 			catch (Exception ex) { Status("Patch non scaricata."); ShowError("Non riesco a scaricare o aprire Isaac-Online-Modded.", ex); }
 			busy = false; UpdateState();
+		}
+
+		// ---------- Workshop dependencies ("Required items" on Steam) ----------
+		List<Core.DepIssue> depIssues = new List<Core.DepIssue>();
+
+		// Reads the required items of the active Workshop mods (cached), shows them in the details and warns about gaps.
+		async Task CheckDeps()
+		{
+			var ids = local.Where(m => m.Id != "" && m.Enabled).Select(m => m.Id).Distinct().ToList();
+			await Task.WhenAll(ids.Select(async id => { try { await Core.RequiredItems(id); } catch { } }));  // offline: only what is known
+			foreach (var m in local.Where(m => m.Id != ""))
+			{
+				var r = Core.KnownRequired(m.Id);
+				m.RequiresText = r == null || r.Count == 0 ? "" : "Richiede: " + string.Join(", ", r.Select(x => x.name));
+			}
+			depIssues = Core.DepIssues(local);
+			DepBanner.Visibility = depIssues.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+			DepBannerText.Text = string.Join(" ", depIssues.Select(d => $"{d.Mod.Name} richiede {d.Name}, che {(d.Req == null ? "non è installata" : "è spenta")}."));
+		}
+
+		// Turning a mod on also turns on the mods it needs that are installed but off (no download here).
+		void EnableRequired(LocalMod m)
+		{
+			var on = new List<string>();
+			foreach (var r in Core.KnownRequired(m.Id) ?? new List<(string id, string name)>())
+			{
+				var l = local.FirstOrDefault(x => x.Id == r.id);
+				if (l == null || l.Enabled || l.Link) continue;
+				try { Core.SetEnabled(l, true); on.Add(l.Name); } catch { }
+			}
+			if (on.Count > 0) { RefreshSummary(); Status($"Attivata: {m.Name}, e con lei {string.Join(", ", on)} (le serve)."); }
+		}
+
+		async void FixDeps_Click(object sender, RoutedEventArgs e)
+		{
+			if (depIssues.Count == 0 || Blocked()) return;
+			busy = true; UpdateState();
+			var done = new List<string>(); var failed = new List<string>();
+			foreach (var d in depIssues.GroupBy(d => d.Id).Select(g => g.First()))
+			{
+				try
+				{
+					if (d.Req != null) Core.SetEnabled(d.Req, true);
+					else
+					{
+						var err = Steam.Connect();
+						UpdateState();
+						if (err != null) throw new Exception(err);
+						Status($"Scarico {d.Name} dal Workshop…");
+						await Steam.SubscribeAndInstall(ulong.Parse(d.Id), modsDir, p => Dispatcher.BeginInvoke(new Action(() => Status($"Scarico {d.Name} {p:P0}"))));
+					}
+					done.Add(d.Name);
+				}
+				catch (Exception ex) { failed.Add($"{d.Name}: {ex.Message}"); }
+			}
+			busy = false; UpdateState();
+			if (failed.Count > 0) Dialog.Show(this, "Alcune mod richieste non sono state sistemate", string.Join(NL, failed), DialogKind.Warning);
+			await Reload();
+			if (done.Count > 0) Status("Mod richieste sistemate: " + string.Join(", ", done) + ".");
 		}
 
 		// ---------- base-game fixes: proposed, right under the patch notice ----------

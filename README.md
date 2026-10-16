@@ -32,14 +32,20 @@ Si aggiorna da solo: all'avvio guarda se qui c'è una versione nuova e la instal
 ### Le mie mod
 Tutte le mod installate, con l'interruttore per attivarle o disattivarle (disattivare non cancella
 nulla), la ricerca, i filtri e "Aggiorna" per le mod del Workshop vecchie. Cliccando una mod se ne
-legge la descrizione. Le mod BTO hanno l'interruttore bloccato: le gestisce BTO Sync insieme alla
+legge la descrizione e quali altre mod richiede. Se una mod attiva ne richiede un'altra spenta o
+mancante, BTO Sync lo dice in alto e la sistema con un clic; accendendo una mod accende anche quelle
+che le servono. Le mod BTO hanno l'interruttore bloccato: le gestisce BTO Sync insieme alla
 mod che sistemano.
 
 ![Le mie mod](docs/img/mods.png)
 
 ### Workshop
-Cerca nel Workshop di Steam per nome, oppure sfoglia per tendenza, iscritti o novità. "Installa" ti
-iscrive, scarica la mod e la mette già attiva.
+Il Workshop di Steam in una griglia di copertine. Cerchi per nome (la ricerca parte da sola), ordini
+come su Steam (più popolari nel periodo che scegli, più votate, più iscritti, più recenti, aggiornate
+di recente) e filtri per tag (Oggetti, Nemici, Boss, Musica…). Ogni scheda dice se la mod è "solo
+grafica e suoni" o può cambiare il gameplay, e se **richiede altre mod**. Cliccando una mod si apre
+il pannello dei dettagli con descrizione e numeri. "Installa" ti iscrive, scarica la mod e la mette
+già attiva, **insieme alle mod che richiede** (per esempio The Future con Custom Stage API).
 
 ![Workshop](docs/img/workshop.png)
 

@@ -190,6 +190,36 @@
     </Style>
 
     <!-- Lists of cards -->
+    <!-- a filter that can be on or off (tags): blue border when on -->
+    <Style x:Key="Chip" TargetType="CheckBox">
+      <Setter Property="Foreground" Value="{StaticResource Muted}"/><Setter Property="FontSize" Value="12"/><Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/><Setter Property="Margin" Value="0,8,6,0"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="CheckBox">
+            <Border x:Name="b" CornerRadius="13" Padding="11,4" Background="{StaticResource Surface2}" BorderBrush="{StaticResource Line}" BorderThickness="1">
+              <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{StaticResource Fg}"/></Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="b" Property="Background" Value="#1B2D4D"/><Setter TargetName="b" Property="BorderBrush" Value="#7FB0FF"/>
+                <Setter Property="Foreground" Value="#CFE0FF"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="TileItem" TargetType="ListBoxItem">
+      <Setter Property="Focusable" Value="False"/><Setter Property="Margin" Value="0,0,12,12"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ListBoxItem"><ContentPresenter/></ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <Style x:Key="Plain" TargetType="ListBox">
       <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
       <Setter Property="Foreground" Value="{StaticResource Fg}"/>

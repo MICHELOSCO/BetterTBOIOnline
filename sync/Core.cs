@@ -65,6 +65,9 @@ namespace BtoSync
 		public bool CanUpdate { get => canUpdate; set => Set(ref canUpdate, value); }
 		public bool Unlocked { get => unlocked; set { if (unlocked != value) { Set(ref unlocked, value); Raise(nameof(Switchable)); } } }  // false while Isaac runs
 		public bool IsExpanded { get => expanded; set => Set(ref expanded, value); }
+		string requires = "";
+		public string RequiresText { get => requires; set { Set(ref requires, value); Raise(nameof(HasRequires)); } }  // "Richiede: Custom Stage API"
+		public bool HasRequires => requires != "";
 		public string Preview { get => preview; set { Set(ref preview, value); Raise(nameof(HasPreview)); } }
 		public bool HasPreview => !string.IsNullOrEmpty(preview);
 
@@ -500,6 +503,36 @@ namespace BtoSync
 			File.WriteAllBytes(dst, await Http.GetByteArrayAsync(url));
 			return dst;
 		}
+
+		// Steam "Required items" of a Workshop mod (e.g. The Future -> Custom Stage API). The Steamworks API of
+		// Facepunch 2.3.3 does not expose them and the keyless Web API has none, so they are read from the item's
+		// public page, once per session. ponytail: HTML scraping; if Steam changes the page this returns nothing.
+		static readonly Dictionary<string, List<(string id, string name)>> required = new Dictionary<string, List<(string id, string name)>>();
+
+		public static List<(string id, string name)> ParseRequired(string html) =>
+			Regex.Matches(html ?? "", @"filedetails/\?id=(\d+)""[^>]*>\s*<div class=""requiredItem"">\s*([^<]*?)\s*</div>")
+				.Cast<Match>().Select(m => (m.Groups[1].Value, WebUtility.HtmlDecode(m.Groups[2].Value).Trim())).Distinct().ToList();
+
+		public static async Task<List<(string id, string name)>> RequiredItems(string id)
+		{
+			lock (required) if (required.TryGetValue(id, out var r)) return r;
+			var list = ParseRequired(await Http.GetStringAsync($"https://steamcommunity.com/sharedfiles/filedetails/?id={id}&l=english"));
+			lock (required) required[id] = list;
+			return list;
+		}
+
+		public static List<(string id, string name)> KnownRequired(string id) { lock (required) return required.TryGetValue(id, out var r) ? r : null; }
+
+		// An active mod whose required mod is missing (Req == null) or disabled.
+		public class DepIssue { public LocalMod Mod, Req; public string Id, Name; }
+
+		public static List<DepIssue> DepIssues(List<LocalMod> local) =>
+			local.Where(m => m.Enabled && m.Id != "").SelectMany(m => (KnownRequired(m.Id) ?? new List<(string id, string name)>())
+					.Select(r => new DepIssue { Mod = m, Id = r.id, Name = r.name, Req = local.FirstOrDefault(x => x.Id == r.id) }))
+				.Where(d => d.Req == null || !d.Req.Enabled).ToList();
+
+		// For tests: what RequiredItems would have read from Steam.
+		internal static void SetRequired(string id, List<(string id, string name)> r) { lock (required) required[id] = r; }
 
 		// Uninstall: Workshop copies only (BTO mods follow them, see TiePlan); never a junction.
 		public static void DeleteMod(LocalMod m)
