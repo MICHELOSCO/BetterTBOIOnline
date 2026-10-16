@@ -54,7 +54,7 @@ namespace BtoSync
 		// shown instead of the preview image when there is none (Segoe MDL2: globe, code, sync, folder)
 		public string OriginIcon => Id != "" ? "\uE774" : Link ? "\uE943" : Core.IsBto(Folder) ? "\uE895" : "\uE8B7";
 		public string DetailsText => $"Cartella {Folder}" + (Link ? " · collegata a una cartella di sviluppo" : !Managed ? ""
-			: Core.Ties.TryGetValue(Folder, out var t) ? $" · si attiva e si disattiva da sola insieme a {t.name}" : " · fix del gioco base: sempre attiva");
+			: Core.Ties.TryGetValue(Folder, out var t) ? $" · si attiva e si disattiva da sola insieme a {t.name}" : " · resta sempre attiva e aggiornata");
 		public string DescriptionText => Core.CleanDescription(Description) ?? "Questa mod non ha una descrizione nel suo metadata.xml.";
 		public bool HasPage => Id != "";
 		public bool CanRemove => !Link && Id != "";
@@ -163,7 +163,8 @@ namespace BtoSync
 		static bool Older(string mine, string release) => !Version.TryParse(mine, out var a) || !Version.TryParse(release, out var b) || a < b;
 
 		// What the BTO mods must become given the Workshop mods: a tied fix follows its mod (installed with it,
-		// disabled without it), a base-game fix is always installed and active, both kept at the newest release.
+		// disabled without it); an installed base-game fix stays active (a missing one is only proposed, see MissingBase);
+		// all kept at the newest release.
 		public static Plan TiePlan(List<LocalMod> local, Dictionary<string, (string version, string url)> catalog)
 		{
 			var p = new Plan();
@@ -174,6 +175,7 @@ namespace BtoSync
 				if (l != null && l.Link) continue;
 				bool tied = Ties.TryGetValue(c.Key, out var t), want = !tied || on.Contains(t.id);
 				var name = l?.Name ?? c.Key;
+				if (want && l == null && !tied) continue;  // base-game fix not installed: the user decides (MissingBase)
 				if (want && c.Value.url != null && (l == null || Older(l.Version, c.Value.version)))
 					p.Add(ActionKind.Download, l, new HostMod { key = c.Key, folder = c.Key, name = name, version = c.Value.version },
 						$"Scarica {name} {c.Value.version}" + (tied ? $" (serve a {t.name})" : " (fix del gioco base)"));
@@ -182,6 +184,12 @@ namespace BtoSync
 			}
 			return p;
 		}
+
+		// Base-game fixes (bto-*, no Workshop mod behind them) that are released but not installed: proposed after the patch check.
+		public static List<HostMod> MissingBase(List<LocalMod> local, Dictionary<string, (string version, string url)> catalog) =>
+			catalog.Where(c => c.Value.url != null && c.Key.StartsWith("bto-", StringComparison.OrdinalIgnoreCase) && !Ties.ContainsKey(c.Key)
+					&& !local.Any(m => m.Folder.Equals(c.Key, StringComparison.OrdinalIgnoreCase)))
+				.Select(c => new HostMod { key = c.Key, folder = c.Key, name = c.Key, version = c.Value.version }).OrderBy(h => h.folder).ToList();
 
 		static bool IsLink(string dir) => new DirectoryInfo(dir).Attributes.HasFlag(FileAttributes.ReparsePoint);
 

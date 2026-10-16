@@ -16,7 +16,13 @@
               <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" Foreground="White" FontSize="17" HorizontalAlignment="Center"/>
             </Border>
             <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
-              <TextBlock Text="BTO Sync" FontSize="17" FontWeight="SemiBold"/>
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="BTO Sync" FontSize="17" FontWeight="SemiBold"/>
+                <Border Background="{StaticResource Surface2}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="6,1,6,2" Margin="8,2,0,0" VerticalAlignment="Center"
+                        ToolTip="Versione di BTO Sync: si aggiorna da Impostazioni">
+                  <TextBlock x:Name="SideVersion" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Body}"/>
+                </Border>
+              </StackPanel>
               <TextBlock Text="mod manager per Isaac" Style="{StaticResource Sub}" FontSize="12"/>
             </StackPanel>
           </StackPanel>
@@ -91,6 +97,20 @@
           <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
             <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" Foreground="{StaticResource Warn}" FontSize="15" Margin="0,0,10,0"/>
             <TextBlock x:Name="PatchBannerText" Foreground="#F1DEB4" TextWrapping="Wrap"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+      <Border x:Name="BaseBanner" DockPanel.Dock="Top" Background="#14243F" BorderBrush="#24406B" BorderThickness="0,0,0,1" Padding="32,8" Visibility="Collapsed">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+            <Button Content="Non ora" Style="{StaticResource Ghost}" Padding="10,4" Click="BaseLater_Click" Margin="0,0,6,0"/>
+            <Button Style="{StaticResource Primary}" Padding="12,4" Click="InstallBase_Click">
+              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Scarica i fix"/></StackPanel>
+            </Button>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="&#xE946;" Style="{StaticResource Icon}" Foreground="#7FB0FF" FontSize="15" Margin="0,0,10,0"/>
+            <TextBlock x:Name="BaseBannerText" Foreground="#CFE0FF" TextWrapping="Wrap" MaxWidth="620"/>
           </StackPanel>
         </DockPanel>
       </Border>
@@ -311,6 +331,10 @@
                 <Button x:Name="PlanLaunchBtn" DockPanel.Dock="Right" Style="{StaticResource Primary}" Click="Launch_Click" VerticalAlignment="Center" Padding="18,9" Visibility="Collapsed">
                   <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE768;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Avvia Isaac"/></StackPanel>
                 </Button>
+                <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Click="SaveHostProfile_Click" VerticalAlignment="Center" Margin="0,0,8,0"
+                        ToolTip="Crea un profilo con le mod dell'host, senza cambiare niente adesso">
+                  <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8B9;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Salva come profilo"/></StackPanel>
+                </Button>
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock x:Name="PlanTitle" Style="{StaticResource H2}" FontSize="18"/>
                   <TextBlock x:Name="PlanSub" Style="{StaticResource Sub}" Margin="0,3,0,0"/>
@@ -419,6 +443,10 @@
             <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Click="OpenBackups_Click" VerticalAlignment="Center" ToolTip="Apri la cartella dei backup di BTO Sync">
               <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8B7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Cartella backup"/></StackPanel>
             </Button>
+            <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Click="ImportSave_Click" VerticalAlignment="Center" Margin="0,0,8,0"
+                    ToolTip="Aggiungi ai backup un salvataggio esportato da BTO Sync (.zip) o un file del gioco (.dat)">
+              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8E5;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Importa"/></StackPanel>
+            </Button>
             <StackPanel>
               <TextBlock Text="Salvataggi" Style="{StaticResource H1}"/>
               <TextBlock Style="{StaticResource Sub}" Margin="0,3,0,0" Text="I 3 slot di Isaac, con i dati che le mod salvano per ogni slot. Prima di sovrascrivere uno slot BTO Sync ne salva un backup."/>
@@ -448,11 +476,15 @@
                     <TextBlock Text="{Binding Line2}" Foreground="{StaticResource Body}" Margin="0,2,0,0"/>
                     <TextBlock Text="{Binding ModifiedText}" Style="{StaticResource Sub}" FontSize="12" Margin="0,8,0,14"/>
                     <StackPanel Orientation="Horizontal">
-                      <Button Style="{StaticResource Btn}" Click="SlotBackup_Click" IsEnabled="{Binding Exists}" Margin="0,0,8,0" ToolTip="Salva una copia dello slot com'è adesso">
+                      <Button Style="{StaticResource Btn}" Click="SlotBackup_Click" IsEnabled="{Binding Exists}" Margin="0,0,6,0" Padding="11,7" ToolTip="Salva una copia dello slot com'è adesso">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Backup"/></StackPanel>
                       </Button>
-                      <Button Style="{StaticResource Btn}" Click="SlotCopy_Click" IsEnabled="{Binding Exists}" ToolTip="Copia questo slot in un altro slot">
+                      <Button Style="{StaticResource Btn}" Click="SlotCopy_Click" IsEnabled="{Binding Exists}" Padding="11,7" ToolTip="Copia questo slot in un altro slot">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8C8;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Copia in…"/></StackPanel>
+                      </Button>
+                      <Button Style="{StaticResource Btn}" Click="SlotExport_Click" IsEnabled="{Binding Exists}" Margin="6,0,0,0" Padding="9,7"
+                              ToolTip="Esporta lo slot in un file, da tenere o da mandare a un amico" AutomationProperties.Name="Esporta in un file">
+                        <TextBlock Text="&#xE72D;" Style="{StaticResource Icon}" FontSize="12"/>
                       </Button>
                     </StackPanel>
                   </StackPanel>

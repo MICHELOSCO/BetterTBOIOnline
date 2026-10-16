@@ -187,10 +187,10 @@ namespace BtoSync
 		}).ToList();
 
 		// Backup folder: <yyyyMMdd-HHmmss-fff>-slotN\ persistentgamedata.dat, gamestate.dat, mods\<mod>\save.dat, label.txt
-		public static string Backup(int slot, string label)
+		public static string Backup(int slot, string label, string root = null)
 		{
 			if (!File.Exists(Persistent(slot))) return null;  // empty slot, nothing to keep
-			var dir = Path.Combine(BackupDir, $"{DateTime.Now:yyyyMMdd-HHmmss-fff}-slot{slot}");
+			var dir = Path.Combine(root ?? BackupDir, $"{DateTime.Now:yyyyMMdd-HHmmss-fff}-slot{slot}");
 			Directory.CreateDirectory(Path.Combine(dir, "mods"));
 			File.Copy(Persistent(slot), Path.Combine(dir, "persistentgamedata.dat"));
 			if (File.Exists(GameState(slot))) File.Copy(GameState(slot), Path.Combine(dir, "gamestate.dat"));
@@ -263,6 +263,51 @@ namespace BtoSync
 				Directory.CreateDirectory(Path.Combine(DataDir, kv.Key));
 				File.Copy(kv.Value, Path.Combine(DataDir, kv.Key, $"save{slot}.dat"), true);
 			}
+		}
+
+		// Export: the slot as a zip with the same layout as a backup folder (+ slot.txt), to keep or send to someone.
+		public static void Export(int slot, string zip)
+		{
+			var tmp = Path.Combine(Path.GetTempPath(), "bto-export-" + Guid.NewGuid().ToString("N"));
+			try
+			{
+				var dir = Backup(slot, $"Slot {slot} esportato il {DateTime.Now:dd/MM/yyyy HH:mm}", tmp) ?? throw new InvalidOperationException($"lo slot {slot} è vuoto");
+				File.WriteAllText(Path.Combine(dir, "slot.txt"), slot.ToString());
+				File.Delete(zip);
+				System.IO.Compression.ZipFile.CreateFromDirectory(dir, zip);
+			}
+			finally { try { Directory.Delete(tmp, true); } catch { } }
+		}
+
+		// Import: an exported zip, or a bare persistentgamedata .dat, becomes a backup (restore it into a slot from there).
+		// Nothing is written into the slots here. Returns the new backup's folder.
+		public static string Import(string file)
+		{
+			var tmp = Path.Combine(Path.GetTempPath(), "bto-import-" + Guid.NewGuid().ToString("N"));
+			try
+			{
+				Directory.CreateDirectory(tmp);
+				if (file.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) System.IO.Compression.ZipFile.ExtractToDirectory(file, tmp);
+				else File.Copy(file, Path.Combine(tmp, "persistentgamedata.dat"));
+				var p = Path.Combine(tmp, "persistentgamedata.dat");
+				if (!File.Exists(p) || !SaveInfo.Read(p).Valid) throw new InvalidDataException("non è un salvataggio di Isaac Repentance+ (né uno esportato da BTO Sync)");
+				int slot = File.Exists(Path.Combine(tmp, "slot.txt")) && int.TryParse(File.ReadAllText(Path.Combine(tmp, "slot.txt")).Trim(), out var s) && s >= 1 && s <= 3 ? s : 1;
+				var old = File.Exists(Path.Combine(tmp, "label.txt")) ? File.ReadAllText(Path.Combine(tmp, "label.txt")) : "";
+				File.Delete(Path.Combine(tmp, "slot.txt"));
+				File.WriteAllText(Path.Combine(tmp, "label.txt"), $"Importato da {Path.GetFileName(file)}" + (old != "" ? $" ({old})" : ""));
+				var dir = Path.Combine(BackupDir, $"{DateTime.Now:yyyyMMdd-HHmmss-fff}-slot{slot}");
+				Directory.CreateDirectory(BackupDir);
+				CopyTree(tmp, dir);
+				return dir;
+			}
+			finally { try { Directory.Delete(tmp, true); } catch { } }
+		}
+
+		static void CopyTree(string src, string dst)
+		{
+			Directory.CreateDirectory(dst);
+			foreach (var f in Directory.GetFiles(src)) File.Copy(f, Path.Combine(dst, Path.GetFileName(f)));
+			foreach (var d in Directory.GetDirectories(src)) CopyTree(d, Path.Combine(dst, Path.GetFileName(d)));
 		}
 
 		public static void Delete(SaveBackup b) { if (!b.FromGame) Directory.Delete(b.Path, true); }

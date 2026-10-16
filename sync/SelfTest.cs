@@ -71,6 +71,20 @@ namespace BtoSync
 			Saves.Delete(before);
 			Assert(!Directory.Exists(before.Path), "backup eliminato");
 
+			var zip = Path.Combine(t, "slot1.zip");
+			int had = Saves.Backups().Count(b => !b.FromGame);
+			Saves.Export(1, zip);
+			Assert(Saves.Backups().Count(b => !b.FromGame) == had, "esporta: niente backup lasciati in giro");
+			var impDir = Saves.Import(zip);
+			var imp = Saves.Backups().Single(x => x.Path == impDir);
+			Assert(imp.Slot == 1 && imp.Info.Achievements == 109 && imp.HasRun && imp.Label.StartsWith("Importato da slot1.zip"), "importa uno slot esportato: diventa un backup con partita e dati");
+			Assert(File.ReadAllText(Path.Combine(imp.Path, "mods", "eid", "save.dat")) == "eid1", "importa: anche i dati delle mod");
+			File.WriteAllBytes(Path.Combine(t, "amico.dat"), FakeSave(7, 2, 3));
+			var datDir = Saves.Import(Path.Combine(t, "amico.dat"));
+			Assert(Saves.Backups().Single(x => x.Path == datDir).Info.Achievements == 7, "importa un file .dat del gioco");
+			bool rejected = false; try { Saves.Import(Path.Combine(data, "eid", "save1.dat")); } catch (InvalidDataException) { rejected = true; }
+			Assert(rejected, "importa: un file che non è un salvataggio viene rifiutato");
+
 			// completion marks: Isaac beat Mom's Heart, T. Isaac beat Satan on hard, T. Jacob beat the Beast
 			File.WriteAllBytes(Path.Combine(t, "marks.dat"), FakeSave(3, 2, 5, (27, 1), (254, 3), (490, 1)));
 			var p = Progress.Of(SaveInfo.Read(Path.Combine(t, "marks.dat")));
@@ -122,8 +136,10 @@ namespace BtoSync
 			var local = Core.ScanMods(me);
 			string Kinds(Plan p) => string.Join(" ", p.Actions.Select(a => a.Kind + ":" + (a.Local?.Folder ?? a.Host.folder)).OrderBy(s => s, StringComparer.Ordinal));
 			var k = Kinds(Core.TiePlan(local, cat));
-			Assert(k == "Disable:bto-faircoop-crash-fix Download:bto-thefuture-revive-fix Download:bto-trinket-sync Enable:bto-thefuture-sync",
-				"mod BTO legate: seguono la loro mod del Workshop, quelle del gioco base sempre, StageAPI assente = niente: " + k);
+			Assert(k == "Disable:bto-faircoop-crash-fix Download:bto-thefuture-revive-fix Enable:bto-thefuture-sync",
+				"mod BTO legate: seguono la loro mod del Workshop, StageAPI assente = niente, i fix del gioco base mancanti non si scaricano da soli: " + k);
+			var miss = Core.MissingBase(local, cat);
+			Assert(miss.Count == 1 && miss[0].folder == "bto-trinket-sync" && miss[0].version == "1.0", "fix del gioco base mancanti: proposti (solo quelli non legati a una mod)");
 			var offline = local.Where(m => m.Managed).ToDictionary(m => m.Folder, m => (m.Version, (string)null));
 			k = Kinds(Core.TiePlan(local, offline));
 			Assert(k == "Disable:bto-faircoop-crash-fix Enable:bto-thefuture-sync", "mod BTO legate senza Internet: solo attiva/disattiva: " + k);

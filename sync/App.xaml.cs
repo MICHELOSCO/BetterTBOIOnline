@@ -13,7 +13,7 @@ namespace BtoSync
 			Core.Screenshots = e.Args.Contains("--screenshots");
 			DispatcherUnhandledException += (s, x) =>  // an unexpected error must not close the window mid-sync
 			{
-				MessageBox.Show("Errore imprevisto:\n\n" + x.Exception.Message, "BTO Sync", MessageBoxButton.OK, MessageBoxImage.Error);
+				Dialog.Show(Current.MainWindow, "Errore imprevisto", x.Exception.Message, DialogKind.Error);
 				x.Handled = true;
 			};
 			new MainWindow().Show();

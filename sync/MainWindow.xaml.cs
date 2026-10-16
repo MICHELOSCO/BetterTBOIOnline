@@ -35,6 +35,8 @@ namespace BtoSync
 			ProfilesList.ItemsSource = profiles;
 			CollectionViewSource.GetDefaultView(mods).Filter = ModFilter;
 			AboutText.Text = "BTO Sync " + typeof(MainWindow).Assembly.GetName().Version.ToString(3);
+			SideVersion.Text = "v" + Updater.Current.ToString(3);
+			Title = AboutText.Text;
 			InfoVersion.Text = AboutText.Text + " · gestore di mod open source del progetto BetterTBOIOnline, per giocare online con le stesse mod degli amici.";
 			modsDir = Core.FindModsDir();
 			var (list, active) = Core.LoadProfiles();
@@ -77,12 +79,12 @@ namespace BtoSync
 		bool Blocked()
 		{
 			UpdateState();
-			if (isaac) { MessageBox.Show(this, "Chiudi Isaac prima: il gioco carica le mod solo all'avvio.", "BTO Sync", MessageBoxButton.OK, MessageBoxImage.Information); return true; }
-			if (modsDir == null) { MessageBox.Show(this, "Non trovo la cartella mods di Isaac: indicala in Impostazioni.", "BTO Sync"); return true; }
+			if (isaac) { Dialog.Show(this, "Chiudi Isaac prima", "Il gioco carica le mod solo all'avvio."); return true; }
+			if (modsDir == null) { Dialog.Show(this, "Non trovo la cartella mods di Isaac", "Indicala in Impostazioni.", DialogKind.Warning); return true; }
 			return false;
 		}
 
-		void ShowError(string what, Exception e) => MessageBox.Show(this, what + NL + Explain(e), "BTO Sync", MessageBoxButton.OK, MessageBoxImage.Warning);
+		void ShowError(string what, Exception e) => Dialog.Show(this, what, Explain(e), DialogKind.Warning);
 
 		// What went wrong in words a player can act on; the system message stays as a detail.
 		static string Explain(Exception e)
@@ -116,6 +118,7 @@ namespace BtoSync
 			foreach (var w in ws) w.Installed = Core.HasWorkshopCopy(w.Id.ToString(), modsDir);
 			RefreshSummary();
 			if (tie) await Tie();
+			else if (assets != null) ShowMissingBase(Core.MissingBase(local, Core.Catalog(assets)));  // an alignment may have installed some
 		}
 
 		Dictionary<string, string> assets;  // GitHub release assets, read once per session
@@ -125,10 +128,12 @@ namespace BtoSync
 		// Installs, enables or disables the BTO fixes so they follow the Workshop mods they fix (Core.TiePlan).
 		async Task Tie()
 		{
-			if (modsDir == null || busy || Core.IsaacRunning || Core.Screenshots) return;  // never write mods while only pretending the game is closed
+			if (modsDir == null) return;
 			Dictionary<string, (string version, string url)> catalog;
 			try { catalog = Core.Catalog(await Assets()); }
 			catch { catalog = local.Where(m => m.Managed).ToDictionary(m => m.Folder, m => (m.Version, (string)null)); }  // offline: on/off only
+			ShowMissingBase(Core.MissingBase(local, catalog));
+			if (busy || Core.IsaacRunning || Core.Screenshots) return;  // never write mods while only pretending the game is closed
 			var todo = Core.TiePlan(local, catalog).Actions;
 			if (todo.Count == 0) return;
 			busy = true; UpdateState();
@@ -247,7 +252,7 @@ namespace BtoSync
 		{
 			var err = Steam.Connect();
 			UpdateState();
-			if (err != null) { MessageBox.Show(this, err, "BTO Sync"); return false; }
+			if (err != null) { Dialog.Show(this, "Steam non collegato", err, DialogKind.Warning); return false; }
 			try
 			{
 				m.Status = "Scarico…"; m.CanUpdate = false;
@@ -280,7 +285,7 @@ namespace BtoSync
 			var m = Ctx<LocalMod>(sender);
 			if (Blocked()) return;
 			var how = m.Id != "" ? "Ti disiscrivo dal Workshop e la tolgo dalla cartella mods." : "La tolgo dalla cartella mods (puoi riscaricarla da Gioca online).";
-			if (MessageBox.Show(this, $"Disinstallare \"{m.Name}\"?\n\n{how}", "BTO Sync", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+			if (!Dialog.Show(this, $"Disinstallare \"{m.Name}\"?", how, DialogKind.Danger, "Disinstalla", "Annulla")) return;
 			try
 			{
 				if (m.Id != "")
@@ -386,11 +391,13 @@ namespace BtoSync
 		async void Apply_Click(object sender, RoutedEventArgs e)
 		{
 			if (plan == null || Blocked()) return;
+			var kept = KeepCurrent();
 			busy = true; UpdateState();
 			var warnings = await Run(plan.Actions);
 			busy = false; UpdateState();
-			if (warnings.Count > 0) MessageBox.Show(this, string.Join("\n\n", warnings), "Alcune cose non sono andate", MessageBoxButton.OK, MessageBoxImage.Warning);
+			if (warnings.Count > 0) Dialog.Show(this, "Alcune cose non sono andate", string.Join(NL, warnings), DialogKind.Warning);
 			await Compare();  // shows what is left
+			if (kept != null) Status($"Allineato. Le tue mod di prima sono nel profilo \"{kept}\": da Profili le rimetti con Applica.");
 		}
 
 		// ---------- workshop ----------
@@ -433,7 +440,7 @@ namespace BtoSync
 			w.Error = "";
 			if (w.Installed)
 			{
-				if (MessageBox.Show(this, $"Disinstallare \"{w.Title}\"?\n\nTi disiscrivo dal Workshop e la tolgo dalla cartella mods.", "BTO Sync", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+				if (!Dialog.Show(this, $"Disinstallare \"{w.Title}\"?", "Ti disiscrivo dal Workshop e la tolgo dalla cartella mods.", DialogKind.Danger, "Disinstalla", "Annulla")) return;
 				w.Busy = true;
 				try { await Steam.Unsubscribe(w.Id); Core.RemoveWorkshopCopy(w.Id.ToString(), modsDir); w.Installed = false; Status("Disinstallata: " + w.Title); }
 				catch (Exception ex) { w.Error = ex.Message; }
@@ -464,6 +471,34 @@ namespace BtoSync
 				: new HashSet<string>(cur.keys).SetEquals(local.Where(m => m.Enabled).Select(m => m.Key)) ? cur.Summary : cur.Summary + " · modificato";
 		}
 
+		// Before anything replaces the active mods: if no profile holds them, save them in one, so nothing is lost by mistake.
+		// Returns the new profile's name, null when they were already saved.
+		string KeepCurrent()
+		{
+			var cur = ActiveKeys();
+			if (cur.Count == 0 || profiles.Any(p => new HashSet<string>(p.keys).SetEquals(cur))) return null;
+			return ProfileFromKeys(cur, "Copia automatica " + DateTime.Now.ToString("dd/MM HH:mm"));
+		}
+
+		// Adds a profile, with " (2)", " (3)"... when the name is taken. Returns the name used.
+		string ProfileFromKeys(List<string> keys, string name)
+		{
+			var n = name;
+			for (int i = 2; profiles.Any(p => p.name == n); i++) n = $"{name} ({i})";
+			profiles.Add(new Profile { name = n, keys = keys });
+			SaveProfiles();
+			return n;
+		}
+
+		void SaveHostProfile_Click(object sender, RoutedEventArgs e)
+		{
+			List<HostMod> host;
+			try { host = Core.FromCode(CodeBox.Text); }
+			catch (FormatException ex) { Dialog.Show(this, "Codice non valido", ex.Message, DialogKind.Warning); return; }
+			var name = ProfileFromKeys(host.Select(h => h.key).ToList(), "Mod dell'host " + DateTime.Now.ToString("dd/MM HH:mm"));
+			Status($"Profilo \"{name}\" creato con le {host.Count} mod dell'host: lo trovi in Profili, dove puoi rinominarlo e applicarlo.");
+		}
+
 		void SaveProfiles() { try { Core.SaveProfiles(profiles, activeProfile); } catch (Exception ex) { ShowError("Non riesco a salvare i profili.", ex); } RefreshProfiles(); }
 
 		List<string> ActiveKeys() => local.Where(m => m.Enabled).Select(m => m.Key).ToList();
@@ -472,7 +507,7 @@ namespace BtoSync
 		{
 			var name = NewProfileName.Text.Trim();
 			if (name == "") name = "Profilo " + (profiles.Count + 1);
-			if (profiles.Any(p => p.name == name)) { MessageBox.Show(this, "Esiste già un profilo con questo nome.", "BTO Sync"); return; }
+			if (profiles.Any(p => p.name == name)) { Dialog.Show(this, "Esiste già un profilo con questo nome", "Scegline un altro.", DialogKind.Warning); return; }
 			profiles.Add(new Profile { name = name, keys = ActiveKeys() });
 			activeProfile = name;
 			NewProfileName.Text = "";
@@ -486,13 +521,14 @@ namespace BtoSync
 			if (Blocked()) return;
 			try
 			{
+				var kept = new HashSet<string>(p.keys).SetEquals(ActiveKeys()) ? null : KeepCurrent();
 				var missing = Core.ApplyProfile(p, local);
 				activeProfile = p.name;
 				SaveProfiles();
 				RefreshSummary();
-				Status("Profilo applicato: " + p.name);
+				Status("Profilo applicato: " + p.name + (kept != null ? $". Le mod di prima sono nel profilo \"{kept}\"." : "."));
 				if (missing.Count > 0)
-					MessageBox.Show(this, $"{missing.Count} mod del profilo non sono installate. Per scaricarle esporta il codice del profilo da chi le ha e usa Gioca online.", "BTO Sync");
+					Dialog.Show(this, missing.Count == 1 ? "1 mod del profilo non è installata" : $"{missing.Count} mod del profilo non sono installate", "Per scaricarle fatti mandare il codice del profilo da chi le ha e incollalo in Gioca online.", DialogKind.Warning);
 			}
 			catch (Exception ex) { ShowError("Non riesco ad applicare il profilo.", ex); }
 		}
@@ -510,7 +546,7 @@ namespace BtoSync
 		void DeleteProfile_Click(object sender, RoutedEventArgs e)
 		{
 			var p = Ctx<Profile>(sender);
-			if (MessageBox.Show(this, $"Eliminare il profilo \"{p.name}\"? Le mod restano installate.", "BTO Sync", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+			if (!Dialog.Show(this, $"Eliminare il profilo \"{p.name}\"?", "Le mod restano installate.", DialogKind.Danger, "Elimina", "Annulla")) return;
 			profiles.Remove(p);
 			if (activeProfile == p.name) activeProfile = null;
 			SaveProfiles();
@@ -538,10 +574,8 @@ namespace BtoSync
 		{
 			List<HostMod> host;
 			try { host = Core.FromCode(ImportBox.Text); }
-			catch (FormatException ex) { MessageBox.Show(this, ex.Message, "Codice non valido", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
-			var name = "Importato " + DateTime.Now.ToString("dd/MM HH:mm");
-			profiles.Add(new Profile { name = name, keys = host.Select(h => h.key).ToList() });
-			SaveProfiles();
+			catch (FormatException ex) { Dialog.Show(this, "Codice non valido", ex.Message, DialogKind.Warning); return; }
+			var name = ProfileFromKeys(host.Select(h => h.key).ToList(), "Importato " + DateTime.Now.ToString("dd/MM HH:mm"));
 			var code = ImportBox.Text.Trim();
 			ImportBox.Text = "";
 			NavOnline.IsChecked = true;
@@ -697,12 +731,17 @@ namespace BtoSync
 		}
 
 		static readonly string NL = Environment.NewLine + Environment.NewLine;
-		bool Ask(string text) => MessageBox.Show(this, text, "BTO Sync", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+		// text = "Question?" + NL + details; ok names the action ("Ripristina", "Scarica"...)
+		bool Ask(string text, string ok = "Sì", bool danger = false)
+		{
+			int i = text.IndexOf(NL, StringComparison.Ordinal);
+			return Dialog.Show(this, i < 0 ? text : text.Substring(0, i), i < 0 ? null : text.Substring(i + NL.Length), danger ? DialogKind.Danger : DialogKind.Question, ok, "Annulla");
+		}
 
 		void SaveAction(string done, Action act)
 		{
 			UpdateState();
-			if (isaac) { MessageBox.Show(this, "Chiudi Isaac prima: mentre è aperto il gioco riscrive i salvataggi.", "BTO Sync", MessageBoxButton.OK, MessageBoxImage.Information); return; }
+			if (isaac) { Dialog.Show(this, "Chiudi Isaac prima", "Mentre è aperto, il gioco riscrive i salvataggi."); return; }
 			try { act(); Status(done); }
 			catch (Exception ex) { ShowError("Operazione sui salvataggi non riuscita.", ex); }
 			RefreshSaves();
@@ -734,7 +773,7 @@ namespace BtoSync
 			var s = Ctx<SaveSlot>(sender);
 			PickSlot(sender, s.Slot, to =>
 			{
-				if (Ask($"Copiare lo {s.Title.ToLower()} nello {to.Title.ToLower()}?{NL}{Overwrites(to)}"))
+				if (Ask($"Copiare lo {s.Title.ToLower()} nello {to.Title.ToLower()}?{NL}{Overwrites(to)}", "Copia"))
 					SaveAction($"{s.Title} copiato nello {to.Title.ToLower()}.", () => Saves.Copy(s.Slot, to.Slot));
 			});
 		}
@@ -744,15 +783,34 @@ namespace BtoSync
 			var b = Ctx<SaveBackup>(sender);
 			PickSlot(sender, 0, to =>
 			{
-				if (Ask($"Ripristinare il backup \"{b.Title}\" nello {to.Title.ToLower()}?{NL}{b.Sub}{NL}{Overwrites(to)}"))
+				if (Ask($"Ripristinare il backup \"{b.Title}\" nello {to.Title.ToLower()}?{NL}{b.Sub}{NL}{Overwrites(to)}", "Ripristina"))
 					SaveAction($"Backup ripristinato nello {to.Title.ToLower()}.", () => Saves.Restore(b, to.Slot));
 			});
+		}
+
+		// Export reads the slot only: allowed while Isaac runs (the file may then be a few minutes old).
+		void SlotExport_Click(object sender, RoutedEventArgs e)
+		{
+			var s = Ctx<SaveSlot>(sender);
+			var dlg = new Microsoft.Win32.SaveFileDialog { Title = "Esporta lo " + s.Title.ToLower(), Filter = "Salvataggio esportato (*.zip)|*.zip", FileName = $"Isaac slot {s.Slot} {DateTime.Now:yyyy-MM-dd}.zip" };
+			if (dlg.ShowDialog(this) != true) return;
+			try { Saves.Export(s.Slot, dlg.FileName); Status($"{s.Title} esportato in {dlg.FileName}: puoi tenerlo o mandarlo a un amico, che lo apre con Importa."); }
+			catch (Exception ex) { ShowError("Esportazione non riuscita.", ex); }
+		}
+
+		// Import only adds a backup: nothing is overwritten until the user restores it into a slot.
+		void ImportSave_Click(object sender, RoutedEventArgs e)
+		{
+			var dlg = new Microsoft.Win32.OpenFileDialog { Title = "Importa un salvataggio", Filter = "Salvataggio (*.zip, *.dat)|*.zip;*.dat|Tutti i file|*.*" };
+			if (dlg.ShowDialog(this) != true) return;
+			try { Saves.Import(dlg.FileName); openSlot = 0; RefreshSaves(); Status("Salvataggio importato: è in cima ai backup, usa \"Ripristina in...\" per metterlo in uno slot."); }
+			catch (Exception ex) { ShowError("Non riesco a importare questo file.", ex); }
 		}
 
 		void BackupDelete_Click(object sender, RoutedEventArgs e)
 		{
 			var b = Ctx<SaveBackup>(sender);
-			if (Ask($"Eliminare il backup \"{b.Title}\"?{NL}{b.Sub}"))
+			if (Ask($"Eliminare il backup \"{b.Title}\"?{NL}{b.Sub}", "Elimina", true))
 				SaveAction("Backup eliminato.", () => Saves.Delete(b));
 		}
 
@@ -781,6 +839,14 @@ namespace BtoSync
 		// ---------- online patch ----------
 		string GameExe => modsDir == null ? null : System.IO.Path.Combine(System.IO.Directory.GetParent(modsDir).FullName, "isaac-ng.exe");
 
+		// Right after the patch: the base-game fixes are the other half of playing online, offer them now.
+		async void AfterPatcher()
+		{
+			CheckPatch();
+			if (missingBase.Count > 0 && Ask($"Scaricare anche i fix BTO del gioco base?{NL}{string.Join(", ", missingBase.Select(h => "BTO " + Pretty(h.folder)))}{NL}Evitano le cause di desync del gioco base trovate nelle nostre partite. Li scarico da GitHub e li attivo; poi li tengo aggiornati io.", "Scarica"))
+				await InstallBase();
+		}
+
 		async void CheckPatch()
 		{
 			var exe = GameExe;
@@ -797,17 +863,48 @@ namespace BtoSync
 		async void Patch_Click(object sender, RoutedEventArgs e)
 		{
 			if (Blocked()) return;
-			if (!Ask($"Scaricare la patch per l'online?{NL}Scarico Isaac-Online-Modded di xADDBx dalla sua pagina GitHub ({Core.PatcherRepo}) e lo apro: è il programma che modifica isaac-ng.exe per lasciarti entrare online con le mod attive. Poi segui le sue istruzioni.{NL}Se Windows chiede di installare .NET, accetta: gli serve per partire.")) return;
+			if (!Ask($"Scaricare la patch per l'online?{NL}Scarico Isaac-Online-Modded di xADDBx dalla sua pagina GitHub ({Core.PatcherRepo}) e lo apro: è il programma che modifica isaac-ng.exe per lasciarti entrare online con le mod attive. Poi segui le sue istruzioni.{NL}Se Windows chiede di installare .NET, accetta: gli serve per partire.", "Scarica")) return;
 			busy = true; UpdateState();
 			Status("Scarico Isaac-Online-Modded…");
 			try
 			{
 				var p = Process.Start(await Core.DownloadPatcher());
 				Status("Isaac-Online-Modded è aperto: quando lo chiudi ricontrollo la patch.");
-				if (p != null) { p.EnableRaisingEvents = true; p.Exited += (s, a) => Dispatcher.BeginInvoke(new Action(CheckPatch)); }
+				if (p != null) { p.EnableRaisingEvents = true; p.Exited += (s, a) => Dispatcher.BeginInvoke(new Action(AfterPatcher)); }
 			}
 			catch (Exception ex) { Status("Patch non scaricata."); ShowError("Non riesco a scaricare o aprire Isaac-Online-Modded.", ex); }
 			busy = false; UpdateState();
+		}
+
+		// ---------- base-game fixes: proposed, right under the patch notice ----------
+		List<HostMod> missingBase = new List<HostMod>();
+		bool baseLater;  // "Non ora": hidden until the next start
+
+		static string Pretty(string folder) => string.Join(" ", folder.Substring(4).Split('-').Select(w => char.ToUpper(w[0]) + w.Substring(1)));
+
+		void ShowMissingBase(List<HostMod> missing)
+		{
+			missingBase = missing;
+			BaseBanner.Visibility = missing.Count > 0 && !baseLater ? Visibility.Visible : Visibility.Collapsed;
+			BaseBannerText.Text = (missing.Count == 1 ? "Manca 1 fix BTO del gioco base" : $"Mancano {missing.Count} fix BTO del gioco base")
+				+ $" ({string.Join(", ", missing.Select(h => Pretty(h.folder)))}): senza, online la partita può dividersi.";
+		}
+
+		void BaseLater_Click(object sender, RoutedEventArgs e) { baseLater = true; BaseBanner.Visibility = Visibility.Collapsed; }
+
+		async void InstallBase_Click(object sender, RoutedEventArgs e) => await InstallBase();
+
+		async Task InstallBase()
+		{
+			if (missingBase.Count == 0 || Blocked()) return;
+			busy = true; UpdateState();
+			Status("Scarico i fix BTO del gioco base…");
+			var todo = missingBase.Select(h => new SyncAction { Kind = ActionKind.Download, Host = new HostMod { key = h.key, folder = h.folder, name = Pretty(h.folder), version = h.version }, Text = "BTO " + Pretty(h.folder) }).ToList();
+			var warnings = await Run(todo);
+			busy = false; UpdateState();
+			if (warnings.Count > 0) Dialog.Show(this, "Alcuni fix non sono stati scaricati", string.Join(NL, warnings), DialogKind.Warning);
+			await Reload();
+			if (warnings.Count == 0) Status($"Installati e attivi: {string.Join(", ", todo.Select(a => a.Text))}.");
 		}
 
 		// ---------- self-update ----------
@@ -837,10 +934,10 @@ namespace BtoSync
 		async void Update_Click(object sender, RoutedEventArgs e)
 		{
 			if (update == null) return;
-			if (busy) { MessageBox.Show(this, "Aspetta che finisca l'operazione in corso.", "BTO Sync"); return; }
+			if (busy) { Dialog.Show(this, "Aspetta che finisca l'operazione in corso"); return; }
 			var notes = update.Notes.Replace("**", "").Trim();
 			if (notes.Length > 700) notes = notes.Substring(0, 700) + "…";
-			if (!Ask($"Aggiornare BTO Sync alla versione {update.VersionText}?{NL}{notes}{NL}Scarico l'aggiornamento da GitHub, sostituisco i file del programma e lo riavvio. Profili e backup restano.")) return;
+			if (!Ask($"Aggiornare BTO Sync alla versione {update.VersionText}?{NL}{notes}{NL}Scarico l'aggiornamento da GitHub, sostituisco i file del programma e lo riavvio. Profili e backup restano.", "Aggiorna")) return;
 			busy = true; UpdateState();
 			Status($"Scarico BTO Sync {update.VersionText}…");
 			try
