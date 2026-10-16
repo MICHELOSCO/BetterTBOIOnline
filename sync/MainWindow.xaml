@@ -346,11 +346,17 @@
                   <Border x:Name="tile" Style="{StaticResource RowCard}" Padding="0" Cursor="Hand" MouseLeftButtonUp="WsTile_Click"
                           Focusable="True" KeyDown="WsTile_KeyDown" FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="{Binding Title}">
                     <StackPanel>
-                      <Grid Height="134">
+                      <Grid Height="134" ClipToBounds="True">
                         <Border CornerRadius="9,9,0,0" Background="{StaticResource Surface2}"/>
-                        <Border CornerRadius="9,9,0,0">
-                          <Border.Background><ImageBrush ImageSource="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill"/></Border.Background>
-                        </Border>
+                        <Grid>
+                          <Grid.OpacityMask>
+                            <VisualBrush Stretch="Fill"><VisualBrush.Visual><Border Width="268" Height="134" CornerRadius="9,9,0,0" Background="Black"/></VisualBrush.Visual></VisualBrush>
+                          </Grid.OpacityMask>
+                          <Image Source="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill" Margin="-30" Opacity="0.5">
+                            <Image.Effect><BlurEffect Radius="30"/></Image.Effect>
+                          </Image>
+                          <Image Source="{Binding Preview, TargetNullValue={x:Null}}" Stretch="Uniform"/>
+                        </Grid>
                         <Border Background="#E6101318" CornerRadius="6" Padding="7,3,8,4" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Top"
                                 Visibility="{Binding Installed, Converter={StaticResource Vis}}">
                           <StackPanel Orientation="Horizontal">
@@ -404,11 +410,17 @@
                 <DataTemplate>
                   <Border Style="{StaticResource Card}" Padding="0">
                     <DockPanel>
-                      <Grid DockPanel.Dock="Top" Height="150">
+                      <Grid DockPanel.Dock="Top" Height="220" ClipToBounds="True">
                         <Border CornerRadius="9,9,0,0" Background="{StaticResource Surface2}"/>
-                        <Border CornerRadius="9,9,0,0">
-                          <Border.Background><ImageBrush ImageSource="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill"/></Border.Background>
-                        </Border>
+                        <Grid>
+                          <Grid.OpacityMask>
+                            <VisualBrush Stretch="Fill"><VisualBrush.Visual><Border Width="400" Height="220" CornerRadius="9,9,0,0" Background="Black"/></VisualBrush.Visual></VisualBrush>
+                          </Grid.OpacityMask>
+                          <Image Source="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill" Margin="-30" Opacity="0.5">
+                            <Image.Effect><BlurEffect Radius="30"/></Image.Effect>
+                          </Image>
+                          <Image Source="{Binding Preview, TargetNullValue={x:Null}}" Stretch="Uniform"/>
+                        </Grid>
                         <Button Style="{StaticResource Btn}" Padding="8,6" Margin="10" HorizontalAlignment="Right" VerticalAlignment="Top" Click="CloseDetail_Click"
                                 ToolTip="Chiudi" AutomationProperties.Name="Chiudi i dettagli">
                           <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="11"/>
