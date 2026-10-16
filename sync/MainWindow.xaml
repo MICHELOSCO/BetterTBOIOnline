@@ -333,30 +333,23 @@
           <Button x:Name="MoreBtn" DockPanel.Dock="Bottom" Content="Mostra altri risultati" Style="{StaticResource Btn}" HorizontalAlignment="Center"
                   Margin="0,6,0,0" Click="More_Click" Visibility="Collapsed"/>
           <Grid>
-            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition x:Name="DetailCol" Width="0"/></Grid.ColumnDefinitions>
-            <StackPanel x:Name="WsEmpty" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,60,0,0" Visibility="Collapsed">
+                        <StackPanel x:Name="WsEmpty" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,60,0,0" Visibility="Collapsed">
               <TextBlock Text="Nessuna mod trovata" Style="{StaticResource H2}" HorizontalAlignment="Center"/>
               <TextBlock x:Name="WsEmptySub" Style="{StaticResource Sub}" HorizontalAlignment="Center" Margin="0,6,0,0" Text="Prova con meno tag o con altre parole."/>
               <Button x:Name="WsEmptyClear" Content="Togli i tag" Style="{StaticResource Btn}" HorizontalAlignment="Center" Margin="0,14,0,0" Click="ClearTags_Click"/>
             </StackPanel>
-            <ListBox x:Name="WsList" Style="{StaticResource Plain}" ItemContainerStyle="{StaticResource TileItem}" SizeChanged="WsList_SizeChanged" Tag="4">
+            <ListBox x:Name="WsList" Style="{StaticResource Plain}" ItemContainerStyle="{StaticResource TileItem}" SizeChanged="WsList_SizeChanged" Tag="5">
               <ListBox.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="{Binding Tag, RelativeSource={RelativeSource AncestorType=ListBox}}" VerticalAlignment="Top"/></ItemsPanelTemplate></ListBox.ItemsPanel>
               <ListBox.ItemTemplate>
                 <DataTemplate>
                   <Border x:Name="tile" Style="{StaticResource RowCard}" Padding="0" Cursor="Hand" MouseLeftButtonUp="WsTile_Click"
                           Focusable="True" KeyDown="WsTile_KeyDown" FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="{Binding Title}">
                     <StackPanel>
-                      <Grid Height="134" ClipToBounds="True">
+                      <Grid Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}">
                         <Border CornerRadius="9,9,0,0" Background="{StaticResource Surface2}"/>
-                        <Grid>
-                          <Grid.OpacityMask>
-                            <VisualBrush Stretch="Fill"><VisualBrush.Visual><Border Width="268" Height="134" CornerRadius="9,9,0,0" Background="Black"/></VisualBrush.Visual></VisualBrush>
-                          </Grid.OpacityMask>
-                          <Image Source="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill" Margin="-30" Opacity="0.5">
-                            <Image.Effect><BlurEffect Radius="30"/></Image.Effect>
-                          </Image>
-                          <Image Source="{Binding Preview, TargetNullValue={x:Null}}" Stretch="Uniform"/>
-                        </Grid>
+                        <Border CornerRadius="9,9,0,0">
+                          <Border.Background><ImageBrush ImageSource="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill"/></Border.Background>
+                        </Border>
                         <Border Background="#E6101318" CornerRadius="6" Padding="7,3,8,4" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Top"
                                 Visibility="{Binding Installed, Converter={StaticResource Vis}}">
                           <StackPanel Orientation="Horizontal">
@@ -405,29 +398,23 @@
                 </DataTemplate>
               </ListBox.ItemTemplate>
             </ListBox>
-            <ContentControl x:Name="WsDetail" Grid.Column="1" Margin="0,0,8,12" Visibility="Collapsed" Focusable="False">
+            <ContentControl x:Name="WsDetail" Width="400" HorizontalAlignment="Right" Panel.ZIndex="1" Margin="0,0,8,12" Visibility="Collapsed" Focusable="False">
               <ContentControl.ContentTemplate>
                 <DataTemplate>
+                  <Grid>
+                  <Border CornerRadius="10" Background="{StaticResource Bg}">  <!-- shadow on its own layer: the card text keeps ClearType -->
+                    <Border.Effect><DropShadowEffect BlurRadius="28" ShadowDepth="0" Opacity="0.7" Color="Black"/></Border.Effect>
+                  </Border>
                   <Border Style="{StaticResource Card}" Padding="0">
                     <DockPanel>
-                      <Grid DockPanel.Dock="Top" Height="220" ClipToBounds="True">
-                        <Border CornerRadius="9,9,0,0" Background="{StaticResource Surface2}"/>
-                        <Grid>
-                          <Grid.OpacityMask>
-                            <VisualBrush Stretch="Fill"><VisualBrush.Visual><Border Width="400" Height="220" CornerRadius="9,9,0,0" Background="Black"/></VisualBrush.Visual></VisualBrush>
-                          </Grid.OpacityMask>
-                          <Image Source="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill" Margin="-30" Opacity="0.5">
-                            <Image.Effect><BlurEffect Radius="30"/></Image.Effect>
-                          </Image>
-                          <Image Source="{Binding Preview, TargetNullValue={x:Null}}" Stretch="Uniform"/>
-                        </Grid>
-                        <Button Style="{StaticResource Btn}" Padding="8,6" Margin="10" HorizontalAlignment="Right" VerticalAlignment="Top" Click="CloseDetail_Click"
-                                ToolTip="Chiudi" AutomationProperties.Name="Chiudi i dettagli">
-                          <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="11"/>
-                        </Button>
-                      </Grid>
                       <StackPanel DockPanel.Dock="Top" Margin="18,14,18,0">
-                        <TextBlock Text="{Binding Title}" Style="{StaticResource H2}" TextWrapping="Wrap"/>
+                        <DockPanel>
+                          <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Padding="8,6" Margin="10,0,-6,0" VerticalAlignment="Top" Click="CloseDetail_Click"
+                                  ToolTip="Chiudi (Esc)" AutomationProperties.Name="Chiudi i dettagli">
+                            <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="11"/>
+                          </Button>
+                          <TextBlock Text="{Binding Title}" Style="{StaticResource H2}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        </DockPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                           <Button x:Name="act" Content="{Binding ButtonText}" Style="{StaticResource Primary}" IsEnabled="{Binding CanAct}" Click="WsAct_Click" MinWidth="110" Margin="0,0,8,0"/>
                           <Button Style="{StaticResource Btn}" Click="WsPage_Click">
@@ -439,6 +426,12 @@
                       </StackPanel>
                       <ScrollViewer Margin="18,8,6,14" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
                         <StackPanel>
+                          <Grid Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" Margin="0,4,0,16">
+                            <Border CornerRadius="8" Background="{StaticResource Surface2}"/>
+                            <Border CornerRadius="8">
+                              <Border.Background><ImageBrush ImageSource="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill"/></Border.Background>
+                            </Border>
+                          </Grid>
                           <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
@@ -471,6 +464,7 @@
                       </ScrollViewer>
                     </DockPanel>
                   </Border>
+                  </Grid>
                   <DataTemplate.Triggers>
                     <DataTrigger Binding="{Binding Installed}" Value="True"><Setter TargetName="act" Property="Style" Value="{StaticResource Danger}"/></DataTrigger>
                   </DataTemplate.Triggers>

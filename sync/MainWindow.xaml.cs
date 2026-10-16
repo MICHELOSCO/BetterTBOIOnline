@@ -510,7 +510,8 @@ namespace BtoSync
 
 		async void Tag_Click(object sender, RoutedEventArgs e) => await Search(true);
 		async void ClearTags_Click(object sender, RoutedEventArgs e) { foreach (var t in tagChips) t.On = false; await Search(true); }
-		void WsList_SizeChanged(object sender, SizeChangedEventArgs e) => WsList.Tag = Math.Max(2, (int)((e.NewSize.Width - 4) / 236));
+		// columns of about 200 px; the details open over the grid, so they never change
+		void WsList_SizeChanged(object sender, SizeChangedEventArgs e) => WsList.Tag = Math.Max(2, (int)((e.NewSize.Width - 4) / 200));
 		void WsPage_Click(object sender, RoutedEventArgs e) => Process.Start("steam://url/CommunityFilePage/" + Ctx<WsItem>(sender).Id);
 		void WsTile_KeyDown(object sender, KeyEventArgs e) { if ((e.Key == Key.Enter || e.Key == Key.Space) && !Ctx<WsItem>(sender).Skeleton) { ShowDetail(Ctx<WsItem>(sender)); e.Handled = true; } }
 		void WsTile_Click(object sender, MouseButtonEventArgs e) { if (!Ctx<WsItem>(sender).Skeleton) ShowDetail(Ctx<WsItem>(sender)); }
@@ -522,7 +523,6 @@ namespace BtoSync
 			foreach (var x in ws) x.IsSelected = x == w;
 			WsDetail.Content = w;
 			WsDetail.Visibility = w == null ? Visibility.Collapsed : Visibility.Visible;
-			DetailCol.Width = w == null ? new GridLength(0) : new GridLength(400);
 			if (w == null) return;
 			try
 			{
