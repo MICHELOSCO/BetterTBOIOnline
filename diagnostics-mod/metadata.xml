@@ -5,6 +5,6 @@
 	<description>Solo per le analisi, non cambia il gioco.
 
 Scrive nel log.txt cosa succede quando qualcuno entra, esce o la partita si divide, più una foto dei personaggi a ogni stanza. Serve per capire i desync: dopo un problema manda la cartella online_logs e il log.txt.</description>
-	<version>0.4.1</version>
+	<version>0.4.2</version>
 	<visibility>Private</visibility>
 </metadata>
