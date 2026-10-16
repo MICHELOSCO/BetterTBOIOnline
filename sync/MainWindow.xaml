@@ -62,10 +62,10 @@
 
     <!-- ===== Content ===== -->
     <DockPanel Grid.Column="1">
-      <Border x:Name="IsaacBanner" DockPanel.Dock="Top" Background="#2A1A1D" BorderBrush="#4A262A" BorderThickness="0,0,0,1" Padding="32,11" Visibility="Collapsed">
+      <Border x:Name="IsaacBanner" DockPanel.Dock="Top" Background="#2A2315" BorderBrush="#4A3B1E" BorderThickness="0,0,0,1" Padding="32,11" Visibility="Collapsed">
         <StackPanel Orientation="Horizontal">
-          <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" Foreground="{StaticResource Accent}" FontSize="15" Margin="0,0,10,0"/>
-          <TextBlock Foreground="#F3C6C8" Text="Isaac è aperto: chiudilo per cambiare mod o salvataggi (il gioco li legge all'avvio e li riscrive mentre gira)."/>
+          <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" Foreground="{StaticResource Warn}" FontSize="15" Margin="0,0,10,0"/>
+          <TextBlock Foreground="#F1DEB4" Text="Isaac è aperto: chiudilo per cambiare mod o salvataggi (il gioco li legge all'avvio e li riscrive mentre gira)."/>
         </StackPanel>
       </Border>
       <Border x:Name="UpdateBanner" DockPanel.Dock="Top" Background="#14243F" BorderBrush="#24406B" BorderThickness="0,0,0,1" Padding="32,8" Visibility="Collapsed">
@@ -121,15 +121,16 @@
               <DataTemplate>
                 <Border Style="{StaticResource RowCard}">
                   <StackPanel>
-                    <Grid Background="Transparent" Cursor="Hand" MouseLeftButtonUp="ModRow_Click">
+                    <Grid Background="Transparent" Cursor="Hand" MouseLeftButtonUp="ModRow_Click" Focusable="True" KeyDown="ModRow_KeyDown"
+                          FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="{Binding NameText}">
                       <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="200"/><ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="110"/><ColumnDefinition Width="Auto"/>
                       </Grid.ColumnDefinitions>
                       <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Enabled, Mode=TwoWay}" Click="Toggle_Click" IsEnabled="{Binding Unlocked}"
-                                VerticalAlignment="Center" Margin="0,0,16,0" ToolTip="Attiva o disattiva"/>
+                                VerticalAlignment="Center" Margin="0,0,16,0" ToolTip="Attiva o disattiva" AutomationProperties.Name="{Binding NameText}"/>
                       <Border Grid.Column="1" Width="42" Height="42" CornerRadius="8" Background="{StaticResource Surface2}" Margin="0,0,14,0">
                         <Grid>
-                          <TextBlock Text="{Binding Initial}" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                          <TextBlock Text="{Binding OriginIcon}" Style="{StaticResource Icon}" FontSize="16" Foreground="{Binding OriginBrush}" HorizontalAlignment="Center" Opacity="0.8"/>
                           <Border CornerRadius="8" Visibility="{Binding HasPreview, Converter={StaticResource Vis}}">
                             <Border.Background><ImageBrush ImageSource="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill"/></Border.Background>
                           </Border>
@@ -137,10 +138,7 @@
                       </Border>
                       <StackPanel Grid.Column="2" VerticalAlignment="Center">
                         <TextBlock Text="{Binding NameText}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                          <TextBlock Text="{Binding VersionText}" Style="{StaticResource Sub}" FontSize="12" Margin="0,0,8,0"/>
-                          <TextBlock Text="{Binding FolderText}" Style="{StaticResource Sub}" FontSize="12" TextTrimming="CharacterEllipsis"/>
-                        </StackPanel>
+                        <TextBlock Text="{Binding VersionText}" Style="{StaticResource Sub}" FontSize="12" Margin="0,3,0,0"/>
                       </StackPanel>
                       <Border Grid.Column="3" Style="{StaticResource Badge}" BorderBrush="{Binding OriginBrush}" Margin="12,0,16,0">
                         <TextBlock Text="{Binding Origin}" Foreground="{Binding OriginBrush}" FontSize="11" FontWeight="SemiBold"/>
@@ -150,7 +148,8 @@
                     </Grid>
                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource Vis}}" Margin="110,12,8,2">
                       <TextBlock Text="{Binding DescriptionText}" Foreground="{StaticResource Body}" TextWrapping="Wrap" LineHeight="21" MaxWidth="860" HorizontalAlignment="Left"/>
-                      <WrapPanel Margin="0,14,0,0">
+                      <TextBlock Text="{Binding DetailsText}" Style="{StaticResource Sub}" FontSize="12" Margin="0,12,0,0"/>
+                      <WrapPanel Margin="0,12,0,0">
                         <Button Style="{StaticResource Primary}" Click="UpdateMod_Click" Margin="0,0,8,0" IsEnabled="{Binding Unlocked}"
                                 Visibility="{Binding CanUpdate, Converter={StaticResource Vis}}" Content="Aggiorna"/>
                         <Button Style="{StaticResource Btn}" Click="ModPage_Click" Margin="0,0,8,0" Visibility="{Binding HasPage, Converter={StaticResource Vis}}">
@@ -198,7 +197,8 @@
               <DataTemplate>
                 <Border Style="{StaticResource RowCard}">
                   <StackPanel>
-                    <Grid Background="Transparent" Cursor="Hand" MouseLeftButtonUp="WsRow_Click">
+                    <Grid Background="Transparent" Cursor="Hand" MouseLeftButtonUp="WsRow_Click" Focusable="True" KeyDown="WsRow_KeyDown"
+                          FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="{Binding Title}">
                       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                       <Border Width="72" Height="72" CornerRadius="8" Background="{StaticResource Surface2}" Margin="0,0,16,0">
                         <Grid>
@@ -219,7 +219,7 @@
                                    MaxHeight="38" Margin="0,4,0,4"/>
                         <TextBlock Text="{Binding SubsText}" Style="{StaticResource Sub}" FontSize="12"/>
                       </StackPanel>
-                      <Button Grid.Column="2" Content="{Binding ButtonText}" Style="{StaticResource Primary}" IsEnabled="{Binding CanAct}" Click="WsAct_Click"
+                      <Button Grid.Column="2" x:Name="act" Content="{Binding ButtonText}" Style="{StaticResource Primary}" IsEnabled="{Binding CanAct}" Click="WsAct_Click"
                               VerticalAlignment="Center" MinWidth="104" Margin="16,0,8,0"/>
                       <TextBlock Grid.Column="3" x:Name="chev" Text="&#xE70D;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Muted}" Margin="4,0,2,0"/>
                     </Grid>
@@ -235,6 +235,7 @@
                 </Border>
                 <DataTemplate.Triggers>
                   <DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter TargetName="chev" Property="Text" Value="&#xE70E;"/></DataTrigger>
+                  <DataTrigger Binding="{Binding Installed}" Value="True"><Setter TargetName="act" Property="Style" Value="{StaticResource Danger}"/></DataTrigger>
                 </DataTemplate.Triggers>
               </DataTemplate>
             </ListBox.ItemTemplate>
@@ -252,7 +253,7 @@
             <Border Style="{StaticResource Card}">
               <StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                  <TextBlock Text="&#xE7EE;" Style="{StaticResource Icon}" Foreground="{StaticResource Accent}" FontSize="15" Margin="0,0,10,0"/>
+                  <TextBlock Text="&#xE7EE;" Style="{StaticResource Icon}" Foreground="{StaticResource Muted}" FontSize="15" Margin="0,0,10,0"/>
                   <TextBlock Text="Sei l'host" Style="{StaticResource H2}"/>
                 </StackPanel>
                 <TextBlock Style="{StaticResource Sub}" Text="Copia il codice delle tue mod attive e incollalo su Discord: gli altri lo useranno per avere le tue stesse mod."/>
@@ -276,26 +277,27 @@
             <Border Grid.Column="2" Style="{StaticResource Card}">
               <StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                  <TextBlock Text="&#xE8FB;" Style="{StaticResource Icon}" Foreground="{StaticResource Accent}" FontSize="15" Margin="0,0,10,0"/>
+                  <TextBlock Text="&#xE8FB;" Style="{StaticResource Icon}" Foreground="{StaticResource Muted}" FontSize="15" Margin="0,0,10,0"/>
                   <TextBlock Text="Entri nella partita di un altro" Style="{StaticResource H2}"/>
                 </StackPanel>
-                <TextBlock Style="{StaticResource Sub}" Text="Incolla il codice dell'host: BTO Sync ti mostra cosa cambiare e lo fa per te."/>
-                <TextBox x:Name="CodeBox" Height="58" Margin="0,14,0,0" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                         FontFamily="Consolas" FontSize="12" Tag="BTO1:…" Background="{StaticResource Bg}"/>
-                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                  <Button Style="{StaticResource Btn}" Click="Paste_Click">
-                    <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE77F;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Incolla"/></StackPanel>
-                  </Button>
-                  <Button Content="Confronta" Style="{StaticResource Primary}" Margin="8,0,0,0" Click="Compare_Click"/>
-                </StackPanel>
+                <TextBlock Style="{StaticResource Sub}" Text="Incolla il codice dell'host: BTO Sync ti dice subito cosa cambiare e lo fa per te."/>
+                <TextBox x:Name="CodeBox" Height="58" Margin="0,14,0,0" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" TextChanged="CodeBox_TextChanged"
+                         FontFamily="Consolas" FontSize="12" Tag="BTO1:…" Background="{StaticResource Bg}" AutomationProperties.Name="Codice dell'host"/>
+                <TextBlock x:Name="CodeError" Foreground="{StaticResource Warn}" FontSize="13" TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
+                <Button Style="{StaticResource Btn}" Click="Paste_Click" HorizontalAlignment="Left" Margin="0,12,0,0">
+                  <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE77F;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Incolla"/></StackPanel>
+                </Button>
               </StackPanel>
             </Border>
           </Grid>
-          <Border x:Name="PlanCard" Style="{StaticResource Card}" Margin="0,16,0,0" Visibility="Collapsed">
+          <Border x:Name="PlanCard" Style="{StaticResource Card}" Margin="0,16,0,0" Visibility="Collapsed" VerticalAlignment="Top">
             <DockPanel>
               <DockPanel DockPanel.Dock="Top">
                 <Button x:Name="ApplyBtn" DockPanel.Dock="Right" Style="{StaticResource Primary}" Click="Apply_Click" VerticalAlignment="Center" Padding="18,9">
                   <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Allinea ora"/></StackPanel>
+                </Button>
+                <Button x:Name="PlanLaunchBtn" DockPanel.Dock="Right" Style="{StaticResource Primary}" Click="Launch_Click" VerticalAlignment="Center" Padding="18,9" Visibility="Collapsed">
+                  <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE768;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Avvia Isaac"/></StackPanel>
                 </Button>
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock x:Name="PlanTitle" Style="{StaticResource H2}" FontSize="18"/>
@@ -319,10 +321,8 @@
                   <DataTemplate>
                     <Border Background="{StaticResource Surface2}" CornerRadius="8" Padding="12,9">
                       <Grid>
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <Border Style="{StaticResource Badge}" BorderBrush="{StaticResource Accent}">
-                          <TextBlock Text="{Binding KindText}" Foreground="{StaticResource Accent}" FontSize="11" FontWeight="SemiBold"/>
-                        </Border>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding KindIcon}" Style="{StaticResource Icon}" Foreground="{Binding KindBrush}" FontSize="13"/>
                         <TextBlock Grid.Column="1" Text="{Binding Text}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         <TextBlock Grid.Column="2" Text="{Binding State}" VerticalAlignment="Center" Style="{StaticResource Sub}" Margin="12,0,0,0"/>
                       </Grid>
@@ -390,7 +390,7 @@
                       <Button Style="{StaticResource Btn}" Click="OverwriteProfile_Click" Margin="0,0,8,0" ToolTip="Sostituisci con le mod attive adesso">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Salva attive"/></StackPanel>
                       </Button>
-                      <Button Style="{StaticResource Danger}" Click="DeleteProfile_Click" ToolTip="Elimina il profilo (le mod restano installate)">
+                      <Button Style="{StaticResource Danger}" Click="DeleteProfile_Click" ToolTip="Elimina il profilo (le mod restano installate)" AutomationProperties.Name="Elimina il profilo">
                         <TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="13"/>
                       </Button>
                     </StackPanel>
@@ -433,7 +433,7 @@
                     <TextBlock Text="{Binding Line2}" Foreground="{StaticResource Body}" Margin="0,2,0,0"/>
                     <TextBlock Text="{Binding ModifiedText}" Style="{StaticResource Sub}" FontSize="12" Margin="0,8,0,14"/>
                     <StackPanel Orientation="Horizontal">
-                      <Button Style="{StaticResource Primary}" Click="SlotBackup_Click" IsEnabled="{Binding Exists}" Margin="0,0,8,0" ToolTip="Salva una copia dello slot com'è adesso">
+                      <Button Style="{StaticResource Btn}" Click="SlotBackup_Click" IsEnabled="{Binding Exists}" Margin="0,0,8,0" ToolTip="Salva una copia dello slot com'è adesso">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Backup"/></StackPanel>
                       </Button>
                       <Button Style="{StaticResource Btn}" Click="SlotCopy_Click" IsEnabled="{Binding Exists}" ToolTip="Copia questo slot in un altro slot">
@@ -469,7 +469,7 @@
                       <Button Style="{StaticResource Btn}" Click="BackupRestore_Click" Margin="0,0,8,0" ToolTip="Rimetti questo backup in uno slot">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE777;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Ripristina in…"/></StackPanel>
                       </Button>
-                      <Button Style="{StaticResource Danger}" Click="BackupDelete_Click" ToolTip="Elimina il backup"
+                      <Button Style="{StaticResource Danger}" Click="BackupDelete_Click" ToolTip="Elimina il backup" AutomationProperties.Name="Elimina il backup"
                               Visibility="{Binding DeleteVis}">
                         <TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="13"/>
                       </Button>
@@ -498,7 +498,7 @@
           </Border>
           <Border Style="{StaticResource Card}" Margin="0,0,0,12">
             <DockPanel>
-              <Button DockPanel.Dock="Right" Content="Scollega" Style="{StaticResource Btn}" Click="Disconnect_Click" VerticalAlignment="Center"/>
+              <Button x:Name="SettingsDisconnect" DockPanel.Dock="Right" Content="Scollega" Style="{StaticResource Btn}" Click="Disconnect_Click" VerticalAlignment="Center" Visibility="Collapsed"/>
               <StackPanel>
                 <TextBlock Text="Steam" Style="{StaticResource H2}" FontSize="14"/>
                 <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0"

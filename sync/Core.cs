@@ -48,11 +48,12 @@ namespace BtoSync
 		public bool Link;
 		bool enabled, canUpdate, unlocked = true, expanded; string status = "", preview; Brush statusBrush = Theme.Muted;
 		public string NameText => Name;
-		public string FolderText => Folder;
 		public string VersionText => Version == "" ? "" : "v" + Version;
-		public string Initial => Name.TrimStart('!', '~', ' ', '-', '[', '(').Length > 0 ? Name.TrimStart('!', '~', ' ', '-', '[', '(').Substring(0, 1).ToUpperInvariant() : "?";
 		public string Origin => Link ? "Sviluppo" : Id != "" ? "Workshop" : Core.IsBto(Folder) ? "BTO" : "Locale";
-		public Brush OriginBrush => Link ? Theme.Warn : Id != "" ? Theme.Blue : Core.IsBto(Folder) ? Theme.Red : Theme.Muted;
+		public Brush OriginBrush => Link ? Theme.Warn : Id != "" ? Theme.Blue : Core.IsBto(Folder) ? Theme.Body : Theme.Muted;
+		// shown instead of the preview image when there is none (Segoe MDL2: globe, code, sync, folder)
+		public string OriginIcon => Id != "" ? "\uE774" : Link ? "\uE943" : Core.IsBto(Folder) ? "\uE895" : "\uE8B7";
+		public string DetailsText => $"Cartella {Folder}" + (Link ? " · collegata a una cartella di sviluppo" : "");
 		public string DescriptionText => Core.CleanDescription(Description) ?? "Questa mod non ha una descrizione nel suo metadata.xml.";
 		public bool HasPage => Id != "";
 		public bool CanRemove => !Link && (Id != "" || Core.IsBto(Folder));
@@ -69,10 +70,9 @@ namespace BtoSync
 		{
 			CanUpdate = false; StatusBrush = Theme.Muted;
 			if (Id != "" && Core.Previews.TryGetValue(Id, out var pv)) Preview = pv;
-			if (Link) Status = "Collegata a una cartella di sviluppo";
-			else if (Id == "") Status = Core.IsBto(Folder) ? "Fix BetterTBOIOnline" : "Solo su questo PC";
-			else if (!latest.TryGetValue(Id, out var last)) Status = "";
-			else if (Manifest != "" && Manifest != last) { Status = "Aggiornamento disponibile"; StatusBrush = Theme.Warn; CanUpdate = true; }
+			// only real states here: where the mod comes from is already in the badge
+			if (Link || Id == "" || !latest.TryGetValue(Id, out var last)) Status = "";
+			else if (Manifest != "" && Manifest != last) { Status = "Da aggiornare"; StatusBrush = Theme.Warn; CanUpdate = true; }
 			else { Status = "Aggiornata"; StatusBrush = Theme.Ok; }
 		}
 	}
@@ -94,7 +94,8 @@ namespace BtoSync
 		public ActionKind Kind; public LocalMod Local; public HostMod Host;
 		string state = "";
 		public string Text { get; set; }
-		public string KindText => Kind switch { ActionKind.Enable => "Attiva", ActionKind.Disable => "Disattiva", ActionKind.Download => "GitHub", _ => "Workshop" };
+		public string KindIcon => Kind switch { ActionKind.Enable => "\uE73E", ActionKind.Disable => "\uE711", _ => "\uE896" };  // check, cross, download
+		public Brush KindBrush => Kind switch { ActionKind.Enable => Theme.Ok, ActionKind.Disable => Theme.Muted, _ => Theme.Blue };
 		public string State { get => state; set => Set(ref state, value); }
 	}
 
@@ -107,7 +108,7 @@ namespace BtoSync
 
 	public static class Theme
 	{
-		public static readonly Brush Muted = Freeze("#8B93A7"), Ok = Freeze("#3FB97A"), Warn = Freeze("#E5A93B"), Bad = Freeze("#F0616D"),
+		public static readonly Brush Muted = Freeze("#8B93A7"), Ok = Freeze("#3FB97A"), Body = Freeze("#C3C8D4"), Warn = Freeze("#E5A93B"), Bad = Freeze("#F0616D"),
 			Blue = Freeze("#4C8DFF"), Red = Freeze("#E5484D");
 		static Brush Freeze(string hex) { var b = (Brush)new BrushConverter().ConvertFrom(hex); b.Freeze(); return b; }
 	}

@@ -23,6 +23,14 @@
     <BooleanToVisibilityConverter x:Key="Vis"/>
 
     <Style TargetType="TextBlock"><Setter Property="TextOptions.TextFormattingMode" Value="Display"/></Style>
+    <!-- Keyboard focus ring: shown only when moving with Tab, never on mouse clicks -->
+    <Style x:Key="FocusRing">
+      <Setter Property="Control.Template">
+        <Setter.Value>
+          <ControlTemplate><Rectangle Margin="-3" RadiusX="10" RadiusY="10" Stroke="#7FB0FF" StrokeThickness="2"/></ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
     <Style x:Key="H1" TargetType="TextBlock">
       <Setter Property="FontSize" Value="24"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="{StaticResource Fg}"/>
     </Style>
@@ -53,7 +61,7 @@
       <Setter Property="Foreground" Value="{StaticResource Fg}"/><Setter Property="Background" Value="{StaticResource Surface2}"/>
       <Setter Property="BorderBrush" Value="{StaticResource Line}"/><Setter Property="Tag" Value="{StaticResource Hover}"/>
       <Setter Property="Padding" Value="14,7"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/>
-      <Setter Property="Cursor" Value="Hand"/><Setter Property="Focusable" Value="False"/>
+      <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
@@ -84,7 +92,7 @@
     <!-- Sidebar navigation -->
     <Style x:Key="Nav" TargetType="RadioButton">
       <Setter Property="Foreground" Value="{StaticResource Muted}"/><Setter Property="FontSize" Value="14"/><Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Focusable" Value="False"/><Setter Property="Margin" Value="0,0,0,3"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/><Setter Property="Margin" Value="0,0,0,3"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="RadioButton">
@@ -112,7 +120,7 @@
     <!-- Filter / sort pills -->
     <Style x:Key="Pill" TargetType="RadioButton">
       <Setter Property="Foreground" Value="{StaticResource Muted}"/><Setter Property="FontSize" Value="13"/><Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Focusable" Value="False"/><Setter Property="Margin" Value="0,0,6,0"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/><Setter Property="Margin" Value="0,0,6,0"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="RadioButton">
@@ -122,7 +130,7 @@
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{StaticResource Fg}"/></Trigger>
               <Trigger Property="IsChecked" Value="True">
-                <Setter TargetName="b" Property="Background" Value="{StaticResource AccentSoft}"/><Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                <Setter TargetName="b" Property="Background" Value="{StaticResource Hover}"/><Setter TargetName="b" Property="BorderBrush" Value="#4A5370"/>
                 <Setter Property="Foreground" Value="{StaticResource Fg}"/>
               </Trigger>
             </ControlTemplate.Triggers>
@@ -148,7 +156,7 @@
             <ControlTemplate.Triggers>
               <Trigger Property="Text" Value=""><Setter TargetName="ph" Property="Visibility" Value="Visible"/></Trigger>
               <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="BorderBrush" Value="#3A4256"/></Trigger>
-              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Accent}"/></Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="b" Property="BorderBrush" Value="#7FB0FF"/></Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
@@ -162,7 +170,7 @@
 
     <!-- On/off switch -->
     <Style x:Key="Switch" TargetType="CheckBox">
-      <Setter Property="Cursor" Value="Hand"/><Setter Property="Focusable" Value="False"/>
+      <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="CheckBox">
@@ -171,7 +179,8 @@
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsChecked" Value="True">
-                <Setter TargetName="track" Property="Background" Value="{StaticResource Accent}"/><Setter TargetName="thumb" Property="HorizontalAlignment" Value="Right"/>
+                <Setter TargetName="track" Property="Background" Value="#D7DBE5"/><Setter TargetName="thumb" Property="Fill" Value="{StaticResource Bg}"/>
+                <Setter TargetName="thumb" Property="HorizontalAlignment" Value="Right"/>
               </Trigger>
               <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
             </ControlTemplate.Triggers>

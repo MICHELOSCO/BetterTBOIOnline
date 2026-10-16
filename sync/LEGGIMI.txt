@@ -17,8 +17,9 @@ WORKSHOP
 GIOCA ONLINE
   Online tutti devono avere le stesse mod dell'host, alla stessa versione.
   Host: "Copia il mio codice" e incolla il codice (inizia con BTO1:) su Discord.
-  Gli altri: "Incolla", "Confronta", poi "Allinea ora": BTO Sync attiva, disattiva, scarica
-  da GitHub le mod BTO e dal Workshop quelle che mancano. Gli avvisi gialli vanno risolti a mano.
+  Gli altri: incollano il codice (se è già negli appunti BTO Sync si apre direttamente qui) e
+  il confronto parte da solo. "Allinea ora" attiva, disattiva, scarica da GitHub le mod BTO e
+  dal Workshop quelle che mancano; poi "Avvia Isaac". Gli avvisi gialli vanno risolti a mano.
 
 PROFILI
   Un profilo è un elenco di mod attive: salvane più di uno (es. "Run con The Future") e passa

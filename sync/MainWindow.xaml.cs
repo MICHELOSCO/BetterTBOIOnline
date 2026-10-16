@@ -42,8 +42,15 @@ namespace BtoSync
 			timer.Tick += (s, e) => UpdateState();
 			timer.Start();
 			RefreshProfiles();
-			Loaded += async (s, e) => { UpdateState(); _ = CheckUpdate(); await Reload(); };
+			Loaded += async (s, e) => { UpdateState(); _ = CheckUpdate(); await Reload(); OpenHostCodeFromClipboard(); };
 			Closing += (s, e) => Steam.Disconnect();
+			KeyDown += (s, e) =>  // Ctrl+F: search the page that has a search box
+			{
+				if (e.Key != Key.F || Keyboard.Modifiers != ModifierKeys.Control) return;
+				if (NavWs.IsChecked != true) NavMods.IsChecked = true;
+				(NavWs.IsChecked == true ? SearchBox : ModsSearch).Focus();
+				e.Handled = true;
+			};
 			SourceInitialized += (s, e) => { int on = 1; DwmSetWindowAttribute(new System.Windows.Interop.WindowInteropHelper(this).Handle, 20, ref on, 4); };  // dark title bar
 		}
 
@@ -58,10 +65,10 @@ namespace BtoSync
 			isaac = Core.IsaacRunning;
 			if (isaac && Steam.Ready) Steam.Disconnect();  // Isaac needs Steam to itself
 			IsaacBanner.Visibility = isaac ? Visibility.Visible : Visibility.Collapsed;
-			SteamBox.Visibility = Steam.Ready ? Visibility.Visible : Visibility.Collapsed;
+			SteamBox.Visibility = SettingsDisconnect.Visibility = Steam.Ready ? Visibility.Visible : Visibility.Collapsed;
 			foreach (var m in mods) m.Unlocked = !isaac && !busy;
 			ApplyBtn.IsEnabled = !isaac && !busy;
-			LaunchBtn.IsEnabled = !isaac;
+			LaunchBtn.IsEnabled = PlanLaunchBtn.IsEnabled = !isaac;
 		}
 
 		bool Blocked()
@@ -72,7 +79,18 @@ namespace BtoSync
 			return false;
 		}
 
-		void ShowError(string what, Exception e) => MessageBox.Show(this, what + "\n\n" + e.Message, "BTO Sync", MessageBoxButton.OK, MessageBoxImage.Warning);
+		void ShowError(string what, Exception e) => MessageBox.Show(this, what + NL + Explain(e), "BTO Sync", MessageBoxButton.OK, MessageBoxImage.Warning);
+
+		// What went wrong in words a player can act on; the system message stays as a detail.
+		static string Explain(Exception e)
+		{
+			if (e is AggregateException a && a.InnerException != null) e = a.InnerException;
+			var hint = e is System.Net.Http.HttpRequestException || e is TaskCanceledException ? "Non riesco a raggiungere Internet (GitHub o Steam): controlla la connessione e riprova."
+				: e is UnauthorizedAccessException ? "Windows non mi lascia scrivere lì: chiudi i programmi che usano quei file, oppure sposta BTO Sync in una cartella tua (non in Programmi)."
+				: e is System.IO.IOException ? "Un file è in uso da un altro programma (Isaac, Steam o una finestra di Esplora file): chiudilo e riprova."
+				: null;
+			return hint == null ? e.Message : hint + NL + "Dettaglio: " + e.Message;
+		}
 
 		async Task Reload()
 		{
@@ -148,6 +166,7 @@ namespace BtoSync
 		async void Refresh_Click(object sender, RoutedEventArgs e) => await Reload();
 		void OpenDir_Click(object sender, RoutedEventArgs e) { if (modsDir != null) Process.Start("explorer.exe", "\"" + modsDir + "\""); }
 		void ModRow_Click(object sender, MouseButtonEventArgs e) { var m = Ctx<LocalMod>(sender); m.IsExpanded = !m.IsExpanded; }
+		void ModRow_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter || e.Key == Key.Space) { ModRow_Click(sender, null); e.Handled = true; } }
 		void ModFolder_Click(object sender, RoutedEventArgs e) => Process.Start("explorer.exe", "\"" + Ctx<LocalMod>(sender).Path + "\"");
 		void ModPage_Click(object sender, RoutedEventArgs e) => Process.Start("steam://url/CommunityFilePage/" + Ctx<LocalMod>(sender).Id);
 
@@ -250,13 +269,42 @@ namespace BtoSync
 			catch (System.Runtime.InteropServices.COMException) { Status("Appunti occupati da un altro programma: incolla con Ctrl+V."); }
 		}
 
-		async void Compare_Click(object sender, RoutedEventArgs e) => await Compare();
+		// The comparison runs by itself as soon as the box holds a valid code: no separate "Confronta" step.
+		string compared;
+
+		async void CodeBox_TextChanged(object sender, TextChangedEventArgs e)
+		{
+			var text = CodeBox.Text.Trim();
+			CodeError.Visibility = Visibility.Collapsed;
+			if (text == compared) return;
+			compared = null;
+			PlanCard.Visibility = Visibility.Collapsed;
+			if (text == "") return;
+			try { Core.FromCode(text); }
+			catch (FormatException ex) { CodeError.Text = ex.Message; CodeError.Visibility = Visibility.Visible; return; }
+			compared = text;
+			await Compare();
+		}
+
+		// A host code already in the clipboard means the user is about to join: open straight on Gioca online.
+		void OpenHostCodeFromClipboard()
+		{
+			try
+			{
+				var clip = Clipboard.ContainsText() ? Clipboard.GetText().Trim() : "";
+				if (!clip.Contains("BTO1:")) return;
+				Core.FromCode(clip);
+				NavOnline.IsChecked = true;
+				CodeBox.Text = clip;
+			}
+			catch (Exception) { }  // clipboard busy or not a code: start as usual
+		}
 
 		async Task Compare()
 		{
 			List<HostMod> host;
 			try { host = Core.FromCode(CodeBox.Text); }
-			catch (FormatException ex) { MessageBox.Show(this, ex.Message, "Codice non valido", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+			catch (FormatException) { return; }  // CodeBox_TextChanged already shows why
 			await Reload();
 			Status("Confronto con l'host…");
 			var ids = host.Where(h => !string.IsNullOrEmpty(h.id)).Select(h => h.id).Union(local.Where(l => l.Id != "").Select(l => l.Id)).ToList();
@@ -267,7 +315,8 @@ namespace BtoSync
 			NotesList.ItemsSource = plan.Notes;
 			PlanList.ItemsSource = plan.Actions;
 			ApplyBtn.Visibility = plan.Actions.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-			if (plan.Actions.Count == 0 && plan.Notes.Count == 0) { PlanTitle.Text = "Sei allineato all'host"; PlanSub.Text = $"Hai le stesse {host.Count} mod dell'host: puoi entrare in partita."; }
+			PlanLaunchBtn.Visibility = plan.Actions.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+			if (plan.Actions.Count == 0 && plan.Notes.Count == 0) { PlanTitle.Text = "Sei pronto a giocare"; PlanSub.Text = $"Hai le stesse {host.Count} mod dell'host: avvia Isaac ed entra in partita."; }
 			else if (plan.Actions.Count == 0) { PlanTitle.Text = "Quasi pronto"; PlanSub.Text = "Niente da fare in automatico, ma controlla gli avvisi."; }
 			else { PlanTitle.Text = plan.Actions.Count == 1 ? "1 cosa da sistemare" : $"{plan.Actions.Count} cose da sistemare"; PlanSub.Text = "Allinea ora le fa tutte. Le mod disattivate restano installate."; }
 			Status("Confronto fatto.");
@@ -317,6 +366,7 @@ namespace BtoSync
 		async void SearchBox_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) await Search(true); }
 		async void Sort_Checked(object sender, RoutedEventArgs e) { if (IsLoaded && wsOpened) await Search(true); }
 		void WsRow_Click(object sender, MouseButtonEventArgs e) { var w = Ctx<WsItem>(sender); w.IsExpanded = !w.IsExpanded; }
+		void WsRow_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter || e.Key == Key.Space) { WsRow_Click(sender, null); e.Handled = true; } }
 		void WsPage_Click(object sender, RoutedEventArgs e) => Process.Start("steam://url/CommunityFilePage/" + Ctx<WsItem>(sender).Id);
 
 		async Task Search(bool reset)
@@ -451,7 +501,7 @@ namespace BtoSync
 		}
 
 		// Importing a code = a profile with the host's mods + the alignment that installs what is missing.
-		async void ImportProfile_Click(object sender, RoutedEventArgs e)
+		void ImportProfile_Click(object sender, RoutedEventArgs e)
 		{
 			List<HostMod> host;
 			try { host = Core.FromCode(ImportBox.Text); }
@@ -459,10 +509,12 @@ namespace BtoSync
 			var name = "Importato " + DateTime.Now.ToString("dd/MM HH:mm");
 			profiles.Add(new Profile { name = name, keys = host.Select(h => h.key).ToList() });
 			SaveProfiles();
-			CodeBox.Text = ImportBox.Text;
+			var code = ImportBox.Text.Trim();
 			ImportBox.Text = "";
 			NavOnline.IsChecked = true;
-			await Compare();
+			compared = null;
+			if (CodeBox.Text.Trim() == code) _ = Compare();
+			else CodeBox.Text = code;  // CodeBox_TextChanged compares
 			Status($"Profilo \"{name}\" creato: per attivarlo e scaricare ciò che manca usa Allinea ora.");
 		}
 
@@ -481,7 +533,9 @@ namespace BtoSync
 				BackupsEmpty.Visibility = backups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 				int game = backups.Count(b => b.FromGame);
 				BackupsCount.Text = backups.Count == 0 ? "" : $"{backups.Count - game} di BTO Sync · {game} copie automatiche del gioco";
-				SavesDirText.Text = "Salvataggi del gioco: " + Saves.SaveDir;
+				// the Steam Cloud path holds the Steam account number: keep it out of screenshots, show it on hover
+				SavesDirText.Text = Saves.SaveDir.IndexOf("userdata", StringComparison.OrdinalIgnoreCase) >= 0 ? "Salvataggi del gioco: in Steam Cloud" : "Salvataggi del gioco: in Documenti, My Games";
+				SavesDirText.ToolTip = Saves.SaveDir;
 			}
 			catch (Exception ex) { ShowError("Non riesco a leggere i salvataggi.", ex); }
 		}
