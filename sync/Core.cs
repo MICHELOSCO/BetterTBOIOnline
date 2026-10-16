@@ -45,7 +45,7 @@ namespace BtoSync
 	public class LocalMod : Notify
 	{
 		public string Key, Folder, Name, Id, Version, Hash, Manifest, Path, Description;
-		public bool Link;
+		public bool Link, Managed;  // Managed: a BTO fix that BTO Sync turns on and off by itself (Core.TiePlan)
 		bool enabled, canUpdate, unlocked = true, expanded; string status = "", preview; Brush statusBrush = Theme.Muted;
 		public string NameText => Name;
 		public string VersionText => Version == "" ? "" : "v" + Version;
@@ -53,15 +53,17 @@ namespace BtoSync
 		public Brush OriginBrush => Link ? Theme.Warn : Id != "" ? Theme.Blue : Core.IsBto(Folder) ? Theme.Body : Theme.Muted;
 		// shown instead of the preview image when there is none (Segoe MDL2: globe, code, sync, folder)
 		public string OriginIcon => Id != "" ? "\uE774" : Link ? "\uE943" : Core.IsBto(Folder) ? "\uE895" : "\uE8B7";
-		public string DetailsText => $"Cartella {Folder}" + (Link ? " · collegata a una cartella di sviluppo" : "");
+		public string DetailsText => $"Cartella {Folder}" + (Link ? " · collegata a una cartella di sviluppo" : !Managed ? ""
+			: Core.Ties.TryGetValue(Folder, out var t) ? $" · si attiva e si disattiva da sola insieme a {t.name}" : " · fix del gioco base: sempre attiva");
 		public string DescriptionText => Core.CleanDescription(Description) ?? "Questa mod non ha una descrizione nel suo metadata.xml.";
 		public bool HasPage => Id != "";
-		public bool CanRemove => !Link && (Id != "" || Core.IsBto(Folder));
+		public bool CanRemove => !Link && Id != "";
+		public bool Switchable => Unlocked && !Managed;
 		public bool Enabled { get => enabled; set => Set(ref enabled, value); }
 		public string Status { get => status; set => Set(ref status, value); }
 		public Brush StatusBrush { get => statusBrush; set => Set(ref statusBrush, value); }
 		public bool CanUpdate { get => canUpdate; set => Set(ref canUpdate, value); }
-		public bool Unlocked { get => unlocked; set { if (unlocked != value) Set(ref unlocked, value); } }  // false while Isaac runs
+		public bool Unlocked { get => unlocked; set { if (unlocked != value) { Set(ref unlocked, value); Raise(nameof(Switchable)); } } }  // false while Isaac runs
 		public bool IsExpanded { get => expanded; set => Set(ref expanded, value); }
 		public string Preview { get => preview; set { Set(ref preview, value); Raise(nameof(HasPreview)); } }
 		public bool HasPreview => !string.IsNullOrEmpty(preview);
@@ -133,6 +135,53 @@ namespace BtoSync
 		// Mods only for this PC: never in a host code, never touched by an alignment, never released.
 		// ponytail: one fixed name; move to a marker file if more appear
 		public static bool IsPrivate(string folder) => folder.Equals("bto-mine", StringComparison.OrdinalIgnoreCase);
+		// BTO fixes for a Workshop mod (folder -> Workshop id, name): active only while that mod is active.
+		// Every other BTO mod in the releases fixes the base game and is always active.
+		public static readonly Dictionary<string, (string id, string name)> Ties = new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
+		{
+			["bto-faircoop-crash-fix"] = ("2678027825", "Fair Co-op Items"),
+			["bto-stageapi-sync"] = ("1348031964", "StageAPI"),
+			["bto-thefuture-sync"] = ("2993558907", "The Future"),
+			["bto-thefuture-revive-fix"] = ("2993558907", "The Future"),
+		};
+
+		// Newest released version of each BTO mod, from the release assets "<folder>-<version>.zip".
+		public static Dictionary<string, (string version, string url)> Catalog(Dictionary<string, string> assets)
+		{
+			var c = new Dictionary<string, (string version, string url)>(StringComparer.OrdinalIgnoreCase);
+			foreach (var a in assets)
+			{
+				var m = Regex.Match(a.Key, @"^([a-z0-9-]+)-(\d+(?:\.\d+)+)\.zip$");  // lowercase: skips BTO-Sync-x.y.z.zip
+				if (!m.Success || !IsBto(m.Groups[1].Value)) continue;
+				var f = m.Groups[1].Value;
+				if (!c.TryGetValue(f, out var o) || new Version(m.Groups[2].Value) > new Version(o.version)) c[f] = (m.Groups[2].Value, a.Value);
+			}
+			return c;
+		}
+
+		static bool Older(string mine, string release) => !Version.TryParse(mine, out var a) || !Version.TryParse(release, out var b) || a < b;
+
+		// What the BTO mods must become given the Workshop mods: a tied fix follows its mod (installed with it,
+		// disabled without it), a base-game fix is always installed and active, both kept at the newest release.
+		public static Plan TiePlan(List<LocalMod> local, Dictionary<string, (string version, string url)> catalog)
+		{
+			var p = new Plan();
+			var on = new HashSet<string>(local.Where(m => m.Enabled && m.Id != "").Select(m => m.Id));
+			foreach (var c in catalog)
+			{
+				var l = local.FirstOrDefault(m => m.Folder.Equals(c.Key, StringComparison.OrdinalIgnoreCase));
+				if (l != null && l.Link) continue;
+				bool tied = Ties.TryGetValue(c.Key, out var t), want = !tied || on.Contains(t.id);
+				var name = l?.Name ?? c.Key;
+				if (want && c.Value.url != null && (l == null || Older(l.Version, c.Value.version)))
+					p.Add(ActionKind.Download, l, new HostMod { key = c.Key, folder = c.Key, name = name, version = c.Value.version },
+						$"Scarica {name} {c.Value.version}" + (tied ? $" (serve a {t.name})" : " (fix del gioco base)"));
+				else if (want && l != null && !l.Enabled) p.Add(ActionKind.Enable, l, null, $"Attiva {name}");
+				else if (!want && l != null && l.Enabled) p.Add(ActionKind.Disable, l, null, $"Disattiva {name} ({t.name} non è attiva)");
+			}
+			return p;
+		}
+
 		static bool IsLink(string dir) => new DirectoryInfo(dir).Attributes.HasFlag(FileAttributes.ReparsePoint);
 
 		static string SettingsFile => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BtoSync", "modsdir.txt");
@@ -228,6 +277,7 @@ namespace BtoSync
 					Manifest = meta.id != "" && manifests.TryGetValue(meta.id, out var mf) ? mf : "",
 					Enabled = !File.Exists(System.IO.Path.Combine(d, "disable.it")),
 					Link = IsLink(d),
+					Managed = IsBto(folder) && !IsLink(d),
 					Path = d,
 					Description = meta.description,
 				});
@@ -333,7 +383,7 @@ namespace BtoSync
 				if (!File.Exists(System.IO.Path.Combine(src, "metadata.xml"))) throw new InvalidDataException("lo zip non contiene la cartella " + h.folder);
 				var dst = System.IO.Path.Combine(modsDir, h.folder);
 				ReplaceFolder(src, dst);
-				return ModHash(dst) == h.hash ? null : $"la copia dell'host è diversa dalla release {h.version}: chiedigli la cartella";
+				return h.hash == null || ModHash(dst) == h.hash ? null : $"la copia dell'host è diversa dalla release {h.version}: chiedigli la cartella";
 			}
 			finally { try { Directory.Delete(tmp, true); } catch { } }
 		}
@@ -402,10 +452,49 @@ namespace BtoSync
 			return p.keys.Where(k => !local.Any(m => m.Key == k)).ToList();
 		}
 
-		// Uninstall: Workshop copies and BTO mods only (they can be downloaded again); never a junction.
+		// The "online mods" patch of Isaac-Online-Modded (github.com/xADDBx/Isaac-Online-Modded) on isaac-ng.exe: the game's
+		// "mods banned online" check (3 je after sub eax,2 / sub eax,1 / sub eax,1) becomes nops. Byte pattern, not an address,
+		// as that tool does: Present/Absent only when exactly one copy is found, else Unknown (a game update changed the code).
+		public enum PatchState { NoExe, Absent, Present, Unknown }
+		static readonly byte[] PatchedCheck = { 0x83, 0xE8, 0x02, 0x90, 0x90, 0x83, 0xE8, 0x01, 0x90, 0x90, 0x83, 0xE8, 0x01, 0x90, 0x90, 0x32, 0xC0 };
+		public const string PatcherRepo = "xADDBx/Isaac-Online-Modded";
+
+		public static PatchState OnlinePatch(string exe)
+		{
+			if (!File.Exists(exe)) return PatchState.NoExe;
+			var d = File.ReadAllBytes(exe);
+			int done = 0, orig = 0, n = PatchedCheck.Length;
+			for (int i = 0; i + n <= d.Length; i++)
+			{
+				if (d[i] != 0x83) continue;
+				bool p = true, o = true;
+				for (int k = 0; k < n && (p || o); k++)
+				{
+					p &= d[i + k] == PatchedCheck[k];
+					// unpatched: "74 xx" (je rel8) where the patch has "90 90"
+					o &= PatchedCheck[k] != 0x90 ? d[i + k] == PatchedCheck[k] : k % 5 == 4 || d[i + k] == 0x74;
+				}
+				if (p) done++; else if (o) orig++;
+			}
+			return done == 1 && orig == 0 ? PatchState.Present : orig == 1 && done == 0 ? PatchState.Absent : PatchState.Unknown;
+		}
+
+		// Downloads the patcher (IsaacOnlineModded.exe of its latest release) next to BTO Sync's settings; returns its path.
+		public static async Task<string> DownloadPatcher()
+		{
+			var rel = (Dictionary<string, object>)new JavaScriptSerializer().DeserializeObject(await Http.GetStringAsync($"https://api.github.com/repos/{PatcherRepo}/releases/latest"));
+			var url = Arr(rel["assets"]).Cast<Dictionary<string, object>>().Where(x => (string)x["name"] == "IsaacOnlineModded.exe").Select(x => (string)x["browser_download_url"]).FirstOrDefault()
+				?? throw new InvalidDataException("nell'ultima versione di Isaac-Online-Modded non c'è IsaacOnlineModded.exe: scaricalo a mano dalla sua pagina GitHub");
+			var dst = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(SettingsFile), "IsaacOnlineModded.exe");
+			Directory.CreateDirectory(System.IO.Path.GetDirectoryName(dst));
+			File.WriteAllBytes(dst, await Http.GetByteArrayAsync(url));
+			return dst;
+		}
+
+		// Uninstall: Workshop copies only (BTO mods follow them, see TiePlan); never a junction.
 		public static void DeleteMod(LocalMod m)
 		{
-			if (!m.CanRemove) throw new InvalidOperationException("questa mod non si può disinstallare da qui: non è né del Workshop né BTO");
+			if (!m.CanRemove) throw new InvalidOperationException("questa mod non si può disinstallare da qui: non è del Workshop");
 			DeleteFolder(m.Path);
 		}
 
@@ -453,6 +542,8 @@ namespace BtoSync
 				}
 				else p.Notes.Add($"{h.name} ({h.folder}): non è né sul Workshop né su GitHub: chiedi la cartella all'host.");
 			}
+			foreach (var t in Ties.Where(t => host.Any(h => h.id == t.Value.id) && !host.Any(h => h.folder == t.Key)))
+				p.Notes.Add($"L'host ha {t.Value.name} ma non {t.Key}: deve aggiornare BTO Sync e ricopiare il codice.");
 			foreach (var l in local.Where(x => x.Enabled && !hostKeys.Contains(x.Key) && !IsPrivate(x.Folder)))
 			{
 				if (l.Link) p.Notes.Add($"{l.Name}: l'host non ce l'ha, ma è un collegamento: disattivala dal menu Mods del gioco.");

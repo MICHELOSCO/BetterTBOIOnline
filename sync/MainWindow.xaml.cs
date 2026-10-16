@@ -43,7 +43,7 @@ namespace BtoSync
 			timer.Tick += (s, e) => UpdateState();
 			timer.Start();
 			RefreshProfiles();
-			Loaded += async (s, e) => { UpdateState(); _ = CheckUpdate(); await Reload(); OpenHostCodeFromClipboard(); };
+			Loaded += async (s, e) => { UpdateState(); _ = CheckUpdate(); await Reload(); CheckPatch(); OpenHostCodeFromClipboard(); };
 			Closing += (s, e) => Steam.Disconnect();
 			KeyDown += (s, e) =>  // Ctrl+F: search the page that has a search box
 			{
@@ -68,6 +68,7 @@ namespace BtoSync
 			IsaacBanner.Visibility = isaac ? Visibility.Visible : Visibility.Collapsed;
 			SteamBox.Visibility = SettingsDisconnect.Visibility = Steam.Ready ? Visibility.Visible : Visibility.Collapsed;
 			foreach (var m in mods) m.Unlocked = !isaac && !busy;
+			PatchBtn.IsEnabled = PatchBannerBtn.IsEnabled = !isaac && !busy;
 			ApplyBtn.IsEnabled = !isaac && !busy;
 			LaunchBtn.IsEnabled = PlanLaunchBtn.IsEnabled = !isaac;
 		}
@@ -93,7 +94,8 @@ namespace BtoSync
 			return hint == null ? e.Message : hint + NL + "Dettaglio: " + e.Message;
 		}
 
-		async Task Reload()
+		// tie: also bring the BTO mods in line with the Workshop mods (not when comparing: there the host's list wins)
+		async Task Reload(bool tie = true)
 		{
 			if (modsDir == null) { ModsDirText.Text = "Non trovata: premi Cambia e scegli la cartella mods di Isaac."; ModsSummary.Text = "Cartella mods non trovata: impostala in Impostazioni."; return; }
 			ModsDirText.Text = modsDir;
@@ -112,6 +114,60 @@ namespace BtoSync
 			catch { foreach (var m in local) m.UpdateStatus(new Dictionary<string, string>()); Status("Workshop non raggiungibile: non posso controllare gli aggiornamenti."); }
 			foreach (var w in ws) w.Installed = Core.HasWorkshopCopy(w.Id.ToString(), modsDir);
 			RefreshSummary();
+			if (tie) await Tie();
+		}
+
+		Dictionary<string, string> assets;  // GitHub release assets, read once per session
+
+		async Task<Dictionary<string, string>> Assets() => assets ?? (assets = await Core.BtoAssets());
+
+		// Installs, enables or disables the BTO fixes so they follow the Workshop mods they fix (Core.TiePlan).
+		async Task Tie()
+		{
+			if (modsDir == null || busy || Core.IsaacRunning) return;
+			Dictionary<string, (string version, string url)> catalog;
+			try { catalog = Core.Catalog(await Assets()); }
+			catch { catalog = local.Where(m => m.Managed).ToDictionary(m => m.Folder, m => (m.Version, (string)null)); }  // offline: on/off only
+			var todo = Core.TiePlan(local, catalog).Actions;
+			if (todo.Count == 0) return;
+			busy = true; UpdateState();
+			var warnings = await Run(todo);
+			busy = false; UpdateState();
+			await Reload(false);
+			Status(warnings.Count > 0 ? "Mod BTO: " + string.Join(" · ", warnings) : "Mod BTO allineate alle tue mod: " + string.Join(" · ", todo.Select(a => a.Text)) + ".");
+		}
+
+		// Runs alignment actions in order; returns what went wrong, one line per action.
+		async Task<List<string>> Run(IEnumerable<SyncAction> actions)
+		{
+			var warnings = new List<string>();
+			foreach (var a in actions)
+			{
+				a.State = "…";
+				try
+				{
+					switch (a.Kind)
+					{
+						case ActionKind.Enable: Core.SetEnabled(a.Local, true); break;
+						case ActionKind.Disable: Core.SetEnabled(a.Local, false); break;
+						case ActionKind.Download:
+							if (!(await Assets()).TryGetValue($"{a.Host.folder}-{a.Host.version}.zip", out var url))
+								throw new Exception("non c'è nelle release di GitHub: chiedi la cartella all'host");
+							var w = await Core.InstallBto(a.Host, url, modsDir);
+							if (w != null) warnings.Add(a.Host.name + ": " + w);
+							break;
+						case ActionKind.Subscribe:
+							var err = Steam.Connect();
+							UpdateState();
+							if (err != null) { Process.Start("steam://url/CommunityFilePage/" + a.Host.id); throw new Exception("apri Steam e premi Iscriviti nella pagina appena aperta (" + err + ")"); }
+							await Steam.SubscribeAndInstall(ulong.Parse(a.Host.id), modsDir, p => Dispatcher.BeginInvoke(new Action(() => a.State = $"scarico {p:P0}")));
+							break;
+					}
+					a.State = "fatto";
+				}
+				catch (Exception ex) { a.State = "errore"; warnings.Add(a.Text + ": " + ex.Message); }
+			}
+			return warnings;
 		}
 
 		void RefreshSummary()
@@ -171,7 +227,7 @@ namespace BtoSync
 		void ModFolder_Click(object sender, RoutedEventArgs e) => Process.Start("explorer.exe", "\"" + Ctx<LocalMod>(sender).Path + "\"");
 		void ModPage_Click(object sender, RoutedEventArgs e) => Process.Start("steam://url/CommunityFilePage/" + Ctx<LocalMod>(sender).Id);
 
-		void Toggle_Click(object sender, RoutedEventArgs e)
+		async void Toggle_Click(object sender, RoutedEventArgs e)
 		{
 			var m = Ctx<LocalMod>(sender);
 			try
@@ -181,7 +237,8 @@ namespace BtoSync
 				RefreshSummary();
 				Status((m.Enabled ? "Attivata: " : "Disattivata: ") + m.Name);
 			}
-			catch (Exception ex) { m.Enabled = !m.Enabled; ShowError("Non posso cambiare " + m.Name + ".", ex); }
+			catch (Exception ex) { m.Enabled = !m.Enabled; ShowError("Non posso cambiare " + m.Name + ".", ex); return; }
+			if (Core.Ties.Values.Any(t => t.id == m.Id)) await Tie();  // its BTO fixes follow it
 		}
 
 		async Task<bool> UpdateWorkshopMod(LocalMod m)
@@ -307,7 +364,7 @@ namespace BtoSync
 			List<HostMod> host;
 			try { host = Core.FromCode(CodeBox.Text); }
 			catch (FormatException) { return; }  // CodeBox_TextChanged already shows why
-			await Reload();
+			await Reload(false);
 			Status("Confronto con l'host…");
 			var ids = host.Where(h => !string.IsNullOrEmpty(h.id)).Select(h => h.id).Union(local.Where(l => l.Id != "").Select(l => l.Id)).ToList();
 			Dictionary<string, string> latest;
@@ -328,35 +385,7 @@ namespace BtoSync
 		{
 			if (plan == null || Blocked()) return;
 			busy = true; UpdateState();
-			Dictionary<string, string> assets = null;
-			var warnings = new List<string>();
-			foreach (var a in plan.Actions)
-			{
-				a.State = "…";
-				try
-				{
-					switch (a.Kind)
-					{
-						case ActionKind.Enable: Core.SetEnabled(a.Local, true); break;
-						case ActionKind.Disable: Core.SetEnabled(a.Local, false); break;
-						case ActionKind.Download:
-							if (assets == null) assets = await Core.BtoAssets();
-							if (!assets.TryGetValue($"{a.Host.folder}-{a.Host.version}.zip", out var url))
-								throw new Exception("non c'è nelle release di GitHub: chiedi la cartella all'host");
-							var w = await Core.InstallBto(a.Host, url, modsDir);
-							if (w != null) warnings.Add(a.Host.name + ": " + w);
-							break;
-						case ActionKind.Subscribe:
-							var err = Steam.Connect();
-							UpdateState();
-							if (err != null) { Process.Start("steam://url/CommunityFilePage/" + a.Host.id); throw new Exception("apri Steam e premi Iscriviti nella pagina appena aperta (" + err + ")"); }
-							await Steam.SubscribeAndInstall(ulong.Parse(a.Host.id), modsDir, p => Dispatcher.BeginInvoke(new Action(() => a.State = $"scarico {p:P0}")));
-							break;
-					}
-					a.State = "fatto";
-				}
-				catch (Exception ex) { a.State = "errore"; warnings.Add(a.Text + ": " + ex.Message); }
-			}
+			var warnings = await Run(plan.Actions);
 			busy = false; UpdateState();
 			if (warnings.Count > 0) MessageBox.Show(this, string.Join("\n\n", warnings), "Alcune cose non sono andate", MessageBoxButton.OK, MessageBoxImage.Warning);
 			await Compare();  // shows what is left
@@ -744,6 +773,38 @@ namespace BtoSync
 		}
 
 		void GitHub_Click(object sender, RoutedEventArgs e) => Process.Start("https://github.com/" + Core.Repo);
+
+		// ---------- online patch ----------
+		string GameExe => modsDir == null ? null : System.IO.Path.Combine(System.IO.Directory.GetParent(modsDir).FullName, "isaac-ng.exe");
+
+		async void CheckPatch()
+		{
+			var exe = GameExe;
+			var st = exe == null ? Core.PatchState.NoExe : await Task.Run(() => Core.OnlinePatch(exe));
+			PatchText.Text = st == Core.PatchState.Present ? "Presente: puoi giocare online con le mod attive. Dopo un aggiornamento di Isaac va rifatta."
+				: st == Core.PatchState.Absent ? "Manca: senza, Isaac ti fa entrare online solo con le mod spente."
+				: st == Core.PatchState.Unknown ? "Non riconosco questo isaac-ng.exe (il gioco si è aggiornato?): la patch potrebbe mancare."
+				: "Non trovo isaac-ng.exe accanto alla cartella mods.";
+			PatchBanner.Visibility = st == Core.PatchState.Absent || st == Core.PatchState.Unknown ? Visibility.Visible : Visibility.Collapsed;
+			PatchBannerText.Text = st == Core.PatchState.Absent ? "Manca la patch per giocare online con le mod: senza, Isaac ti fa entrare online solo con le mod spente."
+				: "Non riconosco questo isaac-ng.exe (il gioco si è aggiornato?): la patch per giocare online con le mod potrebbe mancare.";
+		}
+
+		async void Patch_Click(object sender, RoutedEventArgs e)
+		{
+			if (Blocked()) return;
+			if (!Ask($"Scaricare la patch per l'online?{NL}Scarico Isaac-Online-Modded di xADDBx dalla sua pagina GitHub ({Core.PatcherRepo}) e lo apro: è il programma che modifica isaac-ng.exe per lasciarti entrare online con le mod attive. Poi segui le sue istruzioni.{NL}Se Windows chiede di installare .NET, accetta: gli serve per partire.")) return;
+			busy = true; UpdateState();
+			Status("Scarico Isaac-Online-Modded…");
+			try
+			{
+				var p = Process.Start(await Core.DownloadPatcher());
+				Status("Isaac-Online-Modded è aperto: quando lo chiudi ricontrollo la patch.");
+				if (p != null) { p.EnableRaisingEvents = true; p.Exited += (s, a) => Dispatcher.BeginInvoke(new Action(CheckPatch)); }
+			}
+			catch (Exception ex) { Status("Patch non scaricata."); ShowError("Non riesco a scaricare o aprire Isaac-Online-Modded.", ex); }
+			busy = false; UpdateState();
+		}
 
 		// ---------- self-update ----------
 		AppRelease update;

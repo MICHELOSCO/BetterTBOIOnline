@@ -10,6 +10,19 @@ LE MIE MOD
   mod del Workshop vecchie. Clicca una mod per leggere cosa fa e per le altre azioni
   (pagina Workshop, cartella, disinstalla).
 
+MOD BTO (i fix per l'online)
+  Non si installano a mano: ci pensa BTO Sync, all'avvio e quando cambi una mod. Quelle che
+  sistemano una mod del Workshop la seguono: si installano e si attivano con lei, si disattivano
+  se la togli o la spegni (BTO Fair Co-op Crash Fix con Fair Co-op Items, BTO StageAPI Sync con
+  StageAPI, BTO The Future Sync e Revive Fix con The Future). Quelle del gioco base (trinket,
+  stanza del tesoro, numeri casuali del disegno, rientro dopo uno split) e la mod di log
+  BetterTBOIOnline Diagnostics sono sempre attive. Tutte vengono tenute all'ultima versione.
+
+PATCH PER L'ONLINE
+  Senza la patch Isaac fa entrare online solo con le mod spente. BTO Sync controlla
+  isaac-ng.exe a ogni avvio: se manca (o il gioco si è aggiornato) lo dice in alto, e
+  "Scarica la patch" scarica e apre Isaac-Online-Modded (di xADDBx, da GitHub), che la applica.
+
 WORKSHOP
   Cerca per nome o sfoglia per tendenza, iscritti o novità. Clicca una mod per la descrizione.
   "Installa" ti iscrive, la scarica e la mette già attiva nella cartella mods.
@@ -34,6 +47,14 @@ SALVATAGGI
   backup. Anche qui: a gioco chiuso. I backup stanno in %APPDATA%\BtoSync\saves.
   Clicca uno slot per il suo percorso: l'albero dei boss finali (acceso dove li hai battuti) e,
   cliccando un boss, con quali dei 34 personaggi l'hai battuto, come i segni del menu del gioco.
+
+DOPO UNO SPLIT (ognuno si ritrova da solo): chi vuole rientrare chiude il gioco, lo riapre ed
+entra nella lobby dell'host; l'host scende con una BOTOLA normale al piano dopo (uscire da The
+Future non basta). Il rientro senza nuovo desync è ancora sperimentale.
+
+LOG DA MANDARE DOPO OGNI DESYNC: in Documenti\My Games\Binding of Isaac Repentance+\ (o nella
+cartella del gioco) la cartella "online_logs" compressa in ZIP e "log.txt", copiato PRIMA di
+riaprire il gioco. Non contengono password: solo la partita, le mod e i nomi Steam.
 
 NOTA SU STEAM: per usare il Workshop BTO Sync si collega a Steam come Isaac, quindi finché è
 collegato i tuoi amici ti vedono "in gioco" su Isaac. "Avvia Isaac" e "Scollega" lo staccano.

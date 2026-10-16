@@ -82,6 +82,17 @@
           </StackPanel>
         </DockPanel>
       </Border>
+      <Border x:Name="PatchBanner" DockPanel.Dock="Top" Background="#2A2315" BorderBrush="#4A3B1E" BorderThickness="0,0,0,1" Padding="32,8" Visibility="Collapsed">
+        <DockPanel>
+          <Button x:Name="PatchBannerBtn" DockPanel.Dock="Right" Style="{StaticResource Primary}" Padding="12,4" Click="Patch_Click">
+            <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Scarica la patch"/></StackPanel>
+          </Button>
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" Foreground="{StaticResource Warn}" FontSize="15" Margin="0,0,10,0"/>
+            <TextBlock x:Name="PatchBannerText" Foreground="#F1DEB4" TextWrapping="Wrap"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
       <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="32,0,32,12" Style="{StaticResource Sub}" FontSize="12" Text="Pronto."/>
 
       <Grid Margin="32,24,24,8">
@@ -126,7 +137,7 @@
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="110"/><ColumnDefinition Width="Auto"/>
                       </Grid.ColumnDefinitions>
-                      <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Enabled, Mode=TwoWay}" Click="Toggle_Click" IsEnabled="{Binding Unlocked}"
+                      <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Enabled, Mode=TwoWay}" Click="Toggle_Click" IsEnabled="{Binding Switchable}"
                                 VerticalAlignment="Center" Margin="0,0,16,0" ToolTip="Attiva o disattiva" AutomationProperties.Name="{Binding NameText}"/>
                       <Border Grid.Column="1" Width="42" Height="42" CornerRadius="8" Background="{StaticResource Surface2}" Margin="0,0,14,0">
                         <Grid>
@@ -542,6 +553,17 @@
                 <TextBlock Text="Steam" Style="{StaticResource H2}" FontSize="14"/>
                 <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0"
                            Text="Per cercare e installare dal Workshop BTO Sync si collega a Steam come Isaac: finché è collegato i tuoi amici ti vedono in gioco su Isaac. Si scollega da solo quando avvii il gioco."/>
+              </StackPanel>
+            </DockPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+            <DockPanel>
+              <Button x:Name="PatchBtn" DockPanel.Dock="Right" Style="{StaticResource Btn}" Click="Patch_Click" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Scarica la patch"/></StackPanel>
+              </Button>
+              <StackPanel>
+                <TextBlock Text="Patch per l'online con le mod" Style="{StaticResource H2}" FontSize="14"/>
+                <TextBlock x:Name="PatchText" Style="{StaticResource Sub}" Margin="0,4,12,0" TextWrapping="Wrap" Text="Controllo isaac-ng.exe…"/>
               </StackPanel>
             </DockPanel>
           </Border>

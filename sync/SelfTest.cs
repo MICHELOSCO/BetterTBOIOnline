@@ -106,6 +106,50 @@ namespace BtoSync
 			Assert(failed && File.ReadAllText(Path.Combine(app, "BTO-Sync.exe")) == "new exe", "aggiornamento rotto: il programma resta com'era");
 		}
 
+		static void TestTies(string t)
+		{
+			var me = Path.Combine(t, "ties", "mods");
+			Mod(me, "thefuture_2993558907", "The Future", "2993558907", "");
+			Mod(me, "fair co-op items_2678027825", "Fair Co-op Items", "2678027825", ""); File.WriteAllText(Path.Combine(me, "fair co-op items_2678027825", "disable.it"), "");
+			Mod(me, "bto-faircoop-crash-fix", "BTO Fair", "", "");                                                                 // its mod is off
+			Mod(me, "bto-thefuture-sync", "BTO TF", "", ""); File.WriteAllText(Path.Combine(me, "bto-thefuture-sync", "disable.it"), "");  // its mod is on
+			Mod(me, "bto-thefuture-revive-fix", "BTO Revive", "", "");                                                           // 1.0, release 1.0.1
+			var assets = new[] { "bto-faircoop-crash-fix-1.0.zip", "bto-thefuture-sync-1.0.zip", "bto-thefuture-revive-fix-1.0.1.zip", "bto-thefuture-revive-fix-1.0.zip",
+				"bto-stageapi-sync-1.0.zip", "bto-trinket-sync-1.0.zip", "BTO-Sync-2.0.0.zip", "BetterTBOIOnline-per-amici.zip" }.ToDictionary(a => a, a => "u/" + a);
+			var cat = Core.Catalog(assets);
+			Assert(cat.Count == 5 && cat["bto-thefuture-revive-fix"].version == "1.0.1", "catalogo: ultima versione di ogni mod BTO, senza il programma né il vecchio pacchetto");
+
+			var local = Core.ScanMods(me);
+			string Kinds(Plan p) => string.Join(" ", p.Actions.Select(a => a.Kind + ":" + (a.Local?.Folder ?? a.Host.folder)).OrderBy(s => s, StringComparer.Ordinal));
+			var k = Kinds(Core.TiePlan(local, cat));
+			Assert(k == "Disable:bto-faircoop-crash-fix Download:bto-thefuture-revive-fix Download:bto-trinket-sync Enable:bto-thefuture-sync",
+				"mod BTO legate: seguono la loro mod del Workshop, quelle del gioco base sempre, StageAPI assente = niente: " + k);
+			var offline = local.Where(m => m.Managed).ToDictionary(m => m.Folder, m => (m.Version, (string)null));
+			k = Kinds(Core.TiePlan(local, offline));
+			Assert(k == "Disable:bto-faircoop-crash-fix Enable:bto-thefuture-sync", "mod BTO legate senza Internet: solo attiva/disattiva: " + k);
+
+			var bto = local.Single(m => m.Folder == "bto-thefuture-sync");
+			Assert(bto.Managed && !bto.Switchable && !bto.CanRemove && bto.DetailsText.Contains("The Future"), "mod BTO: interruttore e disinstalla in mano a BTO Sync");
+			var notes = Core.MakePlan(new List<HostMod> { new HostMod { key = "2993558907", folder = "thefuture_2993558907", name = "The Future", id = "2993558907", hash = "h" } }, local, new Dictionary<string, string>()).Notes;
+			Assert(notes.Any(n => n.Contains("bto-thefuture-sync")), "avviso: l'host ha The Future senza la sua mod BTO");
+		}
+
+		static void TestPatch(string t)
+		{
+			byte[] orig = { 0x83, 0xE8, 0x02, 0x74, 0x2A, 0x83, 0xE8, 0x01, 0x74, 0x1E, 0x83, 0xE8, 0x01, 0x74, 0x12, 0x32, 0xC0 },
+				done = { 0x83, 0xE8, 0x02, 0x90, 0x90, 0x83, 0xE8, 0x01, 0x90, 0x90, 0x83, 0xE8, 0x01, 0x90, 0x90, 0x32, 0xC0 };
+			string Exe(params byte[][] parts)
+			{
+				var f = Path.Combine(t, Guid.NewGuid().ToString("N") + ".exe");
+				File.WriteAllBytes(f, parts.SelectMany(p => new byte[] { 0x83, 0x55, 0x8B }.Concat(p)).Concat(new byte[] { 0x83 }).ToArray());
+				return f;
+			}
+			Assert(Core.OnlinePatch(Exe(done)) == Core.PatchState.Present, "patch online: presente");
+			Assert(Core.OnlinePatch(Exe(orig)) == Core.PatchState.Absent, "patch online: assente");
+			Assert(Core.OnlinePatch(Exe(new byte[40])) == Core.PatchState.Unknown && Core.OnlinePatch(Exe(orig, orig)) == Core.PatchState.Unknown, "patch online: exe non riconosciuto");
+			Assert(Core.OnlinePatch(Path.Combine(t, "nessuno.exe")) == Core.PatchState.NoExe, "patch online: niente exe");
+		}
+
 		public static int Run()
 		{
 			var t = Path.Combine(Path.GetTempPath(), "bto-sync-test-" + Guid.NewGuid().ToString("N"));
@@ -161,6 +205,8 @@ namespace BtoSync
 					== "Titolo\nTesto forte link\n• uno• due", "descrizione Workshop ripulita dal BBCode");
 				TestSaves(t);
 				TestUpdater(t);
+				TestTies(t);
+				TestPatch(t);
 				Console.WriteLine("OK");
 				return 0;
 			}
