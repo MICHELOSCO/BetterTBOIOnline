@@ -31,6 +31,8 @@ WORKSHOP
   suoni o può cambiare il gameplay (secondo i tag dell'autore) e se richiede altre mod. Clicca una
   mod per i dettagli (Esc li chiude). "Installa" ti iscrive, la scarica e la mette già attiva,
   insieme alle mod che richiede.
+  Il Workshop si usa a gioco chiuso: per parlare con Steam BTO Sync si presenta come Isaac, e con il
+  gioco aperto non può. Quando chiudi Isaac riparte da solo.
 
 MOD RICHIESTE
   Su Steam una mod può richiederne altre (The Future richiede Custom Stage API). BTO Sync lo legge:

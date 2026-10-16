@@ -148,9 +148,12 @@
         <Setter.Value>
           <ControlTemplate TargetType="TextBox">
             <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="8">
-              <Grid Margin="{TemplateBinding Padding}">
+              <Grid>
                 <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
-                <TextBlock x:Name="ph" Text="{TemplateBinding Tag}" Foreground="{StaticResource Muted}" IsHitTestVisible="False" Visibility="Collapsed" Margin="2,0,0,0" VerticalAlignment="Center"/>
+                <!-- the host pads its text by Padding itself; the placeholder copies it, +2 px like the caret inset -->
+                <TextBlock x:Name="ph" Text="{TemplateBinding Tag}" Foreground="{StaticResource Muted}" IsHitTestVisible="False" Visibility="Collapsed" Margin="{TemplateBinding Padding}" VerticalAlignment="Center">
+                  <TextBlock.RenderTransform><TranslateTransform X="2"/></TextBlock.RenderTransform>
+                </TextBlock>
               </Grid>
             </Border>
             <ControlTemplate.Triggers>

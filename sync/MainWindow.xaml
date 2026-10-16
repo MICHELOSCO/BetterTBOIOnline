@@ -67,6 +67,19 @@
       </DockPanel>
     </Border>
 
+    <!-- ===== Loading bar: shown by MainWindow.Loading/busy ===== -->
+    <Grid x:Name="LoadBar" Grid.Column="1" Height="3" VerticalAlignment="Top" Panel.ZIndex="10" ClipToBounds="True" IsHitTestVisible="False"
+          Visibility="Collapsed" SizeChanged="LoadBar_SizeChanged">
+      <Rectangle x:Name="LoadRun" Width="260" HorizontalAlignment="Left">
+        <Rectangle.Fill>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#00E5484D" Offset="0"/><GradientStop Color="#E5484D" Offset="0.5"/><GradientStop Color="#00E5484D" Offset="1"/>
+          </LinearGradientBrush>
+        </Rectangle.Fill>
+        <Rectangle.RenderTransform><TranslateTransform x:Name="LoadRunX"/></Rectangle.RenderTransform>
+      </Rectangle>
+    </Grid>
+
     <!-- ===== Content ===== -->
     <DockPanel Grid.Column="1">
       <Border x:Name="IsaacBanner" DockPanel.Dock="Top" Background="#2A2315" BorderBrush="#4A3B1E" BorderThickness="0,0,0,1" Padding="32,11" Visibility="Collapsed">
@@ -333,7 +346,13 @@
           <Button x:Name="MoreBtn" DockPanel.Dock="Bottom" Content="Mostra altri risultati" Style="{StaticResource Btn}" HorizontalAlignment="Center"
                   Margin="0,6,0,0" Click="More_Click" Visibility="Collapsed"/>
           <Grid>
-                        <StackPanel x:Name="WsEmpty" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,60,0,0" Visibility="Collapsed">
+            <StackPanel x:Name="WsIsaac" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,60,0,0" MaxWidth="460" Visibility="Collapsed">
+              <TextBlock Text="&#xE7FC;" Style="{StaticResource Icon}" FontSize="30" Foreground="{StaticResource Warn}" HorizontalAlignment="Center"/>
+              <TextBlock Text="Chiudi Isaac per usare il Workshop" Style="{StaticResource H2}" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+              <TextBlock Style="{StaticResource Sub}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,0"
+                         Text="Per cercare e installare mod BTO Sync si collega a Steam come Isaac, e mentre il gioco è aperto non può farlo. Quando chiudi Isaac il Workshop riparte da solo."/>
+            </StackPanel>
+            <StackPanel x:Name="WsEmpty" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,60,0,0" Visibility="Collapsed">
               <TextBlock Text="Nessuna mod trovata" Style="{StaticResource H2}" HorizontalAlignment="Center"/>
               <TextBlock x:Name="WsEmptySub" Style="{StaticResource Sub}" HorizontalAlignment="Center" Margin="0,6,0,0" Text="Prova con meno tag o con altre parole."/>
               <Button x:Name="WsEmptyClear" Content="Togli i tag" Style="{StaticResource Btn}" HorizontalAlignment="Center" Margin="0,14,0,0" Click="ClearTags_Click"/>
@@ -393,6 +412,13 @@
                     <DataTrigger Binding="{Binding Skeleton}" Value="True">
                       <Setter TargetName="info" Property="Visibility" Value="Collapsed"/><Setter TargetName="skel" Property="Visibility" Value="Visible"/>
                       <Setter TargetName="tile" Property="Cursor" Value="Arrow"/>
+                      <DataTrigger.EnterActions>
+                        <BeginStoryboard>
+                          <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="tile" Storyboard.TargetProperty="Opacity" From="1" To="0.45" Duration="0:0:0.75" AutoReverse="True" RepeatBehavior="Forever"/>
+                          </Storyboard>
+                        </BeginStoryboard>
+                      </DataTrigger.EnterActions>
                     </DataTrigger>
                   </DataTemplate.Triggers>
                 </DataTemplate>

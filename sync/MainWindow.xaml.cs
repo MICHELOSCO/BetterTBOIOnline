@@ -101,10 +101,25 @@ namespace BtoSync
 		static T Ctx<T>(object sender) => (T)((FrameworkElement)sender).DataContext;
 		void Status(string s) => StatusText.Text = s;
 
+		// ---------- loading bar: any running operation (counted) or a busy action shows it ----------
+		int loading;
+		void Loading(bool on) { loading += on ? 1 : -1; ShowLoad(); }
+		void ShowLoad() => LoadBar.Visibility = loading > 0 || busy ? Visibility.Visible : Visibility.Collapsed;
+		void LoadBar_SizeChanged(object sender, SizeChangedEventArgs e) =>
+			LoadRunX.BeginAnimation(TranslateTransform.XProperty, new System.Windows.Media.Animation.DoubleAnimation(-LoadRun.Width, e.NewSize.Width, TimeSpan.FromSeconds(1.2)) { RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever });
+
 		void UpdateState()
 		{
+			ShowLoad();
+			bool was = isaac;
 			isaac = Core.IsaacRunning;
 			if (isaac && Steam.Ready) Steam.Disconnect();  // Isaac needs Steam to itself
+			// the Workshop needs Steam: with Isaac open it says so instead of looking empty, and starts again once it closes
+			WsIsaac.Visibility = isaac ? Visibility.Visible : Visibility.Collapsed;
+			WsList.Visibility = isaac ? Visibility.Collapsed : Visibility.Visible;
+			SearchBox.IsEnabled = SortBtn.IsEnabled = TagsBtn.IsEnabled = !isaac;
+			if (isaac) { WsEmpty.Visibility = MoreBtn.Visibility = WsDetail.Visibility = Visibility.Collapsed; WsInfo.Text = "Il Workshop si usa a gioco chiuso."; }
+			else if (was && wsOpened) _ = Search(true);
 			IsaacBanner.Visibility = isaac ? Visibility.Visible : Visibility.Collapsed;
 			SteamBox.Visibility = SettingsDisconnect.Visibility = Steam.Ready ? Visibility.Visible : Visibility.Collapsed;
 			foreach (var m in mods) m.Unlocked = !isaac && !busy;
@@ -136,7 +151,8 @@ namespace BtoSync
 		static string Short(Exception e) { Core.LogError(e); return Core.ErrorShort(e); }
 
 		// tie: also bring the BTO mods in line with the Workshop mods (not when comparing: there the host's list wins)
-		async Task Reload(bool tie = true)
+		async Task Reload(bool tie = true) { Loading(true); try { await ReloadCore(tie); } finally { Loading(false); } }
+		async Task ReloadCore(bool tie = true)
 		{
 			if (modsDir == null) { ModsDirText.Text = "Non trovata: premi Cambia e scegli la cartella mods di Isaac."; ModsSummary.Text = "Cartella mods non trovata: impostala in Impostazioni."; return; }
 			ModsDirText.Text = modsDir;
@@ -416,7 +432,8 @@ namespace BtoSync
 			catch (Exception) { }  // clipboard busy or not a code: start as usual
 		}
 
-		async Task Compare()
+		async Task Compare() { Loading(true); try { await CompareCore(); } finally { Loading(false); } }
+		async Task CompareCore()
 		{
 			List<HostMod> host;
 			try { host = Core.FromCode(CodeBox.Text); }
@@ -534,10 +551,11 @@ namespace BtoSync
 
 		int searchId;
 
-		async Task Search(bool reset)
+		async Task Search(bool reset) { Loading(true); try { await SearchCore(reset); } finally { Loading(false); } }
+		async Task SearchCore(bool reset)
 		{
 			UpdateState();
-			if (isaac) { WsInfo.Text = "Chiudi Isaac per cercare e installare mod dal Workshop."; return; }
+			if (isaac) return;  // UpdateState shows why and searches again when Isaac closes
 			var err = Steam.Connect();
 			UpdateState();
 			if (err != null) { WsInfo.Text = err; return; }
@@ -1066,7 +1084,8 @@ namespace BtoSync
 		List<Core.DepIssue> depIssues = new List<Core.DepIssue>();
 
 		// Reads the required items of the active Workshop mods (cached), shows them in the details and warns about gaps.
-		async Task CheckDeps()
+		async Task CheckDeps() { Loading(true); try { await CheckDepsCore(); } finally { Loading(false); } }
+		async Task CheckDepsCore()
 		{
 			var ids = local.Where(m => m.Id != "" && m.Enabled).Select(m => m.Id).Distinct().ToList();
 			await Task.WhenAll(ids.Select(async id => { try { await Core.RequiredItems(id); } catch { } }));  // offline: only what is known
@@ -1155,7 +1174,8 @@ namespace BtoSync
 		// ---------- self-update ----------
 		AppRelease update;
 
-		async Task CheckUpdate()
+		async Task CheckUpdate() { Loading(true); try { await CheckUpdateCore(); } finally { Loading(false); } }
+		async Task CheckUpdateCore()
 		{
 			UpdateText.Text = "Controllo gli aggiornamenti su GitHub…";
 			try
