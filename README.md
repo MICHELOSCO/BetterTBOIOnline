@@ -45,7 +45,7 @@ Il Workshop di Steam in una griglia di copertine. Cerchi per nome (la ricerca pa
 come su Steam (più popolari nel periodo che scegli, più votate, più iscritti, più recenti, aggiornate
 di recente) e filtri per tag (Oggetti, Nemici, Boss, Musica…). Ogni scheda dice se la mod è "solo
 grafica e suoni" o può cambiare il gameplay, e se **richiede altre mod**. Cliccando una mod si apre
-il pannello dei dettagli con descrizione e numeri. "Installa" ti iscrive, scarica la mod e la mette
+una finestra al centro con descrizione e numeri. "Installa" ti iscrive, scarica la mod e la mette
 già attiva, **insieme alle mod che richiede** (per esempio The Future con Custom Stage API).
 
 ![Workshop](docs/img/workshop.png)
