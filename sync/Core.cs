@@ -46,13 +46,16 @@ namespace BtoSync
 	{
 		public string Key, Folder, Name, Id, Version, Hash, Manifest, Path, Description;
 		public bool Link, Managed;  // Managed: a BTO fix that BTO Sync turns on and off by itself (Core.TiePlan)
+		// Private: a private.txt in the folder marks a mod only for this PC: never in a host code, never touched by an alignment, never released
+		public bool Private;
+		public bool Bto => !Private && Core.IsBto(Folder);
 		bool enabled, canUpdate, unlocked = true, expanded; string status = "", preview; Brush statusBrush = Theme.Muted;
 		public string NameText => Name;
 		public string VersionText => Version == "" ? "" : "v" + Version;
-		public string Origin => Link ? "Sviluppo" : Id != "" ? "Workshop" : Core.IsPrivate(Folder) ? "Privata" : Core.IsBto(Folder) ? "BTO" : "Locale";
-		public Brush OriginBrush => Link ? Theme.Warn : Id != "" ? Theme.Blue : Core.IsBto(Folder) ? Theme.Body : Theme.Muted;
+		public string Origin => Link ? "Sviluppo" : Id != "" ? "Workshop" : Private ? "Privata" : Bto ? "BTO" : "Locale";
+		public Brush OriginBrush => Link ? Theme.Warn : Id != "" ? Theme.Blue : Bto ? Theme.Body : Theme.Muted;
 		// shown instead of the preview image when there is none (Segoe MDL2: globe, code, sync, folder)
-		public string OriginIcon => Id != "" ? "\uE774" : Link ? "\uE943" : Core.IsBto(Folder) ? "\uE895" : "\uE8B7";
+		public string OriginIcon => Id != "" ? "\uE774" : Link ? "\uE943" : Bto ? "\uE895" : "\uE8B7";
 		public string DetailsText => $"Cartella {Folder}" + (Link ? " · collegata a una cartella di sviluppo" : !Managed ? ""
 			: Core.Ties.TryGetValue(Folder, out var t) ? $" · si attiva e si disattiva da sola insieme a {t.name}" : " · resta sempre attiva e aggiornata");
 		public string DescriptionText => Core.CleanDescription(Description) ?? "Questa mod non ha una descrizione nel suo metadata.xml.";
@@ -138,10 +141,7 @@ namespace BtoSync
 
 		public static bool Screenshots;  // --screenshots: the README's pictures, taken while the game may be open
 		public static bool IsaacRunning => !Screenshots && Process.GetProcessesByName("isaac-ng").Length > 0;
-		public static bool IsBto(string folder) => !IsPrivate(folder) && (folder.StartsWith("bto-", StringComparison.OrdinalIgnoreCase) || folder.Equals("bettertboionline-diagnostics", StringComparison.OrdinalIgnoreCase));
-		// Mods only for this PC: never in a host code, never touched by an alignment, never released.
-		// ponytail: one fixed name; move to a marker file if more appear
-		public static bool IsPrivate(string folder) => folder.Equals("bto-mine", StringComparison.OrdinalIgnoreCase);
+		public static bool IsBto(string folder) => folder.StartsWith("bto-", StringComparison.OrdinalIgnoreCase) || folder.Equals("bettertboionline-diagnostics", StringComparison.OrdinalIgnoreCase);
 		// BTO fixes for a Workshop mod (folder -> Workshop id, name): active only while that mod is active.
 		// Every other BTO mod in the releases fixes the base game and is always active.
 		public static readonly Dictionary<string, (string id, string name)> Ties = new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
@@ -282,6 +282,7 @@ namespace BtoSync
 				if (!File.Exists(System.IO.Path.Combine(d, "metadata.xml"))) continue;
 				var meta = ReadMeta(d);
 				var folder = System.IO.Path.GetFileName(d);
+				bool priv = File.Exists(System.IO.Path.Combine(d, "private.txt"));
 				list.Add(new LocalMod
 				{
 					Key = meta.id != "" ? meta.id : folder.ToLowerInvariant(),
@@ -293,7 +294,8 @@ namespace BtoSync
 					Manifest = meta.id != "" && manifests.TryGetValue(meta.id, out var mf) ? mf : "",
 					Enabled = !File.Exists(System.IO.Path.Combine(d, "disable.it")),
 					Link = IsLink(d),
-					Managed = IsBto(folder) && !IsLink(d),
+					Private = priv,
+					Managed = !priv && IsBto(folder) && !IsLink(d),
 					Path = d,
 					Description = meta.description,
 				});
@@ -313,7 +315,7 @@ namespace BtoSync
 
 		public static string ToCode(IEnumerable<LocalMod> mods)
 		{
-			var dto = new CodeDto { v = 1, mods = mods.Where(m => !IsPrivate(m.Folder)).Select(m => new HostMod { key = m.Key, folder = m.Folder, name = m.Name, id = m.Id, version = m.Version, hash = m.Hash, manifest = m.Manifest }).ToList() };
+			var dto = new CodeDto { v = 1, mods = mods.Where(m => !m.Private).Select(m => new HostMod { key = m.Key, folder = m.Folder, name = m.Name, id = m.Id, version = m.Version, hash = m.Hash, manifest = m.Manifest }).ToList() };
 			var bytes = Encoding.UTF8.GetBytes(new JavaScriptSerializer().Serialize(dto));
 			using (var ms = new MemoryStream())
 			{
@@ -590,7 +592,7 @@ namespace BtoSync
 			}
 			foreach (var t in Ties.Where(t => host.Any(h => h.id == t.Value.id) && !host.Any(h => h.folder == t.Key)))
 				p.Notes.Add($"L'host ha {t.Value.name} ma non {t.Key}: deve aggiornare BTO Sync e ricopiare il codice.");
-			foreach (var l in local.Where(x => x.Enabled && !hostKeys.Contains(x.Key) && !IsPrivate(x.Folder)))
+			foreach (var l in local.Where(x => x.Enabled && !hostKeys.Contains(x.Key) && !x.Private))
 			{
 				if (l.Link) p.Notes.Add($"{l.Name}: l'host non ce l'ha, ma è un collegamento: disattivala dal menu Mods del gioco.");
 				else p.Add(ActionKind.Disable, l, null, $"Disattiva {l.Name} (l'host non ce l'ha)");
