@@ -18,13 +18,13 @@ namespace BtoSync
 		}
 
 		// A save file with the same chunk layout as the game's: achievements, counters (1 Mom's Heart, 10 deaths), level counters, items seen.
-		static byte[] FakeSave(int achievements, int deaths, int items)
+		static byte[] FakeSave(int achievements, int deaths, int items, params (int idx, int val)[] marks)
 		{
 			var ms = new MemoryStream();
 			var w = new BinaryWriter(ms);
 			w.Write(System.Text.Encoding.ASCII.GetBytes("ISAACNGSAVE09R  ")); w.Write(0);
 			w.Write(1); w.Write(642); w.Write(642); for (int i = 0; i < 642; i++) w.Write((byte)(i >= 1 && i <= achievements ? 1 : 0));
-			w.Write(2); w.Write(523 * 4); w.Write(523); for (int i = 0; i < 523; i++) w.Write(i == 10 ? deaths : i == 1 && deaths > 0 ? 3 : 0);
+			w.Write(2); w.Write(523 * 4); w.Write(523); for (int i = 0; i < 523; i++) w.Write(i == 10 ? deaths : i == 1 && deaths > 0 ? 3 : marks.Where(m => m.idx == i).Select(m => m.val).FirstOrDefault());
 			w.Write(3); w.Write(14 * 4); w.Write(14); for (int i = 0; i < 14; i++) w.Write(0);
 			w.Write(4); w.Write(733 * 4); w.Write(733); for (int i = 0; i < 733; i++) w.Write((byte)(i < items ? 1 : 0));
 			w.Write(0x12345678);
@@ -70,6 +70,14 @@ namespace BtoSync
 			Assert(File.ReadAllBytes(Path.Combine(save, "rep+persistentgamedata3.dat")).SequenceEqual(FakeSave(10, 2, 7)), "ripristino di una copia del gioco in uno slot vuoto");
 			Saves.Delete(before);
 			Assert(!Directory.Exists(before.Path), "backup eliminato");
+
+			// completion marks: Isaac beat Mom's Heart, T. Isaac beat Satan on hard, T. Jacob beat the Beast
+			File.WriteAllBytes(Path.Combine(t, "marks.dat"), FakeSave(3, 2, 5, (27, 1), (254, 3), (490, 1)));
+			var p = Progress.Of(SaveInfo.Read(Path.Combine(t, "marks.dat")));
+			Assert(p.Count == 12 && p.Values.All(b => b.Marks.Length == 34) && Progress.Characters.Length == 34, "percorso: 12 boss, 34 personaggi ciascuno");
+			Assert(p["heart"].Beaten == 1 && p["heart"].Marks[0] == 1 && p["heart"].State == 1, "percorso: Cuore di Mamma battuto con Isaac");
+			Assert(p["satan"].Marks[17] == 3 && p["satan"].State == 2, "percorso: Satana battuto in difficile con T. Isaac");
+			Assert(p["beast"].Marks[33] == 1 && p["lamb"].State == 0, "percorso: Beast con T. Jacob, Lamb non battuto");
 		}
 
 		static void TestUpdater(string t)

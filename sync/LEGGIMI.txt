@@ -32,6 +32,8 @@ SALVATAGGI
   altro slot. Dai backup, tuoi o quelli che il gioco fa da solo ogni giorno, "Ripristina in..."
   rimette un salvataggio in uno slot. Prima di sovrascrivere uno slot BTO Sync ne fa sempre un
   backup. Anche qui: a gioco chiuso. I backup stanno in %APPDATA%\BtoSync\saves.
+  Clicca uno slot per il suo percorso: l'albero dei boss finali (acceso dove li hai battuti) e,
+  cliccando un boss, con quali dei 34 personaggi l'hai battuto, come i segni del menu del gioco.
 
 NOTA SU STEAM: per usare il Workshop BTO Sync si collega a Steam come Isaac, quindi finché è
 collegato i tuoi amici ti vedono "in gioco" su Isaac. "Avvia Isaac" e "Scollega" lo staccano.

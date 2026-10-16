@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace BtoSync
@@ -528,7 +529,10 @@ namespace BtoSync
 				Saves.Init(modsDir);
 				slots = Saves.Slots();
 				var backups = Saves.Backups();
+				if (!slots.Any(x => x.Slot == openSlot && x.Exists)) openSlot = 0;
+				foreach (var x in slots) x.IsOpen = x.Slot == openSlot;
 				SlotsList.ItemsSource = slots;
+				ShowProgress();
 				BackupsList.ItemsSource = backups;
 				BackupsEmpty.Visibility = backups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 				int game = backups.Count(b => b.FromGame);
@@ -538,6 +542,126 @@ namespace BtoSync
 				SavesDirText.ToolTip = Saves.SaveDir;
 			}
 			catch (Exception ex) { ShowError("Non riesco a leggere i salvataggi.", ex); }
+		}
+
+		// ---------- progress of a slot (completion marks) ----------
+		int openSlot;      // 0 = none, the backup list is shown
+		string pickedBoss; // its characters are listed under the tree
+
+		void Slot_Click(object sender, MouseButtonEventArgs e) => ToggleSlot(Ctx<SaveSlot>(sender));
+		void Slot_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter || e.Key == Key.Space) { ToggleSlot(Ctx<SaveSlot>(sender)); e.Handled = true; } }
+		void CloseProgress_Click(object sender, RoutedEventArgs e) { openSlot = 0; RefreshSaves(); }
+
+		void ToggleSlot(SaveSlot s)
+		{
+			if (!s.Exists) { Status($"Lo {s.Title.ToLower()} è vuoto: non c'è un percorso da mostrare."); return; }
+			openSlot = openSlot == s.Slot ? 0 : s.Slot;
+			pickedBoss = null;
+			RefreshSaves();
+		}
+
+		// Where each boss sits in the tree (x, y of the node's top-left corner) and what leads to it.
+		static readonly (string key, double x, double y)[] TreeLayout =
+		{
+			("heart", 0, 108), ("bossrush", 205, 0), ("hush", 410, 0), ("delirium", 615, 0),
+			("isaac", 205, 72), ("bluebaby", 410, 72), ("satan", 205, 144), ("lamb", 410, 144), ("megasatan", 615, 108),
+			("mother", 205, 236), ("beast", 410, 236), ("greed", 615, 236),
+		};
+		static readonly (string from, string to)[] TreeEdges =
+		{
+			("heart", "bossrush"), ("bossrush", "hush"), ("hush", "delirium"), ("heart", "isaac"), ("isaac", "bluebaby"),
+			("heart", "satan"), ("satan", "lamb"), ("bluebaby", "megasatan"), ("lamb", "megasatan"),
+		};
+		const double NodeW = 150, NodeH = 54;
+
+		Brush Res(string key) => (Brush)FindResource(key);
+
+		void ShowProgress()
+		{
+			var open = slots.FirstOrDefault(x => x.Slot == openSlot);
+			var vis = open != null ? Visibility.Visible : Visibility.Collapsed;
+			var hide = open != null ? Visibility.Collapsed : Visibility.Visible;
+			ProgressPanel.Visibility = vis;
+			BackupsHeader.Visibility = BackupsList.Visibility = hide;
+			if (open == null) { BackupsEmpty.Visibility = Visibility.Collapsed; return; }
+			BackupsEmpty.Visibility = Visibility.Collapsed;
+
+			var bosses = Progress.Of(open.Info);
+			ProgressTitle.Text = "Percorso dello " + open.Title.ToLower();
+			ProgressTree.Children.Clear();
+			var pos = TreeLayout.ToDictionary(t => t.key, t => new Point(t.x, t.y));
+			foreach (var (from, to) in TreeEdges)  // elbow lines, lit when both bosses are beaten
+			{
+				Point a = pos[from], b = pos[to];
+				double y1 = a.Y + NodeH / 2, y2 = b.Y + NodeH / 2, x1 = a.X + NodeW, x2 = b.X, xm = x2 - 25;
+				ProgressTree.Children.Add(new System.Windows.Shapes.Polyline
+				{
+					Points = new PointCollection { new Point(x1, y1), new Point(xm, y1), new Point(xm, y2), new Point(x2, y2) },
+					Stroke = bosses[from].State > 0 && bosses[to].State > 0 ? Res("Body") : Res("Line"), StrokeThickness = 2,
+				});
+			}
+			var lane = new TextBlock { Text = "Altre strade", Style = (Style)FindResource("Sub"), FontSize = 12 };
+			Canvas.SetLeft(lane, 0); Canvas.SetTop(lane, 236 + NodeH / 2 - 9);
+			ProgressTree.Children.Add(lane);
+			foreach (var (key, x, y) in TreeLayout)
+			{
+				var node = BossNode(bosses[key]);
+				Canvas.SetLeft(node, x); Canvas.SetTop(node, y);
+				ProgressTree.Children.Add(node);
+			}
+
+			CharsGrid.Children.Clear(); TaintedGrid.Children.Clear();
+			if (!open.Info.Played) ProgressHint.Text = "Questo slot non è mai stato giocato: il percorso è tutto da fare.";
+			if (pickedBoss == null || !bosses.ContainsKey(pickedBoss))
+			{
+				CharsBox.Visibility = Visibility.Collapsed;
+				if (open.Info.Played)
+				{
+					int done = bosses.Values.Count(b => b.State > 0);
+					ProgressHint.Text = $"Hai battuto {done} boss finali su {bosses.Count}. Clicca un boss per vedere con quali personaggi.";
+				}
+				return;
+			}
+			var picked = bosses[pickedBoss];
+			int hard = picked.Marks.Count(Progress.IsHard);
+			ProgressHint.Text = picked.Beaten == 0 ? $"{picked.Name}: non l'hai ancora battuto con nessun personaggio."
+				: $"{picked.Name}: battuto con {picked.Beaten} personaggi su 34" + (hard > 0 ? $", {hard} in difficile." : ".");
+			CharsBox.Visibility = Visibility.Visible;
+			for (int i = 0; i < Progress.Characters.Length; i++)
+				(i < 17 ? CharsGrid : TaintedGrid).Children.Add(CharChip(Progress.Characters[i], picked.Marks[i]));
+		}
+
+		// 0 not beaten: dark with an outline; beaten: light; beaten on hard: red, like the game's hard marks.
+		(Brush bg, Brush fg, Brush hover) MarkColors(int state) => state == 2 ? (Res("Accent"), Brushes.White, Res("AccentHover"))
+			: state == 1 ? (Res("Body"), Res("Bg"), (Brush)new BrushConverter().ConvertFrom("#D7DBE5")) : (Res("Bg"), Res("Muted"), Res("Hover"));
+
+		Button BossNode(BossProgress b)
+		{
+			var (bg, fg, hover) = MarkColors(b.State);
+			var text = new StackPanel { Width = NodeW - 24 };  // full width: the button template centers its content
+			text.Children.Add(new TextBlock { Text = b.Name, FontWeight = FontWeights.SemiBold, FontSize = 13, TextTrimming = TextTrimming.CharacterEllipsis });
+			text.Children.Add(new TextBlock { Text = $"{b.Beaten}/34" + (b.Hard ? " · difficile" : ""), FontSize = 11, Opacity = 0.75, Margin = new Thickness(0, 1, 0, 0) });
+			var node = new Button
+			{
+				Style = (Style)FindResource("Btn"), Width = NodeW, Height = NodeH, Padding = new Thickness(12, 6, 12, 6),
+				Background = bg, Foreground = fg, Tag = hover, Content = text, HorizontalContentAlignment = HorizontalAlignment.Left,
+				BorderBrush = b.Key == pickedBoss ? (Brush)new BrushConverter().ConvertFrom("#7FB0FF") : b.State == 0 ? Res("Line") : bg,
+				ToolTip = "Clicca per vedere con quali personaggi",
+			};
+			System.Windows.Automation.AutomationProperties.SetName(node, $"{b.Name}: battuto con {b.Beaten} personaggi su 34");
+			node.Click += (s, e) => { pickedBoss = pickedBoss == b.Key ? null : b.Key; ShowProgress(); };
+			return node;
+		}
+
+		Border CharChip(string name, int mark)
+		{
+			var (bg, fg, _) = MarkColors(mark == 0 ? 0 : Progress.IsHard(mark) ? 2 : 1);
+			return new Border
+			{
+				Width = 150, Height = 32, CornerRadius = new CornerRadius(6), Margin = new Thickness(0, 0, 8, 8), Background = bg,
+				BorderBrush = mark == 0 ? Res("Line") : bg, BorderThickness = new Thickness(1), Padding = new Thickness(10, 0, 10, 0),
+				Child = new TextBlock { Text = name, Foreground = fg, FontSize = 13, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis },
+			};
 		}
 
 		static readonly string NL = Environment.NewLine + Environment.NewLine;

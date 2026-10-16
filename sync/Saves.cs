@@ -19,6 +19,7 @@ namespace BtoSync
 		public int Deaths { get; set; }
 		public int MomKills { get; set; }
 		public int Items { get; set; }
+		public int[] Counters { get; set; } = new int[0];  // all the event counters: completion marks live here
 		public bool Played => Deaths + MomKills + Items > 0;
 		public string Summary => !Valid ? "file non leggibile" : !Played ? "mai giocato" : $"{Achievements} obiettivi · {Deaths} morti · {Items} oggetti";
 
@@ -36,7 +37,12 @@ namespace BtoSync
 					if (type != chunk || count < 0 || o + 12 + count * size > b.Length) return i;
 					o += 12;
 					if (type == 1) { i.AchievementTotal = count - 1; for (int k = 1; k < count; k++) if (b[o + k] != 0) i.Achievements++; }
-					if (type == 2 && count > 10) { i.MomKills = BitConverter.ToInt32(b, o + 4); i.Deaths = BitConverter.ToInt32(b, o + 40); }
+					if (type == 2)
+					{
+						i.Counters = new int[count];
+						for (int k = 0; k < count; k++) i.Counters[k] = BitConverter.ToInt32(b, o + 4 * k);
+						if (count > 10) { i.MomKills = i.Counters[1]; i.Deaths = i.Counters[10]; }
+					}
 					if (type == 4) for (int k = 0; k < count; k++) if (b[o + k] != 0) i.Items++;
 					o += count * size;
 				}
@@ -51,6 +57,7 @@ namespace BtoSync
 	public class SaveSlot
 	{
 		public int Slot { get; set; }
+		public bool IsOpen { get; set; }  // its progress tree is shown
 		public bool Exists { get; set; }
 		public bool HasRun { get; set; }
 		public DateTime Modified { get; set; }
@@ -63,6 +70,57 @@ namespace BtoSync
 		public string Line2 => Exists && Played ? $"Cuore di Mamma battuto {Info.MomKills} volte" : " ";
 		public string Short => !Exists ? "vuoto" : !Played ? "mai giocato" : $"{Info.Achievements} obiettivi" + (HasRun ? ", partita in corso" : "");
 		public string ModifiedText => Exists ? "Salvato il " + Modified.ToString("dd/MM/yyyy HH:mm") : " ";
+	}
+
+	// Completion marks: for each final boss, the event counter of each of the 34 characters (EventCounter enum,
+	// PROGRESSION_KILL_<BOSS>_WITH_<CHARACTER>). 0 = not beaten, otherwise beaten; bit 2 = beaten on hard.
+	public class BossProgress
+	{
+		public string Key, Name;
+		public int[] Marks;  // one per character, in Progress.Characters order
+		public int Beaten => Marks.Count(m => m != 0);
+		public bool Hard => Marks.Any(Progress.IsHard);
+		public int State => Hard ? 2 : Beaten > 0 ? 1 : 0;  // 0 not beaten, 1 beaten, 2 beaten on hard
+	}
+
+	public static class Progress
+	{
+		public static readonly string[] Characters =
+		{
+			"Isaac", "Maddalena", "Caino", "Giuda", "???", "Eva", "Sansone", "Azazel", "Lazzaro", "Eden", "The Lost", "Lilith", "Keeper", "Apollyon",
+			"The Forgotten", "Bethany", "Jacob & Esau",
+			"T. Isaac", "T. Maddalena", "T. Caino", "T. Giuda", "T. ???", "T. Eva", "T. Sansone", "T. Azazel", "T. Lazzaro", "T. Eden", "T. Lost",
+			"T. Lilith", "T. Keeper", "T. Apollyon", "T. Forgotten", "T. Bethany", "T. Jacob",
+		};
+
+		public static bool IsHard(int mark) => (mark & 2) != 0;
+
+		// The counters of one boss are split over the enum: the first 14 characters, then The Forgotten, Bethany,
+		// Jacob & Esau and the 17 tainted ones were appended by later expansions.
+		static int[] Split(int first14, int forgotten, int bethany, int jacob, int tainted) =>
+			Enumerable.Range(first14, 14).Concat(new[] { forgotten, bethany, jacob }).Concat(Enumerable.Range(tainted, 17)).ToArray();
+
+		static readonly (string key, string name, int[] idx)[] Bosses =
+		{
+			("heart", "Cuore di Mamma", Split(27, 203, 214, 215, 216)),
+			("isaac", "Isaac", Split(41, 204, 233, 234, 235)),
+			("satan", "Satana", Split(55, 205, 252, 253, 254)),
+			("bluebaby", "???", Split(83, 207, 290, 291, 292)),
+			("lamb", "Lamb", Split(97, 208, 309, 310, 311)),
+			("megasatan", "Mega Satana", Split(116, 209, 328, 329, 330)),
+			("bossrush", "Boss Rush", Split(69, 206, 271, 272, 273)),
+			("hush", "Hush", Split(144, 211, 366, 367, 368)),
+			("delirium", "Delirium", Split(173, 213, 404, 405, 406)),
+			("mother", "Mother", Enumerable.Range(423, 34).ToArray()),
+			("beast", "Beast", Enumerable.Range(457, 34).ToArray()),
+			("greed", "Ultra Greed", Split(130, 210, 347, 348, 349)),
+		};
+
+		public static Dictionary<string, BossProgress> Of(SaveInfo info) => Bosses.ToDictionary(b => b.key, b => new BossProgress
+		{
+			Key = b.key, Name = b.name,
+			Marks = b.idx.Select(i => i < info.Counters.Length ? info.Counters[i] : 0).ToArray(),
+		});
 	}
 
 	public class SaveBackup
