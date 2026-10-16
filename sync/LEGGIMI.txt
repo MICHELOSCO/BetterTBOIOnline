@@ -15,8 +15,9 @@ MOD BTO (i fix per l'online)
   sistemano una mod del Workshop la seguono: si installano e si attivano con lei, si disattivano
   se la togli o la spegni (BTO Fair Co-op Crash Fix con Fair Co-op Items, BTO StageAPI Sync con
   StageAPI, BTO The Future Sync e Revive Fix con The Future). Quelle del gioco base (trinket,
-  stanza del tesoro, numeri casuali del disegno, rientro dopo uno split) e la mod di log
-  BetterTBOIOnline Diagnostics sono sempre attive. Tutte vengono tenute all'ultima versione.
+  stanza del tesoro, numeri casuali del disegno, rientro dopo uno split) te le propone in alto,
+  con "Scarica i fix", e subito dopo la patch per l'online; una volta installate restano attive.
+  Tutte vengono tenute all'ultima versione. Ogni mod ha un README su GitHub che spiega cosa fa.
 
 PATCH PER L'ONLINE
   Senza la patch Isaac fa entrare online solo con le mod spente. BTO Sync controlla
@@ -37,7 +38,9 @@ GIOCA ONLINE
 PROFILI
   Un profilo è un elenco di mod attive: salvane più di uno (es. "Run con The Future") e passa
   dall'uno all'altro con "Applica". "Codice" copia il profilo da mandare agli altri;
-  "Importa un codice" crea un profilo e scarica le mod che ti mancano.
+  "Importa un codice" crea un profilo e scarica le mod che ti mancano; in Gioca online "Salva come
+  profilo" crea un profilo con le mod dell'host. Prima che "Allinea ora" o "Applica" cambino le tue
+  mod, se non sono già in un profilo BTO Sync le salva in una "Copia automatica".
 
 SALVATAGGI
   I 3 slot di Isaac con obiettivi, morti, oggetti scoperti e partita in corso. "Backup" salva una
@@ -45,6 +48,9 @@ SALVATAGGI
   altro slot. Dai backup, tuoi o quelli che il gioco fa da solo ogni giorno, "Ripristina in..."
   rimette un salvataggio in uno slot. Prima di sovrascrivere uno slot BTO Sync ne fa sempre un
   backup. Anche qui: a gioco chiuso. I backup stanno in %APPDATA%\BtoSync\saves.
+  Il pulsante con la freccia esporta uno slot in un file .zip, da tenere o mandare a un amico;
+  "Importa" (in alto) aggiunge ai backup un file esportato o un .dat del gioco, senza toccare
+  gli slot: poi lo rimetti in uno slot con "Ripristina in...".
   Clicca uno slot per il suo percorso: l'albero dei boss finali (acceso dove li hai battuti) e,
   cliccando un boss, con quali dei 34 personaggi l'hai battuto, come i segni del menu del gioco.
 

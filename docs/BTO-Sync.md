@@ -13,12 +13,16 @@ stessa versione, e BTO Sync le mette in pari con un clic.
   Si scollega quando avvii il gioco.
 - **Mod BTO.** Sono i fix per l'online di questo progetto. BTO Sync le scarica dalle release di
   questa pagina GitHub e le lega alla mod che sistemano: per esempio BTO The Future Sync si
-  attiva con The Future e si spegne senza. Quelle del gioco base sono sempre attive.
+  attiva con The Future e si spegne senza. Quelle del gioco base te le propone (non le scarica senza
+  chiedere) e, una volta installate, le tiene attive. Ogni mod ha un README che spiega cosa sistema.
 - **Gioca online.** L'host copia un codice `BTO1:` con l'elenco delle sue mod: nome, id del
   Workshop, versione e un hash dei file. Gli altri lo incollano e BTO Sync mostra le differenze.
   "Allinea ora" le sistema. Il codice non contiene dati personali.
 - **Salvataggi.** Copia, salva e ripristina i 3 slot. Prima di sovrascrivere uno slot ne fa
-  sempre un backup, in `%APPDATA%\BtoSync\saves`.
+  sempre un backup, in `%APPDATA%\BtoSync\saves`. Esporta uno slot in un file `.zip` dove scegli
+  tu; un file importato diventa solo un backup, finché non lo ripristini in uno slot.
+- **Profili.** Prima di cambiare le mod attive con un allineamento o un profilo, se non sono già
+  salvate in un profilo le salva in una "Copia automatica".
 - **Patch per l'online.** Isaac fa entrare online solo con le mod spente, a meno che il suo exe
   non sia patchato. BTO Sync **controlla** soltanto se la patch c'è: legge `isaac-ng.exe` senza
   modificarlo. Se manca, e solo se premi "Scarica la patch", scarica e apre
@@ -43,7 +47,8 @@ stessa versione, e BTO Sync le mette in pari con un clic.
   - la cartella `mods` del gioco;
   - i file di salvataggio di Isaac, solo quando lo chiedi tu, e sempre dopo un backup;
   - la cartella `data` del gioco, per i dati delle mod che stanno con i salvataggi;
-  - la propria cartella `%APPDATA%\BtoSync`, per impostazioni, profili e backup.
+  - la propria cartella `%APPDATA%\BtoSync`, per impostazioni, profili e backup;
+  - il file `.zip` di un salvataggio esportato, dove scegli tu.
   Non tocca `isaac-ng.exe` né il registro di Windows: dal registro legge solo dove è installato
   Steam.
 - **Non serve installarlo né aprirlo come amministratore.** È una cartella con un exe:

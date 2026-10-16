@@ -216,7 +216,7 @@ namespace BtoSync
 
 		static string Hex(byte[] b) => BitConverter.ToString(b).Replace("-", "");
 
-		// Short hash of a mod's files (paths + contents, disable.it excluded), equal on every PC with the same files.
+		// Short hash of a mod's files (paths + contents, disable.it and README.md excluded), equal on every PC with the same files.
 		// Text files are hashed without CR: git autocrlf, zips and editors change line endings without changing the mod.
 		public static string ModHash(string dir)
 		{
@@ -226,7 +226,8 @@ namespace BtoSync
 			{
 				foreach (var f in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
 				{
-					if (System.IO.Path.GetFileName(f).Equals("disable.it", StringComparison.OrdinalIgnoreCase)) continue;
+					var fn = System.IO.Path.GetFileName(f);
+					if (fn.Equals("disable.it", StringComparison.OrdinalIgnoreCase) || fn.Equals("README.md", StringComparison.OrdinalIgnoreCase)) continue;  // not game content
 					string h;
 					if (TextExt.Contains(System.IO.Path.GetExtension(f).ToLowerInvariant()))
 						h = Hex(sha.ComputeHash(File.ReadAllBytes(f).Where(x => x != 13).ToArray()));

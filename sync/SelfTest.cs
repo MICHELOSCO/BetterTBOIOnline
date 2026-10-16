@@ -183,6 +183,8 @@ namespace BtoSync
 				Mod(me, "bto-mine", "Mine", "", "print(9)");  // private and enabled: the plan must leave it alone
 
 				Assert(Core.ModHash(Path.Combine(host, "bto-x")) == Core.ModHash(Path.Combine(me, "bto-x")), "hash uguale con stessi file (disable.it escluso)");
+				File.WriteAllText(Path.Combine(host, "bto-x", "README.md"), "# BTO X");
+				Assert(Core.ModHash(Path.Combine(host, "bto-x")) == Core.ModHash(Path.Combine(me, "bto-x")), "hash uguale anche se una copia ha il README");
 				Assert(Core.ModHash(Path.Combine(host, "bto-y")) != Core.ModHash(Path.Combine(me, "bto-y")), "hash diverso con file diversi");
 				Directory.CreateDirectory(Path.Combine(t, "lf")); Directory.CreateDirectory(Path.Combine(t, "crlf"));
 				File.WriteAllText(Path.Combine(t, "lf", "main.lua"), "a\nb\n"); File.WriteAllText(Path.Combine(t, "crlf", "main.lua"), "a\r\nb\r\n");
