@@ -160,6 +160,57 @@
             </Grid>
           </DockPanel>
           <ListBox x:Name="ModsList" Style="{StaticResource Plain}" ItemContainerStyle="{StaticResource CardItem}">
+            <ListBox.GroupStyle>
+              <GroupStyle>
+                <GroupStyle.ContainerStyle>
+                  <Style TargetType="GroupItem">
+                    <Setter Property="Template">
+                      <Setter.Value><ControlTemplate TargetType="GroupItem"><ItemsPresenter/></ControlTemplate></Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding Name}" Value="bto">
+                        <Setter Property="Template">
+                          <Setter.Value>
+                            <ControlTemplate TargetType="GroupItem">
+                              <StackPanel>
+                                <ToggleButton x:Name="head" IsChecked="{Binding BtoOpen, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                              Cursor="Hand" Margin="0,6,8,8" FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="Fix BTO automatici">
+                                  <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                      <Border x:Name="bd" Background="Transparent" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="10" Padding="16,12">
+                                        <ContentPresenter/>
+                                      </Border>
+                                      <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="{StaticResource Hover}"/></Trigger>
+                                      </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                  </ToggleButton.Template>
+                                  <DockPanel>
+                                    <TextBlock x:Name="chev" DockPanel.Dock="Right" Text="&#xE70D;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Muted}" Margin="8,0,2,0"/>
+                                    <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,0,12,0"/>
+                                    <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                      <Run Text="Fix BTO automatici" FontWeight="SemiBold" Foreground="{StaticResource Fg}"/><Run Text="{Binding ItemCount, Mode=OneWay, StringFormat=' · {0}'}" Foreground="{StaticResource Muted}"/>
+                                      <Run Text="   BTO Sync li attiva, li disattiva e li aggiorna da solo insieme alle mod che sistemano." Foreground="{StaticResource Muted}" FontSize="12"/>
+                                    </TextBlock>
+                                  </DockPanel>
+                                </ToggleButton>
+                                <ItemsPresenter x:Name="items" Visibility="Collapsed"/>
+                              </StackPanel>
+                              <ControlTemplate.Triggers>
+                                <Trigger SourceName="head" Property="IsChecked" Value="True">
+                                  <Setter TargetName="items" Property="Visibility" Value="Visible"/>
+                                  <Setter TargetName="chev" Property="Text" Value="&#xE70E;"/>
+                                </Trigger>
+                              </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                          </Setter.Value>
+                        </Setter>
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </GroupStyle.ContainerStyle>
+              </GroupStyle>
+            </ListBox.GroupStyle>
             <ListBox.ItemTemplate>
               <DataTemplate>
                 <Border Style="{StaticResource RowCard}">
@@ -566,8 +617,8 @@
                       <Button Style="{StaticResource Btn}" Click="ExportProfile_Click" Margin="0,0,8,0" ToolTip="Copia il codice del profilo da mandare agli altri">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8C8;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Codice"/></StackPanel>
                       </Button>
-                      <Button Style="{StaticResource Btn}" Click="OverwriteProfile_Click" Margin="0,0,8,0" ToolTip="Sostituisci con le mod attive adesso">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Salva attive"/></StackPanel>
+                      <Button Style="{StaticResource Btn}" Click="OverwriteProfile_Click" Margin="0,0,8,0" ToolTip="Sostituisci l'elenco del profilo con le mod attive adesso">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Sostituisci con le attive"/></StackPanel>
                       </Button>
                       <Button Style="{StaticResource Danger}" Click="DeleteProfile_Click" ToolTip="Elimina il profilo (le mod restano installate)" AutomationProperties.Name="Elimina il profilo">
                         <TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="13"/>

@@ -59,6 +59,7 @@ namespace BtoSync
 		public bool HasPage => Id != "";
 		public bool CanRemove => !Link && Id != "";
 		public bool Switchable => Unlocked && !Managed;
+		public string Group => Managed ? "bto" : "";  // MainWindow groups the BTO fixes at the bottom of the list
 		public string SwitchTip => Managed ? "BTO Sync la attiva e la disattiva da solo" : "Attiva o disattiva";
 		public bool Enabled { get => enabled; set => Set(ref enabled, value); }
 		public string Status { get => status; set => Set(ref status, value); }

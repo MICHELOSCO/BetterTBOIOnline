@@ -34,7 +34,8 @@ Tutte le mod installate, con l'interruttore per attivarle o disattivarle (disatt
 nulla), la ricerca, i filtri e "Aggiorna" per le mod del Workshop vecchie. Cliccando una mod se ne
 legge la descrizione e quali altre mod richiede. Se una mod attiva ne richiede un'altra spenta o
 mancante, BTO Sync lo dice in alto e la sistema con un clic; accendendo una mod accende anche quelle
-che le servono. Le mod BTO hanno l'interruttore bloccato: le gestisce BTO Sync insieme alla
+che le servono. I fix BTO, che BTO Sync gestisce da solo, stanno in fondo in un gruppo chiuso
+"Fix BTO automatici": un clic per vederli. Le mod BTO hanno l'interruttore bloccato: le gestisce BTO Sync insieme alla
 mod che sistemano.
 
 ![Le mie mod](docs/img/mods.png)

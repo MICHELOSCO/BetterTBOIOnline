@@ -50,6 +50,7 @@ PROFILI
   "Importa un codice" crea un profilo e scarica le mod che ti mancano; in Gioca online "Salva come
   profilo" crea un profilo con le mod dell'host. Prima che "Allinea ora" o "Applica" cambino le tue
   mod, se non sono già in un profilo BTO Sync le salva in una "Copia automatica".
+  "Sostituisci con le attive" rimpiazza l'elenco di un profilo con le mod attive adesso (chiede prima).
 
 SALVATAGGI
   I 3 slot di Isaac con obiettivi, morti, oggetti scoperti e partita in corso. "Backup" salva una

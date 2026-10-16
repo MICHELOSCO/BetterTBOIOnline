@@ -34,7 +34,9 @@ namespace BtoSync
 			WsList.ItemsSource = ws;
 			TagsList.ItemsSource = tagChips;
 			ProfilesList.ItemsSource = profiles;
-			CollectionViewSource.GetDefaultView(mods).Filter = ModFilter;
+			var modsView = CollectionViewSource.GetDefaultView(mods);
+			modsView.Filter = ModFilter;
+			modsView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(LocalMod.Group)));
 			AboutText.Text = "BTO Sync " + typeof(MainWindow).Assembly.GetName().Version.ToString(3);
 			SideVersion.Text = "v" + Updater.Current.ToString(3);
 			Title = AboutText.Text;
@@ -142,7 +144,7 @@ namespace BtoSync
 			catch (Exception e) { ShowError("Non riesco a leggere la cartella mods.", e); return; }
 			var open = new HashSet<string>(mods.Where(m => m.IsExpanded).Select(m => m.Key));
 			mods.Clear();
-			foreach (var m in local) { m.Unlocked = !isaac && !busy; m.IsExpanded = open.Contains(m.Key); mods.Add(m); }
+			foreach (var m in local.OrderBy(m => m.Managed)) { m.Unlocked = !isaac && !busy; m.IsExpanded = open.Contains(m.Key); mods.Add(m); }
 			try
 			{
 				var latest = await Core.LatestManifests(local.Where(m => m.Id != "").Select(m => m.Id).ToList());
@@ -262,7 +264,15 @@ namespace BtoSync
 			return true;
 		}
 
-		void ModsSearch_TextChanged(object sender, TextChangedEventArgs e) => CollectionViewSource.GetDefaultView(mods).Refresh();
+		void ModsSearch_TextChanged(object sender, TextChangedEventArgs e)
+		{
+			CollectionViewSource.GetDefaultView(mods).Refresh();
+			if (ModsSearch.Text.Trim() != "" && mods.Any(m => m.Managed && ModFilter(m))) BtoOpen = true;  // don't hide matches in the closed group
+		}
+
+		// the "Fix BTO" group in Le mie mod: closed by default, stays as the user left it across reloads
+		public static readonly DependencyProperty BtoOpenProperty = DependencyProperty.Register(nameof(BtoOpen), typeof(bool), typeof(MainWindow));
+		public bool BtoOpen { get => (bool)GetValue(BtoOpenProperty); set => SetValue(BtoOpenProperty, value); }
 		void Filter_Changed(object sender, RoutedEventArgs e) { if (IsLoaded) CollectionViewSource.GetDefaultView(mods).Refresh(); }
 		async void Refresh_Click(object sender, RoutedEventArgs e) => await Reload();
 		void OpenDir_Click(object sender, RoutedEventArgs e) { if (modsDir != null) Process.Start("explorer.exe", "\"" + modsDir + "\""); }
@@ -682,7 +692,11 @@ namespace BtoSync
 		void OverwriteProfile_Click(object sender, RoutedEventArgs e)
 		{
 			var p = Ctx<Profile>(sender);
-			p.keys = ActiveKeys();
+			var now = ActiveKeys();
+			if (!now.OrderBy(k => k).SequenceEqual(p.keys.OrderBy(k => k))
+				&& !Dialog.Show(this, $"Sostituire il profilo \"{p.name}\" con le mod attive adesso?",
+					$"Oggi ha {p.keys.Count} mod, dopo ne avrà {now.Count}. L'elenco di prima non si potrà recuperare.", DialogKind.Danger, "Sostituisci", "Annulla")) return;
+			p.keys = now;
 			activeProfile = p.name;
 			SaveProfiles();
 			ProfilesList.Items.Refresh();
