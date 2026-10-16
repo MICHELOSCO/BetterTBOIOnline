@@ -613,15 +613,19 @@
                       <TextBlock Text="{Binding Summary}" Style="{StaticResource Sub}" FontSize="12" Margin="14,0,0,0"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                      <Button Content="Applica" Style="{StaticResource Btn}" Click="ApplyProfile_Click" Margin="0,0,8,0"/>
-                      <Button Style="{StaticResource Btn}" Click="ExportProfile_Click" Margin="0,0,8,0" ToolTip="Copia il codice del profilo da mandare agli altri">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8C8;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Codice"/></StackPanel>
+                      <Button Content="{Binding ApplyText}" Click="ApplyProfile_Click" Margin="0,0,8,0"
+                              ToolTip="Attiva le mod di questo profilo e disattiva le altre">
+                        <Button.Style>
+                          <Style TargetType="Button" BasedOn="{StaticResource Btn}">
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding IsCurrent}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </Button.Style>
                       </Button>
-                      <Button Style="{StaticResource Btn}" Click="OverwriteProfile_Click" Margin="0,0,8,0" ToolTip="Sostituisci l'elenco del profilo con le mod attive adesso">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Sostituisci con le attive"/></StackPanel>
-                      </Button>
-                      <Button Style="{StaticResource Danger}" Click="DeleteProfile_Click" ToolTip="Elimina il profilo (le mod restano installate)" AutomationProperties.Name="Elimina il profilo">
-                        <TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="13"/>
+                      <Button Style="{StaticResource Btn}" Click="ProfileMenu_Click" Padding="10,7" ToolTip="Altre azioni: codice, sostituisci, elimina"
+                              AutomationProperties.Name="Altre azioni sul profilo">
+                        <TextBlock Text="&#xE712;" Style="{StaticResource Icon}" FontSize="13"/>
                       </Button>
                     </StackPanel>
                   </Grid>

@@ -127,12 +127,13 @@ namespace BtoSync
 		static string Explain(Exception e)
 		{
 			if (e is AggregateException a && a.InnerException != null) e = a.InnerException;
-			var hint = e is System.Net.Http.HttpRequestException || e is TaskCanceledException ? "Non riesco a raggiungere Internet (GitHub o Steam): controlla la connessione e riprova."
-				: e is UnauthorizedAccessException ? "Windows non mi lascia scrivere lì: chiudi i programmi che usano quei file, oppure sposta BTO Sync in una cartella tua (non in Programmi)."
-				: e is System.IO.IOException ? "Un file è in uso da un altro programma (Isaac, Steam o una finestra di Esplora file): chiudilo e riprova."
-				: null;
+			Core.LogError(e);
+			var hint = e.GetType() == typeof(Exception) ? null : Core.ErrorHint(e);
 			return hint == null ? e.Message : hint + NL + "Dettaglio: " + e.Message;
 		}
+
+		// the short form for messages inside the window: the system detail goes only to errori.log (and a tooltip where there is one)
+		static string Short(Exception e) { Core.LogError(e); return Core.ErrorShort(e); }
 
 		// tie: also bring the BTO mods in line with the Workshop mods (not when comparing: there the host's list wins)
 		async Task Reload(bool tie = true)
@@ -209,7 +210,7 @@ namespace BtoSync
 					}
 					a.State = "fatto";
 				}
-				catch (Exception ex) { a.State = "errore"; warnings.Add(a.Text + ": " + ex.Message); }
+				catch (Exception ex) { a.State = "errore"; warnings.Add(a.Text + ": " + Short(ex)); }
 			}
 			return warnings;
 		}
@@ -562,6 +563,7 @@ namespace BtoSync
 				foreach (var sk in ws.Where(x => x.Skeleton).ToList()) ws.Remove(sk);
 				foreach (var i in items) ws.Add(WsItem.From(i, modsDir));
 				wsPage++;
+				WsInfo.ToolTip = null;
 				WsInfo.Text = total == 0 ? "Nessuna mod trovata." : $"{total:N0} mod trovate · ne vedi {ws.Count} · clicca una mod per i dettagli";
 				MoreBtn.Visibility = ws.Count < total ? Visibility.Visible : Visibility.Collapsed;
 				WsEmpty.Visibility = total == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -572,7 +574,8 @@ namespace BtoSync
 			{
 				if (search != searchId) return;
 				foreach (var sk in ws.Where(x => x.Skeleton).ToList()) ws.Remove(sk);
-				WsInfo.Text = "Ricerca non riuscita: " + ex.Message;
+				WsInfo.Text = "Ricerca non riuscita. " + Short(ex);
+				WsInfo.ToolTip = ex.Message;
 			}
 		}
 
@@ -589,7 +592,7 @@ namespace BtoSync
 				if (!Dialog.Show(this, $"Disinstallare \"{w.Title}\"?", "Ti disiscrivo dal Workshop e la tolgo dalla cartella mods.", DialogKind.Danger, "Disinstalla", "Annulla")) return;
 				w.Busy = true;
 				try { await Steam.Unsubscribe(w.Id); Core.RemoveWorkshopCopy(w.Id.ToString(), modsDir); w.Installed = false; Status("Disinstallata: " + w.Title); }
-				catch (Exception ex) { w.Error = ex.Message; }
+				catch (Exception ex) { w.Error = Short(ex); }
 			}
 			else
 			{
@@ -610,7 +613,7 @@ namespace BtoSync
 					}
 					Status("Installata e attiva: " + w.Title + (with.Count > 0 ? $", con {string.Join(", ", with)} (le serve)." : "."));
 				}
-				catch (Exception ex) { w.Error = ex.Message; }
+				catch (Exception ex) { w.Error = Short(ex); }
 			}
 			w.Busy = false;
 			await Reload();
@@ -619,12 +622,12 @@ namespace BtoSync
 		// ---------- profiles ----------
 		void RefreshProfiles()
 		{
-			foreach (var p in profiles) p.IsActive = p.name == activeProfile;
+			var on = local.Where(m => m.Enabled).Select(m => m.Key).ToList();
+			foreach (var p in profiles) { p.IsActive = p.name == activeProfile; p.IsCurrent = p.IsActive && new HashSet<string>(p.keys).SetEquals(on); }
 			ProfilesEmpty.Visibility = profiles.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 			var cur = profiles.FirstOrDefault(p => p.IsActive);
 			ActiveProfileText.Text = cur?.name ?? "Nessun profilo";
-			ActiveProfileSub.Text = cur == null ? "Crea un profilo dalle mod attive"
-				: new HashSet<string>(cur.keys).SetEquals(local.Where(m => m.Enabled).Select(m => m.Key)) ? cur.Summary : cur.Summary + " · modificato";
+			ActiveProfileSub.Text = cur == null ? "Crea un profilo dalle mod attive" : cur.IsCurrent ? cur.Summary : cur.Summary + " · modificato";
 		}
 
 		// Before anything replaces the active mods: if no profile holds them, save them in one, so nothing is lost by mistake.
@@ -710,6 +713,29 @@ namespace BtoSync
 			profiles.Remove(p);
 			if (activeProfile == p.name) activeProfile = null;
 			SaveProfiles();
+		}
+
+		// "⋯" on a profile row: the actions used less often than Applica, same look as the Workshop's Ordina menu
+		void ProfileMenu_Click(object sender, RoutedEventArgs e)
+		{
+			var p = Ctx<Profile>(sender);
+			var menu = new ContextMenu { PlacementTarget = (UIElement)sender, Placement = PlacementMode.Bottom };
+			void Add(string icon, string text, RoutedEventHandler click, Brush fg = null)
+			{
+				var head = new StackPanel { Orientation = Orientation.Horizontal };
+				head.Children.Add(new TextBlock { Text = icon, Width = 24, FontFamily = (FontFamily)FindResource("Icons"), FontSize = 12, Foreground = fg ?? Res("Muted"), VerticalAlignment = VerticalAlignment.Center });
+				head.Children.Add(new TextBlock { Text = text, Foreground = fg ?? Res("Fg") });
+				var item = new MenuItem { Header = head, DataContext = p };
+				item.Click += click;
+				menu.Items.Add(item);
+			}
+			Add("", "Copia il codice da mandare agli altri", ExportProfile_Click);
+			Add("", "Sostituisci con le mod attive adesso", OverwriteProfile_Click);
+			menu.Items.Add(new Separator { Background = Res("Line"), Margin = new Thickness(6, 4, 6, 4) });
+			Add("", "Elimina il profilo", DeleteProfile_Click, new SolidColorBrush(Color.FromRgb(0xF0, 0x61, 0x6D)));
+			// right edge under the button's right edge: the button sits at the window's right side
+			menu.Opened += (o, a) => menu.HorizontalOffset = ((FrameworkElement)sender).ActualWidth - menu.ActualWidth;
+			menu.IsOpen = true;
 		}
 
 		void ExportProfile_Click(object sender, RoutedEventArgs e)
@@ -1087,7 +1113,7 @@ namespace BtoSync
 					}
 					done.Add(d.Name);
 				}
-				catch (Exception ex) { failed.Add($"{d.Name}: {ex.Message}"); }
+				catch (Exception ex) { failed.Add($"{d.Name}: {Short(ex)}"); }
 			}
 			busy = false; UpdateState();
 			if (failed.Count > 0) Dialog.Show(this, "Alcune mod richieste non sono state sistemate", string.Join(NL, failed), DialogKind.Warning);
@@ -1136,10 +1162,11 @@ namespace BtoSync
 			{
 				var r = await Updater.Latest();
 				update = r != null && r.Version > Updater.Current ? r : null;
+				UpdateText.ToolTip = null;
 				UpdateText.Text = update != null ? $"È disponibile la versione {update.VersionText}: premi Aggiorna."
 					: r == null ? "Nessuna versione pubblicata su GitHub." : "Hai l'ultima versione.";
 			}
-			catch (Exception ex) { update = null; UpdateText.Text = "Non riesco a controllare gli aggiornamenti: " + ex.Message; }
+			catch (Exception ex) { update = null; UpdateText.Text = "Non riesco a controllare gli aggiornamenti. " + Short(ex); UpdateText.ToolTip = ex.Message; }
 			var vis = update != null ? Visibility.Visible : Visibility.Collapsed;
 			UpdateBanner.Visibility = UpdateNowBtn.Visibility = vis;
 			if (update == null) return;

@@ -46,11 +46,12 @@ GIOCA ONLINE
 
 PROFILI
   Un profilo è un elenco di mod attive: salvane più di uno (es. "Run con The Future") e passa
-  dall'uno all'altro con "Applica". "Codice" copia il profilo da mandare agli altri;
+  dall'uno all'altro con "Applica" ("Riapplica" se hai cambiato le mod del profilo attivo). Nel menu
+  "⋯" del profilo: "Copia il codice" da mandare agli altri, "Sostituisci con le mod attive adesso"
+  (chiede prima) ed "Elimina";
   "Importa un codice" crea un profilo e scarica le mod che ti mancano; in Gioca online "Salva come
   profilo" crea un profilo con le mod dell'host. Prima che "Allinea ora" o "Applica" cambino le tue
   mod, se non sono già in un profilo BTO Sync le salva in una "Copia automatica".
-  "Sostituisci con le attive" rimpiazza l'elenco di un profilo con le mod attive adesso (chiede prima).
 
 SALVATAGGI
   I 3 slot di Isaac con obiettivi, morti, oggetti scoperti e partita in corso. "Backup" salva una
@@ -67,6 +68,9 @@ SALVATAGGI
 DOPO UNO SPLIT (ognuno si ritrova da solo): chi vuole rientrare chiude il gioco, lo riapre ed
 entra nella lobby dell'host; l'host scende con una BOTOLA normale al piano dopo (uscire da The
 Future non basta). Il rientro senza nuovo desync è ancora sperimentale.
+
+ERRORI: i messaggi dicono cosa fare; il dettaglio tecnico di ogni errore finisce in
+%APPDATA%\BtoSync\errori.log (mandalo se un problema si ripete).
 
 LOG DA MANDARE DOPO OGNI DESYNC: in Documenti\My Games\Binding of Isaac Repentance+\ (o nella
 cartella del gioco) la cartella "online_logs" compressa in ZIP e "log.txt", copiato PRIMA di

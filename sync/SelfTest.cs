@@ -150,6 +150,18 @@ namespace BtoSync
 			Assert(notes.Any(n => n.Contains("bto-thefuture-sync")), "avviso: l'host ha The Future senza la sua mod BTO");
 		}
 
+		static void TestErrors()
+		{
+			Assert(Core.ErrorShort(new Exception("Steam ha rifiutato l'iscrizione")) == "Steam ha rifiutato l'iscrizione", "errori: i nostri messaggi restano come sono");
+			Assert(Core.ErrorShort(new AggregateException(new System.Net.Http.HttpRequestException("No such host is known"))).StartsWith("Non riesco a raggiungere Internet"), "errori: rete assente");
+			Assert(Core.ErrorShort(new InvalidOperationException("SteamClient not initialized")).StartsWith("Steam non è aperto"), "errori: Steam chiuso");
+			Assert(Core.ErrorShort(new UnauthorizedAccessException("Access to the path is denied")).StartsWith("Windows non mi lascia scrivere"), "errori: accesso negato");
+			Assert(Core.ErrorShort(new IOException("There is not enough space on the disk", unchecked((int)0x80070070))).StartsWith("Il disco è pieno"), "errori: disco pieno");
+			Assert(Core.ErrorShort(new IOException("The process cannot access the file", unchecked((int)0x80070020))).StartsWith("Un file è in uso"), "errori: file in uso");
+			Assert(Core.ErrorShort(new FileNotFoundException("Could not find file")).StartsWith("Un file o una cartella non c'è più"), "errori: file sparito");
+			Assert(Core.ErrorShort(new NullReferenceException()).Contains("errori.log"), "errori: il resto rimanda al log");
+		}
+
 		static void TestDeps(string t)
 		{
 			var page = "<div class=\"requiredItemsContainer\" id=\"RequiredItems\">\n<a href=\"https://steamcommunity.com/workshop/filedetails/?id=1348031964\" target=\"_blank\" data-subscribed=\"0\">\n"
@@ -248,6 +260,7 @@ namespace BtoSync
 				TestTies(t);
 				TestPatch(t);
 				TestDeps(t);
+				TestErrors();
 				Console.WriteLine("OK");
 				return 0;
 			}

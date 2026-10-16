@@ -91,11 +91,13 @@ namespace BtoSync
 	// A saved set of active mods (r2modman-style profile); keys as in LocalMod.Key.
 	public class Profile : Notify
 	{
-		string n; bool active;
+		string n; bool active, current;
 		public string name { get => n; set => Set(ref n, value); }
 		public List<string> keys { get; set; } = new List<string>();
 		[ScriptIgnore] public string Summary => keys.Count == 1 ? "1 mod" : keys.Count + " mod";
-		[ScriptIgnore] public bool IsActive { get => active; set => Set(ref active, value); }
+		[ScriptIgnore] public bool IsActive { get => active; set { Set(ref active, value); Raise(nameof(ApplyText)); } }
+		[ScriptIgnore] public bool IsCurrent { get => current; set => Set(ref current, value); }  // active, and the mods on now are exactly its list
+		[ScriptIgnore] public string ApplyText => active ? "Riapplica" : "Applica";
 	}
 
 	public enum ActionKind { Enable, Disable, Download, Subscribe }
@@ -198,6 +200,42 @@ namespace BtoSync
 				.Select(c => new HostMod { key = c.Key, folder = c.Key, name = c.Key, version = c.Value.version }).OrderBy(h => h.folder).ToList();
 
 		static bool IsLink(string dir) => new DirectoryInfo(dir).Attributes.HasFlag(FileAttributes.ReparsePoint);
+
+		// ---- errors in words a player can act on; the system message goes to errori.log ----
+		public static string ErrorLog => System.IO.Path.Combine(System.IO.Path.GetDirectoryName(SettingsFile), "errori.log");
+		static Exception Inner(Exception e) => e is AggregateException a && a.InnerException != null ? Inner(a.InnerException) : e;
+
+		// null when there is nothing more useful to say than the message itself
+		public static string ErrorHint(Exception e)
+		{
+			e = Inner(e);
+			int code = e.HResult & 0xFFFF;  // Win32 error inside the HRESULT
+			return e is HttpRequestException || e is WebException || e is TaskCanceledException || e is System.Net.Sockets.SocketException
+					? "Non riesco a raggiungere Internet (GitHub o Steam): controlla la connessione e riprova."
+				: e.Message.IndexOf("steam", StringComparison.OrdinalIgnoreCase) >= 0 ? "Steam non è aperto o non è collegato: aprilo, accedi e riprova."
+				: e is UnauthorizedAccessException ? "Windows non mi lascia scrivere lì: chiudi i programmi che usano quei file, oppure sposta BTO Sync in una cartella tua (non in Programmi)."
+				: code == 0x70 || code == 0x27 ? "Il disco è pieno: libera un po' di spazio e riprova."
+				: e is FileNotFoundException || e is DirectoryNotFoundException ? "Un file o una cartella non c'è più: premi Ricarica e riprova."
+				: e is IOException ? "Un file è in uso da un altro programma (Isaac, Steam o una finestra di Esplora file): chiudilo e riprova."
+				: null;
+		}
+
+		// One line for the messages inside the window: our own messages (plain Exception, already in Italian) as they are,
+		// the common system errors as a hint, anything else as a generic line pointing to the log.
+		public static string ErrorShort(Exception e)
+		{
+			e = Inner(e);
+			return e.GetType() == typeof(Exception) ? e.Message
+				: ErrorHint(e) ?? @"Qualcosa non ha funzionato: riprova. Il dettaglio è in %APPDATA%\BtoSync\errori.log.";
+		}
+
+		// ponytail: grows forever, one short line per error; trim it if it ever gets big
+		public static void LogError(Exception e)
+		{
+			e = Inner(e);
+			try { Directory.CreateDirectory(System.IO.Path.GetDirectoryName(ErrorLog)); File.AppendAllText(ErrorLog, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {e.GetType().Name}: {e.Message}{Environment.NewLine}"); }
+			catch { }
+		}
 
 		static string SettingsFile => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BtoSync", "modsdir.txt");
 		public static void SaveModsDir(string dir) { Directory.CreateDirectory(System.IO.Path.GetDirectoryName(SettingsFile)); File.WriteAllText(SettingsFile, dir); }
