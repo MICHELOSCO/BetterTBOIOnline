@@ -115,10 +115,12 @@ namespace BtoSync
 				Mod(host, "bto-x", "BTO X", "", "print(1)");
 				Mod(host, "bto-y", "BTO Y", "", "print(2)");
 				Mod(host, "wsmod_111", "Workshop Mod", "111", "print(3)");
+				Mod(host, "bto-mine", "Mine", "", "print(9)");  // private: must never travel in a code
 				Mod(me, "bto-x", "BTO X", "", "print(1)"); File.WriteAllText(Path.Combine(me, "bto-x", "disable.it"), "");
 				Mod(me, "bto-y", "BTO Y", "", "print(22)");
 				Mod(me, "extra", "Extra", "", "print(4)");
 				Mod(me, "old", "Old", "", "print(5)"); File.WriteAllText(Path.Combine(me, "old", "disable.it"), "");
+				Mod(me, "bto-mine", "Mine", "", "print(9)");  // private and enabled: the plan must leave it alone
 
 				Assert(Core.ModHash(Path.Combine(host, "bto-x")) == Core.ModHash(Path.Combine(me, "bto-x")), "hash uguale con stessi file (disable.it escluso)");
 				Assert(Core.ModHash(Path.Combine(host, "bto-y")) != Core.ModHash(Path.Combine(me, "bto-y")), "hash diverso con file diversi");
@@ -128,7 +130,7 @@ namespace BtoSync
 
 				var code = Core.ToCode(Core.ScanMods(host).Where(m => m.Enabled));
 				var hostMods = Core.FromCode("`" + code + "`\n");
-				Assert(hostMods.Count == 3, "il codice (anche tra backtick) contiene le 3 mod attive");
+				Assert(hostMods.Count == 3, "il codice (anche tra backtick) contiene le 3 mod attive, senza la mod privata");
 				bool bad = false; try { Core.FromCode("BTO1:xx"); } catch (FormatException) { bad = true; }
 				Assert(bad, "un codice rovinato dà un errore leggibile");
 

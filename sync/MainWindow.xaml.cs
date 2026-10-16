@@ -243,14 +243,15 @@ namespace BtoSync
 		{
 			var on = local.Where(m => m.Enabled).ToList();
 			var code = Core.ToCode(on);
+			int shared = on.Count(m => !Core.IsPrivate(m.Folder));
 			ExportBox.Text = code;  // visible copy even if the clipboard fails
 			ExportBox.Visibility = Visibility.Visible;
 			bool copied = NativeClipboard.SetText(code);
-			ExportResult.Text = copied ? $"Codice copiato ({on.Count} mod attive): incollalo su Discord agli altri giocatori."
+			ExportResult.Text = copied ? $"Codice copiato ({shared} mod attive): incollalo su Discord agli altri giocatori."
 				: "Non riesco a usare gli appunti: seleziona il codice qui sopra e copialo con Ctrl+C.";
 			Status(copied ? "Codice dell'host copiato negli appunti." : "Appunti non disponibili.");
 			var warn = new List<string>();
-			var onlyHere = on.Where(m => m.Id == "" && !Core.IsBto(m.Folder)).Select(m => m.Name).ToList();
+			var onlyHere = on.Where(m => m.Id == "" && !Core.IsBto(m.Folder) && !Core.IsPrivate(m.Folder)).Select(m => m.Name).ToList();
 			if (onlyHere.Count > 0) warn.Add("Né sul Workshop né su GitHub, gli altri dovranno chiederti la cartella: " + string.Join(", ", onlyHere));
 			var links = on.Where(m => m.Link).Select(m => m.Name).ToList();
 			if (links.Count > 0) warn.Add("Collegate a una cartella di sviluppo, gli altri riceveranno la versione della release: " + string.Join(", ", links));
