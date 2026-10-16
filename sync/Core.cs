@@ -59,6 +59,7 @@ namespace BtoSync
 		public bool HasPage => Id != "";
 		public bool CanRemove => !Link && Id != "";
 		public bool Switchable => Unlocked && !Managed;
+		public string SwitchTip => Managed ? "BTO Sync la attiva e la disattiva da solo" : "Attiva o disattiva";
 		public bool Enabled { get => enabled; set => Set(ref enabled, value); }
 		public string Status { get => status; set => Set(ref status, value); }
 		public Brush StatusBrush { get => statusBrush; set => Set(ref statusBrush, value); }
@@ -76,7 +77,8 @@ namespace BtoSync
 			CanUpdate = false; StatusBrush = Theme.Muted;
 			if (Id != "" && Core.Previews.TryGetValue(Id, out var pv)) Preview = pv;
 			// only real states here: where the mod comes from is already in the badge
-			if (Link || Id == "" || !latest.TryGetValue(Id, out var last)) Status = "";
+			if (Managed) Status = "Automatica";
+			else if (Link || Id == "" || !latest.TryGetValue(Id, out var last)) Status = "";
 			else if (Manifest != "" && Manifest != last) { Status = "Da aggiornare"; StatusBrush = Theme.Warn; CanUpdate = true; }
 			else { Status = "Aggiornata"; StatusBrush = Theme.Ok; }
 		}

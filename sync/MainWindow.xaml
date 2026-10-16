@@ -170,7 +170,7 @@
                         <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="110"/><ColumnDefinition Width="Auto"/>
                       </Grid.ColumnDefinitions>
                       <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Enabled, Mode=TwoWay}" Click="Toggle_Click" IsEnabled="{Binding Switchable}"
-                                VerticalAlignment="Center" Margin="0,0,16,0" ToolTip="Attiva o disattiva" AutomationProperties.Name="{Binding NameText}"/>
+                                VerticalAlignment="Center" Margin="0,0,16,0" ToolTip="{Binding SwitchTip}" ToolTipService.ShowOnDisabled="True" AutomationProperties.Name="{Binding NameText}"/>
                       <Border Grid.Column="1" Width="42" Height="42" CornerRadius="8" Background="{StaticResource Surface2}" Margin="0,0,14,0">
                         <Grid>
                           <TextBlock Text="{Binding OriginIcon}" Style="{StaticResource Icon}" FontSize="16" Foreground="{Binding OriginBrush}" HorizontalAlignment="Center" Opacity="0.8"/>
@@ -456,7 +456,7 @@
                   <TextBlock Text="Entri nella partita di un altro" Style="{StaticResource H2}"/>
                 </StackPanel>
                 <TextBlock Style="{StaticResource Sub}" Text="Incolla il codice dell'host: BTO Sync ti dice subito cosa cambiare e lo fa per te."/>
-                <TextBox x:Name="CodeBox" Height="58" Margin="0,14,0,0" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" TextChanged="CodeBox_TextChanged"
+                <TextBox x:Name="CodeBox" Height="78" Margin="0,14,0,0" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" TextChanged="CodeBox_TextChanged"
                          FontFamily="Consolas" FontSize="12" Tag="BTO1:…" Background="{StaticResource Bg}" AutomationProperties.Name="Codice dell'host"/>
                 <TextBlock x:Name="CodeError" Foreground="{StaticResource Warn}" FontSize="13" TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
                 <Button Style="{StaticResource Btn}" Click="Paste_Click" HorizontalAlignment="Left" Margin="0,12,0,0">
@@ -555,14 +555,14 @@
                       <StackPanel Orientation="Horizontal">
                         <TextBox Text="{Binding name, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Inline}" MinWidth="160" LostFocus="ProfileName_LostFocus"
                                  ToolTip="Clicca per rinominare"/>
-                        <Border Style="{StaticResource Badge}" BorderBrush="{StaticResource Accent}" Margin="6,0,0,0" Visibility="{Binding IsActive, Converter={StaticResource Vis}}">
-                          <TextBlock Text="Attivo" Foreground="{StaticResource Accent}" FontSize="11" FontWeight="SemiBold"/>
+                        <Border Style="{StaticResource Badge}" BorderBrush="{StaticResource Ok}" Margin="6,0,0,0" Visibility="{Binding IsActive, Converter={StaticResource Vis}}">
+                          <TextBlock Text="Attivo" Foreground="{StaticResource Ok}" FontSize="11" FontWeight="SemiBold"/>
                         </Border>
                       </StackPanel>
-                      <TextBlock Text="{Binding Summary}" Style="{StaticResource Sub}" FontSize="12" Margin="6,0,0,0"/>
+                      <TextBlock Text="{Binding Summary}" Style="{StaticResource Sub}" FontSize="12" Margin="14,0,0,0"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                      <Button Content="Applica" Style="{StaticResource Primary}" Click="ApplyProfile_Click" Margin="0,0,8,0"/>
+                      <Button Content="Applica" Style="{StaticResource Btn}" Click="ApplyProfile_Click" Margin="0,0,8,0"/>
                       <Button Style="{StaticResource Btn}" Click="ExportProfile_Click" Margin="0,0,8,0" ToolTip="Copia il codice del profilo da mandare agli altri">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8C8;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Codice"/></StackPanel>
                       </Button>
