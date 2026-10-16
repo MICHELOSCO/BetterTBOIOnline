@@ -67,6 +67,92 @@
       </DockPanel>
     </Border>
 
+    <!-- ===== Workshop mod details: a dialog in the middle, the dark backdrop blocks what is behind ===== -->
+    <Grid x:Name="WsModal" Grid.ColumnSpan="2" Panel.ZIndex="5" Visibility="Collapsed">
+      <Border Background="#B8080A0E" MouseLeftButtonDown="ModalBackdrop_Click"/>
+      <ContentControl x:Name="WsDetail" Width="840" Margin="40" HorizontalAlignment="Center" VerticalAlignment="Center" Focusable="False">
+        <ContentControl.ContentTemplate>
+          <DataTemplate>
+            <Grid>
+              <Border CornerRadius="12" Background="{StaticResource Bg}">  <!-- shadow on its own layer: the card text keeps ClearType -->
+                <Border.Effect><DropShadowEffect BlurRadius="40" ShadowDepth="0" Opacity="0.8" Color="Black"/></Border.Effect>
+              </Border>
+              <Border Style="{StaticResource Card}" Padding="0" CornerRadius="12">
+                <DockPanel>
+                  <DockPanel DockPanel.Dock="Top" Margin="26,20,20,0">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Padding="9,7" VerticalAlignment="Top" Click="CloseDetail_Click"
+                            ToolTip="Chiudi (Esc)" AutomationProperties.Name="Chiudi i dettagli">
+                      <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="11"/>
+                    </Button>
+                    <TextBlock Text="{Binding Title}" Style="{StaticResource H1}" FontSize="22" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                  </DockPanel>
+                  <ScrollViewer Margin="26,16,12,24" VerticalScrollBarVisibility="Auto" Padding="0,0,14,0">
+                    <StackPanel>
+                      <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="320"/><ColumnDefinition Width="26"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <Grid Width="320" Height="320" VerticalAlignment="Top">
+                          <Border CornerRadius="8" Background="{StaticResource Surface2}"/>
+                          <Border CornerRadius="8">
+                            <Border.Background><ImageBrush ImageSource="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill"/></Border.Background>
+                          </Border>
+                        </Grid>
+                        <StackPanel Grid.Column="2">
+                          <StackPanel Orientation="Horizontal">
+                            <Button x:Name="act" Content="{Binding ButtonText}" Style="{StaticResource Primary}" IsEnabled="{Binding CanAct}" Click="WsAct_Click" MinWidth="120" Margin="0,0,8,0"/>
+                            <Button Style="{StaticResource Btn}" Click="WsPage_Click">
+                              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Pagina Workshop"/></StackPanel>
+                            </Button>
+                          </StackPanel>
+                          <ProgressBar Maximum="1" Value="{Binding Progress}" Margin="0,10,0,0" Visibility="{Binding Busy, Converter={StaticResource Vis}}"/>
+                          <TextBlock Text="{Binding Error}" Foreground="#F0616D" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                          <Border Height="18"/>
+                              <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                <StackPanel Margin="0,0,0,10"><TextBlock Text="Iscritti" Style="{StaticResource Sub}" FontSize="11"/><TextBlock Text="{Binding SubsFull}" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
+                                <StackPanel Grid.Column="1" Margin="0,0,0,10"><TextBlock Text="Voti positivi" Style="{StaticResource Sub}" FontSize="11"/><TextBlock Text="{Binding VotesText}" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
+                                <StackPanel Grid.Row="1"><TextBlock Text="Dimensione" Style="{StaticResource Sub}" FontSize="11"/><TextBlock Text="{Binding SizeText}" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="1"><TextBlock Text="Aggiornata" Style="{StaticResource Sub}" FontSize="11"/><TextBlock Text="{Binding UpdatedText}" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
+                              </Grid>
+
+                              <Border CornerRadius="6" Padding="10,6" Margin="0,12,0,0" Background="#1B2D4D" Visibility="{Binding HasKind, Converter={StaticResource Vis}}">
+                                <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="#CFE0FF">
+                                  <Run Text="{Binding KindText, Mode=OneWay}" FontWeight="SemiBold"/><Run Text=", secondo i tag dell'autore. Online servono comunque le stesse mod per tutti."/>
+                                </TextBlock>
+                              </Border>
+
+                              <Border Background="#2A2315" BorderBrush="#4A3B1E" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,10,0,0"
+                                      Visibility="{Binding HasRequires, Converter={StaticResource Vis}}">
+                                <TextBlock Text="{Binding RequiresText}" Foreground="#F1DEB4" FontSize="12" TextWrapping="Wrap"/>
+                              </Border>
+
+                              <ItemsControl ItemsSource="{Binding Tags}" Margin="0,4,0,0">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate>
+                                    <Border Background="{StaticResource Surface2}" CornerRadius="5" Padding="7,2,7,3" Margin="0,6,5,0">
+                                      <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource Muted}"/>
+                                    </Border>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
+
+                        </StackPanel>
+                      </Grid>
+                      <TextBlock Text="{Binding LongDescription}" Foreground="{StaticResource Body}" TextWrapping="Wrap" LineHeight="22" Margin="0,22,0,0"/>
+                    </StackPanel>
+                  </ScrollViewer>
+                </DockPanel>
+              </Border>
+            </Grid>
+            <DataTemplate.Triggers>
+              <DataTrigger Binding="{Binding Installed}" Value="True"><Setter TargetName="act" Property="Style" Value="{StaticResource Danger}"/></DataTrigger>
+            </DataTemplate.Triggers>
+          </DataTemplate>
+        </ContentControl.ContentTemplate>
+      </ContentControl>
+    </Grid>
+
     <!-- ===== Loading bar: shown by MainWindow.Loading/busy ===== -->
     <Grid x:Name="LoadBar" Grid.Column="1" Height="3" VerticalAlignment="Top" Panel.ZIndex="10" ClipToBounds="True" IsHitTestVisible="False"
           Visibility="Collapsed" SizeChanged="LoadBar_SizeChanged">
@@ -424,79 +510,6 @@
                 </DataTemplate>
               </ListBox.ItemTemplate>
             </ListBox>
-            <ContentControl x:Name="WsDetail" Width="400" HorizontalAlignment="Right" Panel.ZIndex="1" Margin="0,0,8,12" Visibility="Collapsed" Focusable="False">
-              <ContentControl.ContentTemplate>
-                <DataTemplate>
-                  <Grid>
-                  <Border CornerRadius="10" Background="{StaticResource Bg}">  <!-- shadow on its own layer: the card text keeps ClearType -->
-                    <Border.Effect><DropShadowEffect BlurRadius="28" ShadowDepth="0" Opacity="0.7" Color="Black"/></Border.Effect>
-                  </Border>
-                  <Border Style="{StaticResource Card}" Padding="0">
-                    <DockPanel>
-                      <StackPanel DockPanel.Dock="Top" Margin="18,14,18,0">
-                        <DockPanel>
-                          <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Padding="8,6" Margin="10,0,-6,0" VerticalAlignment="Top" Click="CloseDetail_Click"
-                                  ToolTip="Chiudi (Esc)" AutomationProperties.Name="Chiudi i dettagli">
-                            <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="11"/>
-                          </Button>
-                          <TextBlock Text="{Binding Title}" Style="{StaticResource H2}" TextWrapping="Wrap" VerticalAlignment="Center"/>
-                        </DockPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                          <Button x:Name="act" Content="{Binding ButtonText}" Style="{StaticResource Primary}" IsEnabled="{Binding CanAct}" Click="WsAct_Click" MinWidth="110" Margin="0,0,8,0"/>
-                          <Button Style="{StaticResource Btn}" Click="WsPage_Click">
-                            <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Pagina Workshop"/></StackPanel>
-                          </Button>
-                        </StackPanel>
-                        <ProgressBar Maximum="1" Value="{Binding Progress}" Margin="0,10,0,0" Visibility="{Binding Busy, Converter={StaticResource Vis}}"/>
-                        <TextBlock Text="{Binding Error}" Foreground="#F0616D" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
-                      </StackPanel>
-                      <ScrollViewer Margin="18,8,6,14" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
-                        <StackPanel>
-                          <Grid Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" Margin="0,4,0,16">
-                            <Border CornerRadius="8" Background="{StaticResource Surface2}"/>
-                            <Border CornerRadius="8">
-                              <Border.Background><ImageBrush ImageSource="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill"/></Border.Background>
-                            </Border>
-                          </Grid>
-                          <Grid>
-                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                            <StackPanel Margin="0,0,0,10"><TextBlock Text="Iscritti" Style="{StaticResource Sub}" FontSize="11"/><TextBlock Text="{Binding SubsFull}" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
-                            <StackPanel Grid.Column="1" Margin="0,0,0,10"><TextBlock Text="Voti positivi" Style="{StaticResource Sub}" FontSize="11"/><TextBlock Text="{Binding VotesText}" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
-                            <StackPanel Grid.Row="1"><TextBlock Text="Dimensione" Style="{StaticResource Sub}" FontSize="11"/><TextBlock Text="{Binding SizeText}" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
-                            <StackPanel Grid.Row="1" Grid.Column="1"><TextBlock Text="Aggiornata" Style="{StaticResource Sub}" FontSize="11"/><TextBlock Text="{Binding UpdatedText}" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
-                          </Grid>
-                          <Border CornerRadius="6" Padding="10,6" Margin="0,12,0,0" Background="#1B2D4D" Visibility="{Binding HasKind, Converter={StaticResource Vis}}">
-                            <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="#CFE0FF">
-                              <Run Text="{Binding KindText, Mode=OneWay}" FontWeight="SemiBold"/><Run Text=", secondo i tag dell'autore. Online servono comunque le stesse mod per tutti."/>
-                            </TextBlock>
-                          </Border>
-                          <Border Background="#2A2315" BorderBrush="#4A3B1E" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,10,0,0"
-                                  Visibility="{Binding HasRequires, Converter={StaticResource Vis}}">
-                            <TextBlock Text="{Binding RequiresText}" Foreground="#F1DEB4" FontSize="12" TextWrapping="Wrap"/>
-                          </Border>
-                          <ItemsControl ItemsSource="{Binding Tags}" Margin="0,4,0,0">
-                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                              <DataTemplate>
-                                <Border Background="{StaticResource Surface2}" CornerRadius="5" Padding="7,2,7,3" Margin="0,6,5,0">
-                                  <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource Muted}"/>
-                                </Border>
-                              </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                          </ItemsControl>
-                          <TextBlock Text="{Binding LongDescription}" Foreground="{StaticResource Body}" TextWrapping="Wrap" LineHeight="21" Margin="0,14,0,0"/>
-                        </StackPanel>
-                      </ScrollViewer>
-                    </DockPanel>
-                  </Border>
-                  </Grid>
-                  <DataTemplate.Triggers>
-                    <DataTrigger Binding="{Binding Installed}" Value="True"><Setter TargetName="act" Property="Style" Value="{StaticResource Danger}"/></DataTrigger>
-                  </DataTemplate.Triggers>
-                </DataTemplate>
-              </ContentControl.ContentTemplate>
-            </ContentControl>
           </Grid>
         </DockPanel>
 

@@ -54,7 +54,7 @@ namespace BtoSync
 			RestoreWindow();
 			KeyDown += (s, e) =>  // Esc closes the Workshop detail pane
 			{
-				if (e.Key == Key.Escape && WsDetail.Visibility == Visibility.Visible) { ShowDetail(null); e.Handled = true; }
+				if (e.Key == Key.Escape && WsModal.Visibility == Visibility.Visible) { ShowDetail(null); e.Handled = true; }
 			};
 			KeyDown += (s, e) =>  // Ctrl+F: search the page that has a search box
 			{
@@ -118,7 +118,7 @@ namespace BtoSync
 			WsIsaac.Visibility = isaac ? Visibility.Visible : Visibility.Collapsed;
 			WsList.Visibility = isaac ? Visibility.Collapsed : Visibility.Visible;
 			SearchBox.IsEnabled = SortBtn.IsEnabled = TagsBtn.IsEnabled = !isaac;
-			if (isaac) { WsEmpty.Visibility = MoreBtn.Visibility = WsDetail.Visibility = Visibility.Collapsed; WsInfo.Text = "Il Workshop si usa a gioco chiuso."; }
+			if (isaac) { WsEmpty.Visibility = MoreBtn.Visibility = WsModal.Visibility = Visibility.Collapsed; WsInfo.Text = "Il Workshop si usa a gioco chiuso."; }
 			else if (was && wsOpened) _ = Search(true);
 			IsaacBanner.Visibility = isaac ? Visibility.Visible : Visibility.Collapsed;
 			SteamBox.Visibility = SettingsDisconnect.Visibility = Steam.Ready ? Visibility.Visible : Visibility.Collapsed;
@@ -535,11 +535,13 @@ namespace BtoSync
 		void CloseDetail_Click(object sender, RoutedEventArgs e) => ShowDetail(null);
 
 		// The detail pane on the right: big preview, numbers, tags, required mods, description, install.
+		void ModalBackdrop_Click(object sender, MouseButtonEventArgs e) => ShowDetail(null);
+
 		async void ShowDetail(WsItem w)
 		{
 			foreach (var x in ws) x.IsSelected = x == w;
 			WsDetail.Content = w;
-			WsDetail.Visibility = w == null ? Visibility.Collapsed : Visibility.Visible;
+			WsModal.Visibility = w == null ? Visibility.Collapsed : Visibility.Visible;
 			if (w == null) return;
 			try
 			{
