@@ -52,7 +52,7 @@ namespace BtoSync
 			AutoBackupBox.IsChecked = AutoBackupOn;
 			LogsBox.IsChecked = LogsChoice == "sempre";
 			LogsCard.Visibility = Core.LogsUrlNow == "" ? Visibility.Collapsed : Visibility.Visible;
-			Loaded += async (s, e) => { UpdateState(); _ = CheckUpdate(); await Reload(); CheckPatch(); OpenHostCodeFromClipboard(); _ = ShowGameLog(); };
+			Loaded += async (s, e) => { UpdateState(); _ = CheckUpdate(); await Reload(); CheckPatch(); OpenHostCodeFromClipboard(); AskLogs(); _ = ShowGameLog(); };
 			Closing += (s, e) => { Steam.Disconnect(); SaveWindow(); };
 			RestoreWindow();
 			KeyDown += (s, e) =>  // Esc closes the Workshop detail pane
@@ -373,22 +373,25 @@ namespace BtoSync
 		static void SetLogsChoice(string c) { System.IO.Directory.CreateDirectory(LogsDir); System.IO.File.WriteAllText(LogsChoiceFile, c); }
 		bool sendingLog;
 
+		// First start: say what goes and what does not; closing the window counts as no. Settings has the switch.
+		void AskLogs()
+		{
+			if (Core.LogsUrlNow == "" || LogsChoice != null) return;
+			var yes = Dialog.Show(this, "Invio automatico dei log delle partite",
+				"Quando una partita si divide (desync) o una mod dà errori Lua, chiuso Isaac BTO Sync invia il log di quella partita, per confrontarlo con quello degli altri giocatori e capire cosa non va." + NL +
+				"Prima di partire il log viene pulito qui sul PC: niente Steam ID, nomi dei giocatori e nome utente di Windows. Insieme vanno solo le mod attive e la versione di BTO Sync." + NL +
+				"Puoi disattivarlo quando vuoi in Impostazioni.",
+				DialogKind.Question, "Va bene", "Non inviarli");
+			try { SetLogsChoice(yes ? "sempre" : "no"); } catch (Exception ex) { Core.LogError(ex); }
+			LogsBox.IsChecked = yes;
+		}
+
 		async Task SendLog(string text, DateTime written)
 		{
 			if (sendingLog || Core.LogsUrlNow == "") return;
 			var key = written.Ticks + " " + text.Length;
 			try { if (System.IO.File.ReadAllText(LogsSentFile) == key) return; } catch { }
-			var choice = LogsChoice;
-			if (choice == "no") return;
-			if (choice != "sempre")
-			{
-				var c = Dialog.Choose(this, "Inviare i log in automatico?",
-					"Nell'ultima partita c'è stato un desync o un errore Lua. Il log della partita aiuta a capire chi si è diviso e perché: lo confronto con quello degli altri giocatori della stessa partita." + NL +
-					"Prima di partire lo pulisco qui sul PC: niente Steam ID, nomi dei giocatori e cartella utente. Con le mod attive e la versione di BTO Sync. Puoi cambiare idea in Impostazioni.",
-					DialogKind.Question, "Sempre", "No", "Solo questa volta");
-				if (c == 0) { try { SetLogsChoice("no"); } catch (Exception ex) { Core.LogError(ex); } LogsBox.IsChecked = false; return; }
-				if (c == 1) { try { SetLogsChoice("sempre"); } catch (Exception ex) { Core.LogError(ex); } LogsBox.IsChecked = true; }
-			}
+			if (LogsChoice != "sempre") return;
 			sendingLog = true; Loading(true);
 			LogSend.Visibility = Visibility.Visible; LogSendText.Text = "Invio il log della partita per l'analisi…"; LogSendDot.Fill = Res("Muted");
 			try

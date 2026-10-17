@@ -1,7 +1,7 @@
 # BTO logs: i log delle partite, in automatico
 
-Dopo un desync o un errore Lua, BTO Sync chiede una volta sola "Inviare i log in automatico?"
-(Sempre / Solo questa volta / No; si cambia in Impostazioni). Con "Sempre", ogni volta che Isaac si
+Al primo avvio BTO Sync avvisa che può inviare i log in automatico e spiega che partono già puliti
+("Va bene" / "Non inviarli"; si disattiva in Impostazioni). Con "Va bene", ogni volta che Isaac si
 chiude dopo una partita con errori, BTO Sync manda il log dell'ultima partita a questo Worker.
 Il Worker ne fa il commit nel repository privato `MICHELOSCO/bto-logs`, e lì una GitHub Action mette
 a confronto i log della stessa partita.
