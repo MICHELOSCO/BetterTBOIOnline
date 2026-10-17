@@ -30,8 +30,8 @@ namespace BtoSync
 		protected void Raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 	}
 
-	// One entry of the host code (lowercase names: JSON of the old BTO1 code). In BTO2 the Workshop name and folder
-	// are left out (name from Steam, see Titles) and the hash is cut to 8 characters (Core.SameHash).
+	// One entry of the host code (lowercase names: JSON of the old BTO1 code). Since BTO2 the Workshop name and folder
+	// are left out (name from Steam, see Titles) and the hash is cut to 8 characters (Core.SameHash); BTO3 drops the manifest too.
 	public class HostMod
 	{
 		public string key { get; set; }
@@ -144,10 +144,10 @@ namespace BtoSync
 		public static bool Screenshots;  // --screenshots: the README's pictures, taken while the game may be open
 		public static bool IsaacRunning => !Screenshots && Process.GetProcessesByName("isaac-ng").Length > 0;
 		public static bool IsBto(string folder) => folder != null && (folder.StartsWith("bto-", StringComparison.OrdinalIgnoreCase) || folder.Equals("bettertboionline-diagnostics", StringComparison.OrdinalIgnoreCase));
-		// "bto-join-sync" -> "BTO Join Sync": the name of a BTO mod from its folder (BTO2 codes carry no names)
+		// "bto-join-sync" -> "BTO Join Sync": the name of a BTO mod from its folder (BTO2/BTO3 codes carry no names)
 		public static string BtoName(string folder) => folder.Equals("bettertboionline-diagnostics", StringComparison.OrdinalIgnoreCase) ? "BetterTBOIOnline Diagnostics"
 			: "BTO " + string.Join(" ", folder.Substring(4).Split('-').Where(w => w != "").Select(w => char.ToUpper(w[0]) + w.Substring(1)));
-		// a host hash may be cut short (BTO2): it matches when it is the start of the full one
+		// a host hash may be cut short (BTO2, BTO3): it matches when it is the start of the full one
 		public static bool SameHash(string full, string host) => !string.IsNullOrEmpty(full) && !string.IsNullOrEmpty(host) && full.StartsWith(host, StringComparison.OrdinalIgnoreCase);
 		// BTO fixes for a Workshop mod (folder -> Workshop id, name): active only while that mod is active.
 		// Every other BTO mod in the releases fixes the base game and is always active.
@@ -356,40 +356,51 @@ namespace BtoSync
 
 		class CodeDto { public int v { get; set; } public List<HostMod> mods { get; set; } }
 
-		// BTO2: one line per mod, deflated, base64 without padding.
-		//   w<id>|<manifest>|<hash8>              Workshop mod (name looked up on Steam by whoever reads it)
-		//   b<folder>|<version>|<hash8>           BTO mod (name from the folder)
-		//   l<folder>|<version>|<hash8>|<name>    anything else
+		// BTO mods a BTO3 code names with one byte (2 + position). Append only: moving one breaks old codes.
+		static readonly string[] KnownBto = { "bettertboionline-diagnostics", "bto-faircoop-crash-fix", "bto-join-sync", "bto-render-rng-guard",
+			"bto-stageapi-sync", "bto-thefuture-revive-fix", "bto-thefuture-sync", "bto-treasure-jingle-sync", "bto-trinket-sync" };
+
+		// BTO3: binary, base64 without padding. Per mod a first byte, then the first 4 bytes of its hash:
+		//   0, varint Workshop id                        Workshop mod (name looked up on Steam by whoever reads it)
+		//   2+i, version a.b.c in 3 bytes (c 255: a.b)   KnownBto[i]
+		//   1, folder, version, name (varint length + UTF-8 each; name "" = BtoName)   anything else
+		// No Workshop manifest: the hash already says whether two copies differ (MakePlan).
 		// asRelease: folder -> (version, hash) to write instead of the local copy (a BTO mod linked to a dev folder
 		// goes out as its GitHub release, which is what the others download).
 		public static string ToCode(IEnumerable<LocalMod> mods, IDictionary<string, (string version, string hash)> asRelease = null)
 		{
-			var lines = new List<string>();
+			var b = new List<byte>();
+			void Varint(ulong n) { do { b.Add((byte)(n & 0x7F | (n > 0x7F ? 0x80u : 0))); n >>= 7; } while (n > 0); }
+			void Text(string s) { var t = Encoding.UTF8.GetBytes(s ?? ""); Varint((ulong)t.Length); b.AddRange(t); }
 			foreach (var m in mods.Where(m => !m.Private))
 			{
-				string ver = m.Version, hash = m.Hash;
-				if (asRelease != null && asRelease.TryGetValue(m.Folder, out var r)) { ver = r.version; hash = r.hash; }
-				string h8 = (hash ?? "").Length > 8 ? hash.Substring(0, 8) : hash ?? "";
-				if (m.Id != "") lines.Add($"w{m.Id}|{m.Manifest}|{h8}");
-				else if (IsBto(m.Folder)) lines.Add($"b{m.Folder}|{ver}|{h8}");
-				else lines.Add($"l{m.Folder}|{ver}|{h8}|{m.Name}");
+				string ver = m.Version, hash = m.Hash ?? "";
+				if (asRelease != null && asRelease.TryGetValue(m.Folder, out var r)) { ver = r.version; hash = r.hash ?? ""; }
+				int k = Array.FindIndex(KnownBto, f => f.Equals(m.Folder, StringComparison.OrdinalIgnoreCase));
+				var v = Regex.Match(ver ?? "", @"^(\d{1,3})\.(\d{1,3})(?:\.(\d{1,3}))?$");
+				bool small = v.Success && v.Groups.Cast<Group>().Skip(1).All(g => !g.Success || int.Parse(g.Value) < 255);
+				if (m.Id != "" && ulong.TryParse(m.Id, out var id)) { b.Add(0); Varint(id); }
+				else if (k >= 0 && small)
+				{
+					b.Add((byte)(2 + k)); b.Add(byte.Parse(v.Groups[1].Value)); b.Add(byte.Parse(v.Groups[2].Value));
+					b.Add(v.Groups[3].Success ? byte.Parse(v.Groups[3].Value) : (byte)255);
+				}
+				else { b.Add(1); Text(m.Folder); Text(ver); Text(IsBto(m.Folder) ? "" : m.Name); }
+				for (int i = 0; i < 4; i++)
+					b.Add(hash.Length >= 2 * i + 2 && byte.TryParse(hash.Substring(2 * i, 2), System.Globalization.NumberStyles.HexNumber, null, out var x) ? x : (byte)0);
 			}
-			var bytes = Encoding.UTF8.GetBytes(string.Join("\n", lines));
-			using (var ms = new MemoryStream())
-			{
-				using (var z = new DeflateStream(ms, CompressionLevel.Optimal)) z.Write(bytes, 0, bytes.Length);
-				return "BTO2:" + Convert.ToBase64String(ms.ToArray()).TrimEnd('=');
-			}
+			return "BTO3:" + Convert.ToBase64String(b.ToArray()).TrimEnd('=');
 		}
 
 		public static List<HostMod> FromCode(string code)
 		{
 			code = Regex.Replace(code ?? "", @"[\s`]", "");  // Discord may wrap it in backticks
-			if (!code.StartsWith("BTO1:") && !code.StartsWith("BTO2:")) throw new FormatException("Il codice deve iniziare con BTO2: (o BTO1:): fattelo ricopiare dall'host.");
+			if (!Regex.IsMatch(code, "^BTO[123]:")) throw new FormatException("Il codice deve iniziare con BTO3: (o BTO2:, BTO1:): fattelo ricopiare dall'host.");
 			try
 			{
 				var b64 = code.Substring(5);
 				var data = Convert.FromBase64String(b64.PadRight(b64.Length + (4 - b64.Length % 4) % 4, '='));
+				if (code.StartsWith("BTO3:")) return FromBto3(data);
 				if (code.StartsWith("BTO1:"))
 					using (var gz = new GZipStream(new MemoryStream(data), CompressionMode.Decompress))
 					using (var r = new StreamReader(gz, Encoding.UTF8))
@@ -409,7 +420,32 @@ namespace BtoSync
 				return mods;
 			}
 			catch (Exception e) when (!(e is FormatException && e.Message.StartsWith("Il codice")))
-			{ throw new FormatException("Codice incompleto o rovinato: copialo di nuovo tutto, da BTO2: alla fine."); }
+			{ throw new FormatException("Codice incompleto o rovinato: copialo di nuovo tutto, dall'inizio (BTO3:) alla fine."); }
+		}
+
+		static List<HostMod> FromBto3(byte[] d)
+		{
+			int p = 0;
+			byte Next() => p < d.Length ? d[p++] : throw new InvalidDataException("short");
+			ulong Varint() { ulong n = 0; for (int s = 0; ; s += 7) { byte x = Next(); n |= (ulong)(x & 0x7F) << s; if (x < 0x80 || s > 56) return n; } }
+			string Text() { int n = (int)Varint(); if (n > d.Length - p) throw new InvalidDataException("short"); var s = Encoding.UTF8.GetString(d, p, n); p += n; return s; }
+			var mods = new List<HostMod>();
+			while (p < d.Length)
+			{
+				byte t = Next(); HostMod h;
+				if (t == 0) { var id = Varint().ToString(); h = new HostMod { key = id, id = id, version = "" }; }
+				else if (t == 1) { var f = Text(); var v = Text(); var n = Text(); h = new HostMod { key = f.ToLowerInvariant(), folder = f, id = "", version = v, name = n != "" ? n : IsBto(f) ? BtoName(f) : f }; }
+				else
+				{
+					if (t - 2 >= KnownBto.Length) throw new FormatException("Il codice viene da un BTO Sync più nuovo: aggiorna il programma (Impostazioni > Aggiorna).");
+					var f = KnownBto[t - 2];
+					byte a = Next(), b2 = Next(), c = Next();
+					h = new HostMod { key = f, folder = f, id = "", name = BtoName(f), version = c == 255 ? $"{a}.{b2}" : $"{a}.{b2}.{c}" };
+				}
+				h.hash = string.Concat(Enumerable.Range(0, 4).Select(_ => Next().ToString("x2")));
+				mods.Add(h);
+			}
+			return mods;
 		}
 
 		internal static System.Collections.IEnumerable Arr(object o) => o as System.Collections.IEnumerable ?? new object[0];
@@ -417,7 +453,7 @@ namespace BtoSync
 		public static readonly Dictionary<string, string> Previews = new Dictionary<string, string>();  // Workshop id -> preview image url
 		public static readonly Dictionary<string, string> Titles = new Dictionary<string, string>();  // Workshop id -> title
 
-		// BTO2 codes carry no Workshop names: from Steam (LatestManifests), else the local copy, else the id.
+		// BTO2/BTO3 codes carry no Workshop names: from Steam (LatestManifests), else the local copy, else the id.
 		public static void FillNames(List<HostMod> host, List<LocalMod> local)
 		{
 			foreach (var h in host.Where(h => string.IsNullOrEmpty(h.name)))
@@ -683,8 +719,9 @@ namespace BtoSync
 				else if (!string.IsNullOrEmpty(h.id))
 				{
 					if (l == null) { p.Add(ActionKind.Subscribe, null, h, $"Installa {h.name} dal Workshop"); continue; }
-					bool hostOld = last != null && h.manifest != last, meOld = last != null && l.Manifest != last;
+					bool hostOld = last != null && !string.IsNullOrEmpty(h.manifest) && h.manifest != last, meOld = last != null && l.Manifest != last;
 					if (hostOld) p.Notes.Add($"{h.name}: è l'host ad avere una versione vecchia: deve aggiornarla e ricopiare il codice.");
+					else if (!meOld && string.IsNullOrEmpty(h.manifest) && last != null) p.Notes.Add($"{h.name}: hai già l'ultima versione del Workshop: se resta diversa dopo la reinstallazione, è l'host a dover aggiornare e ricopiare il codice.");
 					if (meOld || !hostOld) p.Add(ActionKind.Subscribe, l, h, (meOld ? "Aggiorna " : "Reinstalla ") + h.name + " dal Workshop");
 					if (!l.Enabled) p.Add(ActionKind.Enable, l, h, $"Attiva {h.name}");
 				}

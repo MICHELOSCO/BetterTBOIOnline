@@ -20,6 +20,17 @@ namespace BtoSync
 			}
 		}
 
+		// a BTO2 code as BTO Sync 2.5.0 wrote it (deflated lines), to check those still read
+		static string Bto2(string text)
+		{
+			var bytes = System.Text.Encoding.UTF8.GetBytes(text);
+			using (var ms = new MemoryStream())
+			{
+				using (var z = new System.IO.Compression.DeflateStream(ms, System.IO.Compression.CompressionLevel.Optimal)) z.Write(bytes, 0, bytes.Length);
+				return "BTO2:" + Convert.ToBase64String(ms.ToArray()).TrimEnd('=');
+			}
+		}
+
 		static void Assert(bool ok, string what) { if (!ok) throw new Exception("FALLITO: " + what); Console.WriteLine("pass " + what); }
 
 		static void Mod(string dir, string folder, string name, string id, string body)
@@ -238,23 +249,36 @@ namespace BtoSync
 
 				var code = Core.ToCode(Core.ScanMods(host).Where(m => m.Enabled));
 				var hostMods = Core.FromCode("`" + code + "`\n");
-				Assert(code.StartsWith("BTO2:") && hostMods.Count == 3, "il codice BTO2 (anche tra backtick) contiene le 3 mod attive, senza la mod privata");
-				Assert(hostMods.Any(h => h.key == "111" && h.id == "111" && h.name == null) && hostMods.Any(h => h.folder == "bto-x" && h.name == "BTO X"), "BTO2: mod del Workshop per id, nome BTO dalla cartella");
+				Assert(code.StartsWith("BTO3:") && hostMods.Count == 3, "il codice BTO3 (anche tra backtick) contiene le 3 mod attive, senza la mod privata");
+				Assert(hostMods.Any(h => h.key == "111" && h.id == "111" && h.name == null) && hostMods.Any(h => h.folder == "bto-x" && h.name == "BTO X"), "BTO3: mod del Workshop per id, nome BTO dalla cartella");
+				Assert(hostMods.All(h => h.hash.Length == 8) && Core.SameHash(Core.ModHash(Path.Combine(host, "bto-x")), hostMods.Single(h => h.folder == "bto-x").hash), "BTO3: hash di 4 byte, uguale all'inizio di quello intero");
 				Core.FillNames(hostMods, Core.ScanMods(me));
-				Assert(hostMods.Single(h => h.key == "111").name == "mod del Workshop 111", "BTO2: senza Steam il nome del Workshop è l'id");
+				Assert(hostMods.Single(h => h.key == "111").name == "mod del Workshop 111", "BTO3: senza Steam il nome del Workshop è l'id");
 				var old = OldCode(Core.ScanMods(host).Where(m => m.Enabled));
-				Assert(Core.FromCode(old).Count == 3 && code.Length < old.Length, $"i codici BTO1 si leggono ancora; BTO2 è più corto ({code.Length} contro {old.Length} caratteri)");
+				Assert(Core.FromCode(old).Count == 3 && code.Length < old.Length, $"i codici BTO1 si leggono ancora; BTO3 è più corto ({code.Length} contro {old.Length} caratteri)");
+				var two = Core.FromCode(Bto2("w111|5|abcdef01\nbbto-x|1.0|12345678\nlextra|2|0badf00d|Extra"));
+				Assert(two.Count == 3 && two[0].manifest == "5" && two[1].name == "BTO X" && two[2].name == "Extra", "i codici BTO2 si leggono ancora");
+				var known = new[] { ("bto-join-sync", "1.0.1"), ("bettertboionline-diagnostics", "0.4"), ("bto-trinket-sync", "1.0-beta") }
+					.Select(x => new LocalMod { Key = x.Item1, Folder = x.Item1, Name = "", Id = "", Version = x.Item2, Hash = "0123456789" }).ToList();
+				var kcode = Core.ToCode(known); var kback = Core.FromCode(kcode);
+				Assert(string.Join(" ", kback.Select(h => h.folder + "@" + h.version + "#" + h.hash)) == "bto-join-sync@1.0.1#01234567 bettertboionline-diagnostics@0.4#01234567 bto-trinket-sync@1.0-beta#01234567"
+					&& kback[0].name == "BTO Join Sync" && Core.ToCode(known.Take(2)).Length == 5 + 22, "BTO3: mod BTO note in un byte, versioni strane per esteso (" + kcode + ")");
+				bool newer = false; try { Core.FromCode("BTO3:" + Convert.ToBase64String(new byte[] { 250, 1, 0, 0, 1, 2, 3, 4 })); } catch (FormatException e) { newer = e.Message.Contains("più nuovo"); }
+				Assert(newer, "un codice di un BTO Sync più nuovo chiede di aggiornare");
 				var rel = new Dictionary<string, (string version, string hash)> { ["bto-x"] = ("9.9", "abcdef0123456789") };
 				var asRel = Core.FromCode(Core.ToCode(Core.ScanMods(host).Where(m => m.Enabled), rel)).Single(h => h.folder == "bto-x");
 				Assert(asRel.version == "9.9" && asRel.hash == "abcdef01", "una mod collegata va nel codice con versione e hash della release");
 				Assert(Core.SameHash("abcdef0123456789", "abcdef01") && !Core.SameHash("abcdef0123456789", "abcdef02") && !Core.SameHash("abc", ""), "hash corto dell'host confrontato con l'inizio di quello intero");
-				bool bad = false; try { Core.FromCode("BTO2:xx"); } catch (FormatException) { bad = true; }
+				bool bad = false; try { Core.FromCode("BTO3:AAE"); } catch (FormatException) { bad = true; }
 				Assert(bad, "un codice rovinato dà un errore leggibile");
 
 				var local = Core.ScanMods(me);
 				var plan = Core.MakePlan(hostMods, local, new Dictionary<string, string>());
 				var kinds = string.Join(" ", plan.Actions.Select(a => a.Kind + ":" + (a.Local?.Folder ?? a.Host.folder ?? a.Host.key)).OrderBy(s => s, StringComparer.Ordinal));
 				Assert(kinds == "Disable:extra Download:bto-y Enable:bto-x Subscribe:111", "piano: " + kinds);
+				var mine = new LocalMod { Key = "111", Id = "111", Folder = "w_111", Name = "W", Version = "", Hash = "00ff", Manifest = "7" };
+				var wsPlan = Core.MakePlan(new List<HostMod> { new HostMod { key = "111", id = "111", name = "W", version = "", hash = "ffffffff" } }, new List<LocalMod> { mine }, new Dictionary<string, string> { ["111"] = "7" });
+				Assert(wsPlan.Actions.Any(x => x.Kind == ActionKind.Subscribe) && wsPlan.Notes.Any(n => n.Contains("l'host a dover aggiornare")), "piano BTO3 (senza manifest): io aggiornato e diverso = reinstallo, e forse è l'host a dover aggiornare");
 
 				foreach (var a in plan.Actions.Where(a => a.Kind == ActionKind.Enable || a.Kind == ActionKind.Disable)) Core.SetEnabled(a.Local, a.Kind == ActionKind.Enable);
 				Assert(!File.Exists(Path.Combine(me, "bto-x", "disable.it")), "bto-x riattivata");

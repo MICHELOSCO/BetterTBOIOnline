@@ -487,7 +487,7 @@ namespace BtoSync
 			try
 			{
 				var clip = Clipboard.ContainsText() ? Clipboard.GetText().Trim() : "";
-				if (!clip.Contains("BTO1:") && !clip.Contains("BTO2:")) return;
+				if (!System.Text.RegularExpressions.Regex.IsMatch(clip, "BTO[123]:")) return;
 				Core.FromCode(clip);
 				NavOnline.IsChecked = true;
 				CodeBox.Text = clip;
