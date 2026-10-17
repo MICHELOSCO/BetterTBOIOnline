@@ -320,7 +320,7 @@
 
       <Grid Margin="32,28,24,8">
         <!-- Mod: the list in one card, on the right the state of the mods and the space they take -->
-        <Grid x:Name="PageMods" Visibility="Collapsed">
+        <Grid x:Name="PageMods" Visibility="Collapsed" Margin="0,0,8,0">
           <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="24"/><ColumnDefinition Width="320"/></Grid.ColumnDefinitions>
           <Grid.Resources>
             <Style x:Key="FlatItem" TargetType="ListBoxItem">
@@ -348,8 +348,11 @@
               <RadioButton x:Name="FilterOff" Style="{StaticResource Pill}" GroupName="filter" Content="Disattivate" Checked="Filter_Changed"/>
               <RadioButton x:Name="FilterUpd" Style="{StaticResource Pill}" GroupName="filter" Content="Da aggiornare" Checked="Filter_Changed" Margin="0"/>
             </StackPanel>
-            <Border Style="{StaticResource Card}" Padding="0,4" VerticalAlignment="Top">
+            <Border Style="{StaticResource Card}" Padding="0" VerticalAlignment="Top">
+            <Grid>
+          <Border x:Name="ModsMask" CornerRadius="11" Background="{StaticResource Surface}"/>
           <ListBox x:Name="ModsList" Style="{StaticResource Plain}" ItemContainerStyle="{StaticResource FlatItem}">
+            <ListBox.OpacityMask><VisualBrush Visual="{Binding ElementName=ModsMask}"/></ListBox.OpacityMask>
             <ListBox.GroupStyle>
               <GroupStyle>
                 <GroupStyle.ContainerStyle>
@@ -433,11 +436,13 @@
                   </StackPanel>
                 </Border>
                 <DataTemplate.Triggers>
+                  <DataTrigger Binding="{Binding RelativeSource={RelativeSource PreviousData}}" Value="{x:Null}"><Setter TargetName="row" Property="BorderThickness" Value="0"/></DataTrigger>
                   <Trigger SourceName="row" Property="IsMouseOver" Value="True"><Setter TargetName="row" Property="Background" Value="{StaticResource Surface2}"/></Trigger>
                 </DataTemplate.Triggers>
               </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>
+            </Grid>
             </Border>
           </DockPanel>
 
@@ -817,7 +822,7 @@
           </Grid>
           <TextBlock x:Name="ProfilesEmpty" DockPanel.Dock="Top" Style="{StaticResource Sub}" Margin="2,4,0,0"
                      Text="Nessun profilo ancora: attiva le mod che vuoi e salvale come profilo."/>
-          <ListBox x:Name="ProfilesList" Style="{StaticResource Plain}" ItemContainerStyle="{StaticResource CardItem}">
+          <ListBox x:Name="ProfilesList" Style="{StaticResource Plain}" ItemContainerStyle="{StaticResource CardItem}" Margin="0,0,-8,0">
             <ListBox.ItemTemplate>
               <DataTemplate>
                 <Border Style="{StaticResource RowCard}">
@@ -921,7 +926,7 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
           <TextBlock x:Name="SavesDirText" DockPanel.Dock="Bottom" Style="{StaticResource Sub}" FontSize="12" Margin="2,6,8,0" TextTrimming="CharacterEllipsis"/>
-          <Grid Margin="0,18,0,0">
+          <Grid Margin="0,18,8,0">
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="24"/><ColumnDefinition Width="400"/></Grid.ColumnDefinitions>
             <Border x:Name="ProgressNone" Style="{StaticResource Card}" VerticalAlignment="Top">
               <StackPanel>
