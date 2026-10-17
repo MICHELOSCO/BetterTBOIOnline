@@ -105,13 +105,14 @@ namespace BtoSync
 		public string RequiresText { get => requires; set { Set(ref requires, value); Raise(nameof(HasRequires)); } }
 		public bool HasRequires => requires != "";
 		public string Initial => string.IsNullOrEmpty(Title) ? "?" : Title.Substring(0, 1).ToUpperInvariant();
-		bool installed, busy; double progress; string error = "";
+		bool installed, active, busy; double progress; string error = "";
 		public bool Installed { get => installed; set { Set(ref installed, value); Raise(nameof(ButtonText)); } }
+		public bool Active { get => active; set { Set(ref active, value); Raise(nameof(ButtonText)); } }  // installed and on now, so in the active profile's mods
 		public bool Busy { get => busy; set { Set(ref busy, value); Raise(nameof(ButtonText)); Raise(nameof(CanAct)); } }
 		public double Progress { get => progress; set { Set(ref progress, value); Raise(nameof(ButtonText)); } }
 		public string Error { get => error; set => Set(ref error, value); }
 		public bool CanAct => !Busy;
-		public string ButtonText => Busy ? (Progress > 0 ? $"Scarico {Progress:P0}" : "Attendi…") : Installed ? "Disinstalla" : "Installa";
+		public string ButtonText => Busy ? (Progress > 0 ? $"Scarico {Progress:P0}" : "Attendi…") : !Installed ? "Installa" : !Active ? "Attiva" : "Disinstalla";
 
 		static string Short(string s) => s == null ? null : s.Length > 300 ? s.Substring(0, 300) + "…" : s;
 

@@ -175,7 +175,6 @@ namespace BtoSync
 				Status("Pronto.");
 			}
 			catch { wsChecked = false; foreach (var m in local) m.UpdateStatus(new Dictionary<string, string>()); Status("Workshop non raggiungibile: non posso controllare gli aggiornamenti."); }
-			foreach (var w in ws) w.Installed = Core.HasWorkshopCopy(w.Id.ToString(), modsDir);
 			RefreshSummary();
 			_ = CheckDeps();
 			_ = ShowSpace();
@@ -245,6 +244,7 @@ namespace BtoSync
 			UpdateAllBtn.Visibility = upd > 0 ? Visibility.Visible : Visibility.Collapsed;
 			UpdateAllText.Text = upd == 1 ? "Aggiorna 1 mod" : $"Aggiorna {upd} mod";
 			CollectionViewSource.GetDefaultView(mods).Refresh();
+			foreach (var w in ws) MarkWs(w);
 			RefreshProfiles();
 			RefreshHealth();
 		}
@@ -774,7 +774,7 @@ namespace BtoSync
 				var (items, total) = await Steam.Search(SearchBox.Text, sortIndex, trendDays, on.Select(t => t.Name), wsPage);
 				if (search != searchId) return;  // a newer search started meanwhile
 				foreach (var sk in ws.Where(x => x.Skeleton).ToList()) ws.Remove(sk);
-				foreach (var i in items) ws.Add(WsItem.From(i, modsDir));
+				foreach (var i in items) { var w = WsItem.From(i, modsDir); MarkWs(w); ws.Add(w); }
 				wsPage++;
 				WsInfo.ToolTip = null;
 				WsInfo.Text = total == 0 ? "Nessuna mod trovata." : $"{total:N0} mod trovate · ne vedi {ws.Count} · clicca una mod per i dettagli";
@@ -792,43 +792,166 @@ namespace BtoSync
 			}
 		}
 
+		void MarkWs(WsItem w)
+		{
+			if (w.Skeleton) return;
+			var id = w.Id.ToString();
+			w.Installed = Core.HasWorkshopCopy(id, modsDir);
+			w.Active = local.Any(m => m.Id == id && m.Enabled);
+		}
+
+		Profile ActiveP() => profiles.FirstOrDefault(p => p.name == activeProfile);
+		string KeyOf(string id) => local.FirstOrDefault(m => m.Id == id)?.Key ?? id;
+		static string Quote(List<string> names) => string.Join(", ", names.Select(n => $"\"{n}\""));
+
+		// Installa, Attiva and Disinstalla act on the active profile: its list follows, like the switches on the Mod page
 		async void WsAct_Click(object sender, RoutedEventArgs e)
 		{
 			var w = Ctx<WsItem>(sender);
 			if (Blocked()) return;
+			var id = w.Id.ToString();
+			w.Error = "";
+			if (w.Installed && !w.Active) { await WsEnable(w); return; }
+			var others = profiles.Where(p => p.name != activeProfile && p.keys.Contains(KeyOf(id))).Select(p => p.name).ToList();
+			if (w.Installed && others.Count > 0)
+			{
+				// another profile uses it: only out of this one, the files stay
+				if (!Dialog.Show(this, $"Togliere \"{w.Title}\" dal profilo attuale?", $"Resta installata ma spenta, perché è anche in {Quote(others)}.", DialogKind.Question, "Togli", "Annulla")) return;
+				var mod = local.FirstOrDefault(x => x.Id == id);
+				try { if (mod != null) Core.SetEnabled(mod, false); }
+				catch (Exception ex) { w.Error = Short(ex); return; }
+				OutOfActive(id);
+				Status($"Tolta dal profilo attuale: {w.Title}. Resta per {Quote(others)}.");
+				await Reload();
+				return;
+			}
 			var err = Steam.Connect();
 			UpdateState();
 			if (err != null) { w.Error = err; return; }
-			w.Error = "";
 			if (w.Installed)
 			{
-				if (!Dialog.Show(this, $"Disinstallare \"{w.Title}\"?", "Ti disiscrivo dal Workshop e la tolgo dalla cartella mods.", DialogKind.Danger, "Disinstalla", "Annulla")) return;
+				if (!Dialog.Show(this, $"Disinstallare \"{w.Title}\"?", "Ti disiscrivo dal Workshop e la tolgo dalla cartella mods: nessun altro profilo la usa.", DialogKind.Danger, "Disinstalla", "Annulla")) return;
 				w.Busy = true;
-				try { await Steam.Unsubscribe(w.Id); Core.RemoveWorkshopCopy(w.Id.ToString(), modsDir); w.Installed = false; Status("Disinstallata: " + w.Title); }
+				try { await Steam.Unsubscribe(w.Id); Core.RemoveWorkshopCopy(id, modsDir); OutOfActive(id); w.Installed = false; Status("Disinstallata: " + w.Title); }
 				catch (Exception ex) { w.Error = Short(ex); }
+				w.Busy = false;
+				await Reload();
+				return;
 			}
-			else
+			List<string> ids = null;
+			w.Busy = true; w.Progress = 0;
+			try
 			{
-				w.Busy = true; w.Progress = 0;
-				try
-				{
-					await Steam.SubscribeAndInstall(w.Id, modsDir, p => Dispatcher.BeginInvoke(new Action(() => w.Progress = p)));
-					w.Installed = true;
-					// Steam asks for the required items only on its web page: here they are installed with the mod
-					var with = new List<string>();
-					List<(string id, string name)> reqs;
-					try { reqs = await Core.RequiredItems(w.Id.ToString()); } catch { reqs = new List<(string id, string name)>(); }
-					foreach (var r in reqs.Where(r => !Core.HasWorkshopCopy(r.id, modsDir)))
-					{
-						w.Progress = 0;
-						await Steam.SubscribeAndInstall(ulong.Parse(r.id), modsDir, p => Dispatcher.BeginInvoke(new Action(() => w.Progress = p)));
-						with.Add(r.name);
-					}
-					Status("Installata e attiva: " + w.Title + (with.Count > 0 ? $", con {string.Join(", ", with)} (le serve)." : "."));
-				}
-				catch (Exception ex) { w.Error = Short(ex); }
+				var r = await WsInstall(w);
+				ids = r.ids;
+				Status("Installata e attiva: " + w.Title + (r.with.Count > 0 ? $", con {string.Join(", ", r.with)} (le serve)." : "."));
 			}
+			catch (Exception ex) { w.Error = Short(ex); }
 			w.Busy = false;
+			await Reload(false);
+			if (ids != null) IntoProfile(ActiveP(), local.Where(x => ids.Contains(x.Id) && x.Enabled).Select(x => x.Key));
+			await Tie();
+		}
+
+		// Downloads the mod and the ones it requires (Steam asks for those only on its web page).
+		// ids: the mod and all it requires; fresh: the ones that were not in mods/ before; with: names of the required ones downloaded now
+		async Task<(List<string> ids, List<string> fresh, List<string> with)> WsInstall(WsItem w)
+		{
+			var ids = new List<string> { w.Id.ToString() }; var fresh = new List<string>(); var with = new List<string>();
+			if (!Core.HasWorkshopCopy(ids[0], modsDir)) fresh.Add(ids[0]);
+			await Steam.SubscribeAndInstall(w.Id, modsDir, p => Dispatcher.BeginInvoke(new Action(() => w.Progress = p)));
+			w.Installed = true;
+			List<(string id, string name)> reqs;
+			try { reqs = await Core.RequiredItems(ids[0]); } catch { reqs = new List<(string id, string name)>(); }
+			foreach (var r in reqs)
+			{
+				ids.Add(r.id);
+				if (Core.HasWorkshopCopy(r.id, modsDir)) continue;
+				w.Progress = 0;
+				await Steam.SubscribeAndInstall(ulong.Parse(r.id), modsDir, p => Dispatcher.BeginInvoke(new Action(() => w.Progress = p)));
+				fresh.Add(r.id); with.Add(r.name);
+			}
+			return (ids, fresh, with);
+		}
+
+		// Installed but off: on, with what it requires, and into the active profile
+		async Task WsEnable(WsItem w)
+		{
+			var mod = local.FirstOrDefault(x => x.Id == w.Id.ToString());
+			if (mod == null) return;
+			try { if (Core.IsaacRunning) throw new InvalidOperationException("chiudi Isaac prima"); Core.SetEnabled(mod, true); mod.Enabled = true; }
+			catch (Exception ex) { w.Error = Short(ex); return; }
+			EnableRequired(mod);
+			var req = (Core.KnownRequired(mod.Id) ?? new List<(string id, string name)>()).Select(r => r.id).ToList();
+			IntoProfile(ActiveP(), local.Where(x => x.Enabled && (x == mod || req.Contains(x.Id))).Select(x => x.Key));
+			Status("Attivata: " + w.Title);
+			await Reload();
+		}
+
+		void IntoProfile(Profile p, IEnumerable<string> keys)
+		{
+			if (p == null) return;
+			foreach (var k in keys.ToList()) if (!p.keys.Contains(k)) p.keys.Add(k);
+			SaveProfiles();
+		}
+
+		void OutOfActive(string id)
+		{
+			var p = ActiveP();
+			if (p != null && p.keys.Remove(KeyOf(id))) SaveProfiles();
+		}
+
+		// "+" on a Workshop mod: into a profile that is not the active one, without changing the mods on now
+		void WsAddMenu_Click(object sender, RoutedEventArgs e)
+		{
+			var w = Ctx<WsItem>(sender);
+			if (Blocked()) return;
+			var key = KeyOf(w.Id.ToString());
+			var targets = profiles.Where(p => p.name != activeProfile && !p.keys.Contains(key)).ToList();
+			if (targets.Count == 0)
+			{
+				if (Dialog.Show(this, "Non hai altri profili a cui aggiungerla", $"Ne creo uno nuovo con le mod attive adesso più \"{w.Title}\", senza cambiare niente ora. Lo trovi in Profili, dove puoi rinominarlo e applicarlo.",
+					DialogKind.Question, "Crea il profilo", "Annulla")) _ = WsAddTo(w, null);
+				return;
+			}
+			var menu = new ContextMenu { PlacementTarget = (UIElement)sender, Placement = PlacementMode.Bottom };
+			foreach (var p in targets) MenuRow(menu, "", $"Aggiungi a \"{p.name}\"", () => _ = WsAddTo(w, p));
+			menu.Items.Add(new Separator { Background = Res("Line"), Margin = new Thickness(6, 4, 6, 4) });
+			MenuRow(menu, "", "Nuovo profilo: le mod attive più questa", () => _ = WsAddTo(w, null));
+			menu.IsOpen = true;
+		}
+
+		// p null: a new profile with the mods on now plus this one. Mods downloaded for it stay off: they belong to that profile.
+		async Task WsAddTo(WsItem w, Profile p)
+		{
+			if (Blocked()) return;
+			var id = w.Id.ToString();
+			var ids = new List<string> { id };
+			w.Error = "";
+			if (!w.Installed)
+			{
+				var err = Steam.Connect();
+				UpdateState();
+				if (err != null) { w.Error = err; return; }
+				List<string> fresh;
+				w.Busy = true; w.Progress = 0;
+				try { var r = await WsInstall(w); ids = r.ids; fresh = r.fresh; }
+				catch (Exception ex) { w.Error = Short(ex); w.Busy = false; await Reload(); return; }
+				w.Busy = false;
+				await Reload(false);
+				foreach (var x in local.Where(x => fresh.Contains(x.Id) && x.Enabled).ToList())
+					try { Core.SetEnabled(x, false); x.Enabled = false; } catch (Exception ex) { w.Error = Short(ex); }
+			}
+			else ids.AddRange((Core.KnownRequired(id) ?? new List<(string id, string name)>()).Select(r => r.id));
+			var keys = local.Where(x => ids.Contains(x.Id)).Select(x => x.Key).ToList();
+			string name;
+			if (p == null)
+			{
+				var cur = ActiveP();
+				name = ProfileFromKeys(ActiveKeys().Union(keys).ToList(), (cur != null ? cur.name + " + " : "") + w.Title);
+			}
+			else { IntoProfile(p, keys); name = p.name; }
+			Status($"Aggiunta al profilo \"{name}\": {w.Title}. Si attiva quando applichi il profilo, in Profili.");
 			await Reload();
 		}
 
@@ -934,15 +1057,8 @@ namespace BtoSync
 		{
 			var p = Ctx<Profile>(sender);
 			var menu = new ContextMenu { PlacementTarget = (UIElement)sender, Placement = PlacementMode.Bottom };
-			void Add(string icon, string text, RoutedEventHandler click, Brush fg = null)
-			{
-				var head = new StackPanel { Orientation = Orientation.Horizontal };
-				head.Children.Add(new TextBlock { Text = icon, Width = 24, FontFamily = (FontFamily)FindResource("Icons"), FontSize = 12, Foreground = fg ?? Res("Muted"), VerticalAlignment = VerticalAlignment.Center });
-				head.Children.Add(new TextBlock { Text = text, Foreground = fg ?? Res("Fg") });
-				var item = new MenuItem { Header = head, DataContext = p };
-				item.Click += click;
-				menu.Items.Add(item);
-			}
+			var src = (UIElement)sender;  // its DataContext is the profile, for the handlers below
+			void Add(string icon, string text, Action<object, RoutedEventArgs> click, Brush fg = null) => MenuRow(menu, icon, text, () => click(src, null), fg);
 			Add("", "Copia il codice da mandare agli altri", ExportProfile_Click);
 			Add("", "Sostituisci con le mod attive adesso", OverwriteProfile_Click);
 			menu.Items.Add(new Separator { Background = Res("Line"), Margin = new Thickness(6, 4, 6, 4) });
@@ -950,6 +1066,17 @@ namespace BtoSync
 			// right edge under the button's right edge: the button sits at the window's right side
 			menu.Opened += (o, a) => menu.HorizontalOffset = ((FrameworkElement)sender).ActualWidth - menu.ActualWidth;
 			menu.IsOpen = true;
+		}
+
+		// A row of the app's small menus: icon and text, the same look as the Workshop's Ordina menu
+		void MenuRow(ContextMenu menu, string icon, string text, Action click, Brush fg = null)
+		{
+			var head = new StackPanel { Orientation = Orientation.Horizontal };
+			head.Children.Add(new TextBlock { Text = icon, Width = 24, FontFamily = (FontFamily)FindResource("Icons"), FontSize = 12, Foreground = fg ?? Res("Muted"), VerticalAlignment = VerticalAlignment.Center });
+			head.Children.Add(new TextBlock { Text = text, Foreground = fg ?? Res("Fg") });
+			var item = new MenuItem { Header = head };
+			item.Click += (o, e) => click();
+			menu.Items.Add(item);
 		}
 
 		// BTO mods linked to a dev folder go into codes as their latest GitHub release (version + hash of the zip).
