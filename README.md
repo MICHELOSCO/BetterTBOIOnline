@@ -60,7 +60,8 @@ Il cuore del programma, e la pagina che si apre all'avvio. L'host preme "Copia i
 incolla su Discord: è un codice `BTO3:` con l'elenco delle sue mod (i codici `BTO1:` e `BTO2:` delle
 versioni vecchie si leggono ancora). Gli altri seguono tre passi: incollano il codice, "Allinea ora"
 attiva, disattiva o scarica quello che serve, poi "Avvia Isaac". "Ultima partita" dice cosa ha
-scritto il gioco nel suo log: se la partita si è divisa (desync) e quali mod hanno dato errori Lua.
+scritto il gioco nel suo log: se la partita si è divisa (desync) e quali mod hanno dato errori Lua. Se
+lo permetti, il log della partita parte da solo per l'analisi dei desync, prima ripulito sul PC da Steam ID e nomi.
 
 ![Partita](docs/img/online.png)
 

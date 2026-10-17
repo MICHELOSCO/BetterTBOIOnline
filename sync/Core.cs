@@ -718,6 +718,118 @@ namespace BtoSync
 			return g;
 		}
 
+		// ---- log upload (opt-in): the last game of log.txt, cleaned on this PC, to the Worker in logs-worker/ ----
+		public const string LogsUrl = "";  // the Worker's address (logs-worker/README.md); empty = no upload
+		public static string LogsUrlNow => Environment.GetEnvironmentVariable("BTO_LOGS_URL") ?? LogsUrl;
+
+		// the lines that pair a player's name with their Steam ID (logs-worker/worker.js has the same list)
+		static readonly Regex[] NameLines =
+		{
+			new Regex(@"User (?<id>7656119\d{10}) \((?<n>[^)\r\n]+)\)"),
+			new Regex(@"from user (?<n>[^\[\r\n]+?) \[(?<id>7656119\d{10})\]"),
+			new Regex(@"""(?<n>[^""\r\n]+)"" (?<id>7656119\d{10})"),
+			new Regex(@"Username = (?<n>.+?),? ID = (?<id>7656119\d{10})"),
+		};
+
+		// Steam IDs and the names next to them become "Giocatore N" (the same N for the same player), the Windows user
+		// folder becomes <utente>. Names and ids are collected from `whole` (the whole log), then replaced as whole words.
+		public static string CleanLog(string text, string whole = null)
+		{
+			whole = whole ?? text;
+			var label = new Dictionary<string, string>();
+			foreach (Match m in Regex.Matches(whole, @"7656119\d{10}"))
+				if (!label.ContainsKey(m.Value)) label[m.Value] = "Giocatore " + (label.Count + 1);
+			var who = new Dictionary<string, string>();
+			foreach (var r in NameLines)
+				foreach (Match m in r.Matches(whole))
+				{
+					var n = m.Groups["n"].Value.Trim();
+					if (n != "" && !who.ContainsKey(n)) who[n] = label[m.Groups["id"].Value];
+				}
+			foreach (var n in who.Keys.OrderByDescending(n => n.Length))
+				text = Regex.Replace(text, @"(?<!\w)" + Regex.Escape(n) + @"(?!\w)", who[n]);
+			text = Regex.Replace(text, @"7656119\d{10}", m => label.TryGetValue(m.Value, out var l) ? l : "Giocatore ?");
+			return Regex.Replace(text, @"(?i)\b([a-z]):([\\/]+)Users[\\/]+[^\\/\r\n""]+", "$1:$2Users$2<utente>");
+		}
+
+		// The game to send: the run (from its "RNG Start Seed" line to the next one) with the first desync, else the last run.
+		public static (string text, string seed) LastGame(string log)
+		{
+			var lines = log.Split('\n');
+			bool Seed(string l) => l.Contains("RNG Start Seed:");
+			int at = Array.FindIndex(lines, l => l.Contains("Desync detected on frame:"));
+			int start = Math.Max(0, Array.FindLastIndex(lines, at < 0 ? lines.Length - 1 : at, Seed));
+			int end = at < 0 ? -1 : Array.FindIndex(lines, at, Seed);
+			if (end < 0) end = lines.Length;
+			var m = Regex.Match(lines[start], @"RNG Start Seed: (\w{4}) (\w{4})");
+			return (string.Join("\n", lines, start, end - start), m.Success ? m.Groups[1].Value + m.Groups[2].Value : "nessuno");
+		}
+
+		public static byte[] Gzip(string s)
+		{
+			var bytes = Encoding.UTF8.GetBytes(s);
+			using (var ms = new MemoryStream())
+			{
+				using (var gz = new System.IO.Compression.GZipStream(ms, System.IO.Compression.CompressionLevel.Optimal)) gz.Write(bytes, 0, bytes.Length);
+				return ms.ToArray();
+			}
+		}
+
+		// a random id per installation: groups one player's logs, says nothing about who they are
+		static string InstallId()
+		{
+			var f = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BtoSync", "log-id.txt");
+			try { var s = File.ReadAllText(f).Trim(); if (Regex.IsMatch(s, "^[0-9a-f]{12}$")) return s; } catch { }
+			var id = Guid.NewGuid().ToString("N").Substring(0, 12);
+			Directory.CreateDirectory(Path.GetDirectoryName(f));
+			File.WriteAllText(f, id);
+			return id;
+		}
+
+		// what the Worker receives: metadata and the cleaned game, gzip in base64
+		public static string LogPayload(string log, DateTime logTimeUtc, IEnumerable<LocalMod> on)
+		{
+			var g = ReadGameLog(log);
+			var (game, seed) = LastGame(log);
+			var mods = on.Where(m => !m.Private).ToList();
+			return new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue }.Serialize(new
+			{
+				v = 1,
+				app = Updater.Current.ToString(3),
+				id = InstallId(),
+				code = ToCode(mods),
+				mods = mods.Select(m => new { folder = m.Folder, id = m.Id, name = m.Name, version = m.Version, hash = (m.Hash ?? "").Length > 8 ? m.Hash.Substring(0, 8) : m.Hash ?? "" }),
+				seed,
+				time = logTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ"),  // ponytail: the log has no clock: its last write (Isaac closed) stands for the game's time
+				desyncFrame = g.FirstDesyncFrame,
+				desyncs = g.Desyncs,
+				luaErrors = g.LuaErrors,
+				log = Convert.ToBase64String(Gzip(CleanLog(game, log + SteamUsers()))),
+			});
+		}
+
+		// this PC's Steam accounts as name lines CleanLog knows, in case the game writes the own name without the id
+		static string SteamUsers()
+		{
+			try
+			{
+				var steam = Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "SteamPath", null) as string;
+				var vdf = File.ReadAllText(Path.Combine(steam, "config", "loginusers.vdf"));
+				var s = new StringBuilder();
+				foreach (Match u in Regex.Matches(vdf, @"""(7656119\d{10})""\s*\{([^}]*)\}"))
+					foreach (Match n in Regex.Matches(u.Groups[2].Value, @"""(?:PersonaName|AccountName)""\s+""([^""\r\n]+)"""))
+						s.Append($"\nUser {u.Groups[1].Value} ({n.Groups[1].Value})");
+				return s.ToString();
+			}
+			catch { return ""; }
+		}
+
+		public static async Task SendLog(string payload)
+		{
+			using (var r = await Http.PostAsync(LogsUrlNow, new StringContent(payload, Encoding.UTF8, "application/json")))
+				if (!r.IsSuccessStatusCode) throw new Exception($"il server dei log ha risposto {(int)r.StatusCode}");
+		}
+
 		public static Plan MakePlan(List<HostMod> host, List<LocalMod> local, Dictionary<string, string> latest)
 		{
 			var p = new Plan();

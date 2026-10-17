@@ -79,6 +79,9 @@ ERRORI: i messaggi dicono cosa fare; il dettaglio tecnico di ogni errore finisce
 LOG DA MANDARE DOPO OGNI DESYNC: in Documenti\My Games\Binding of Isaac Repentance+\ (o nella
 cartella del gioco) la cartella "online_logs" compressa in ZIP e "log.txt", copiato PRIMA di
 riaprire il gioco. Non contengono password: solo la partita, le mod e i nomi Steam.
+Oppure lascia fare a BTO Sync: dopo un desync o un errore Lua chiede "Inviare i log in automatico?".
+Con "Sempre", chiuso Isaac, manda da solo il log dell'ultima partita, pulito prima sul PC (niente
+Steam ID, nomi dei giocatori e cartella utente). Si cambia in Impostazioni.
 
 NOTA SU STEAM: per usare il Workshop BTO Sync si collega a Steam come Isaac, quindi finché è
 collegato i tuoi amici ti vedono "in gioco" su Isaac. "Avvia Isaac" e "Scollega" lo staccano.

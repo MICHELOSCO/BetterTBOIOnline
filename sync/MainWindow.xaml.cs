@@ -50,6 +50,8 @@ namespace BtoSync
 			RefreshProfiles();
 			ShowSteps();
 			AutoBackupBox.IsChecked = AutoBackupOn;
+			LogsBox.IsChecked = LogsChoice == "sempre";
+			LogsCard.Visibility = Core.LogsUrlNow == "" ? Visibility.Collapsed : Visibility.Visible;
 			Loaded += async (s, e) => { UpdateState(); _ = CheckUpdate(); await Reload(); CheckPatch(); OpenHostCodeFromClipboard(); _ = ShowGameLog(); };
 			Closing += (s, e) => { Steam.Disconnect(); SaveWindow(); };
 			RestoreWindow();
@@ -338,16 +340,18 @@ namespace BtoSync
 			var path = Core.GameLogPath;
 			if (!System.IO.File.Exists(path)) { LogCard.Visibility = Visibility.Collapsed; return; }
 			Core.GameLog g;
+			string text;
 			try
 			{
-				g = await Task.Run(() =>
+				(text, g) = await Task.Run(() =>
 				{
 					using (var f = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite))
-					using (var r = new System.IO.StreamReader(f)) return Core.ReadGameLog(r.ReadToEnd());
+					using (var r = new System.IO.StreamReader(f)) { var t = r.ReadToEnd(); return (t, Core.ReadGameLog(t)); }
 				});
 			}
 			catch (Exception ex) { Core.LogError(ex); LogCard.Visibility = Visibility.Collapsed; return; }
-			LogWhen.Text = "Dal log del gioco, " + System.IO.File.GetLastWriteTime(path).ToString("dd/MM 'alle' HH:mm");
+			var written = System.IO.File.GetLastWriteTimeUtc(path);
+			LogWhen.Text = "Dal log del gioco, " + written.ToLocalTime().ToString("dd/MM 'alle' HH:mm");
 			var rows = new List<InfoLine>();
 			if (g.Desyncs > 0) rows.Add(new InfoLine(Res("Bad"), "La partita si è divisa", $"Desync al frame {g.FirstDesyncFrame}" + (g.Desyncs > 1 ? $", {g.Desyncs} volte in tutto" : "") + ": controllate di avere le stesse mod"));
 			foreach (var kv in g.LuaErrors.OrderByDescending(kv => kv.Value))
@@ -358,6 +362,51 @@ namespace BtoSync
 			if (rows.Count == 0) rows.Add(new InfoLine(Res("Accent"), "Nessun errore", "Niente desync ed errori Lua nell'ultima sessione"));
 			LogList.ItemsSource = rows;
 			LogCard.Visibility = Visibility.Visible;
+			if ((g.Desyncs > 0 || g.LuaErrors.Count > 0) && !Core.IsaacRunning) await SendLog(text, written);
+		}
+
+		// ---------- game logs for the desync analysis (logs-worker/): asked once, then automatic ----------
+		static string LogsDir => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BtoSync");
+		static string LogsChoiceFile => System.IO.Path.Combine(LogsDir, "invio-log.txt");  // "sempre" or "no"; missing = not asked yet
+		static string LogsSentFile => System.IO.Path.Combine(LogsDir, "invio-log-fatto.txt");  // the last log sent, so it goes once
+		static string LogsChoice { get { try { return System.IO.File.ReadAllText(LogsChoiceFile).Trim(); } catch { return null; } } }
+		static void SetLogsChoice(string c) { System.IO.Directory.CreateDirectory(LogsDir); System.IO.File.WriteAllText(LogsChoiceFile, c); }
+		bool sendingLog;
+
+		async Task SendLog(string text, DateTime written)
+		{
+			if (sendingLog || Core.LogsUrlNow == "") return;
+			var key = written.Ticks + " " + text.Length;
+			try { if (System.IO.File.ReadAllText(LogsSentFile) == key) return; } catch { }
+			var choice = LogsChoice;
+			if (choice == "no") return;
+			if (choice != "sempre")
+			{
+				var c = Dialog.Choose(this, "Inviare i log in automatico?",
+					"Nell'ultima partita c'è stato un desync o un errore Lua. Il log della partita aiuta a capire chi si è diviso e perché: lo confronto con quello degli altri giocatori della stessa partita." + NL +
+					"Prima di partire lo pulisco qui sul PC: niente Steam ID, nomi dei giocatori e cartella utente. Con le mod attive e la versione di BTO Sync. Puoi cambiare idea in Impostazioni.",
+					DialogKind.Question, "Sempre", "No", "Solo questa volta");
+				if (c == 0) { try { SetLogsChoice("no"); } catch (Exception ex) { Core.LogError(ex); } LogsBox.IsChecked = false; return; }
+				if (c == 1) { try { SetLogsChoice("sempre"); } catch (Exception ex) { Core.LogError(ex); } LogsBox.IsChecked = true; }
+			}
+			sendingLog = true; Loading(true);
+			LogSend.Visibility = Visibility.Visible; LogSendText.Text = "Invio il log della partita per l'analisi…"; LogSendDot.Fill = Res("Muted");
+			try
+			{
+				var on = local.Where(m => m.Enabled).ToList();
+				await Core.SendLog(await Task.Run(() => Core.LogPayload(text, written, on)));
+				System.IO.File.WriteAllText(LogsSentFile, key);
+				LogSendText.Text = "Log inviato per l'analisi dei desync, pulito da Steam ID e nomi."; LogSendDot.Fill = Res("Accent");
+			}
+			catch (Exception ex) { LogSendText.Text = "Log non inviato: " + Short(ex).TrimEnd('.') + ". Riprovo al prossimo avvio di BTO Sync."; LogSendDot.Fill = Res("Warn"); }
+			finally { sendingLog = false; Loading(false); }
+		}
+
+		void Logs_Click(object sender, RoutedEventArgs e)
+		{
+			try { SetLogsChoice(LogsBox.IsChecked == true ? "sempre" : "no"); }
+			catch (Exception ex) { ShowError("Non riesco a salvare l'impostazione.", ex); }
+			LogsBox.IsChecked = LogsChoice == "sempre";
 		}
 
 		void OpenLog_Click(object sender, RoutedEventArgs e)
