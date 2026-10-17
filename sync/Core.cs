@@ -719,7 +719,7 @@ namespace BtoSync
 		}
 
 		// ---- log upload (opt-in): the last game of log.txt, cleaned on this PC, to the Worker in logs-worker/ ----
-		public const string LogsUrl = "";  // the Worker's address (logs-worker/README.md); empty = no upload
+		public const string LogsUrl = "https://bto-logs.bto-logs-worker.workers.dev/";  // the Worker (logs-worker/README.md); empty = no upload
 		public static string LogsUrlNow => Environment.GetEnvironmentVariable("BTO_LOGS_URL") ?? LogsUrl;
 
 		// the lines that pair a player's name with their Steam ID (logs-worker/worker.js has the same list)

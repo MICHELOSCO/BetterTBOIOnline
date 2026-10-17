@@ -17,10 +17,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node scripts/analisi.mjs .
+      - run: node scripts/analisi.mjs da-analizzare  # analizzati/ keeps the ANALISI.md it had
       - name: Commit
         run: |
-          git add -A -- '*/ANALISI.md'
+          git add -A -- 'da-analizzare/*/ANALISI.md' || exit 0  # no game with 2 logs yet: nothing to commit
           git diff --cached --quiet && exit 0
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "analisi: ANALISI.md aggiornate"
           git pull --rebase && git push

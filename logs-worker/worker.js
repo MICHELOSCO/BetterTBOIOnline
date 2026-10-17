@@ -31,7 +31,7 @@ export default {
     const gz = await new Response(new Blob([clean(log)]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer();
     const metaText = clean(JSON.stringify({ ...meta, received: new Date().toISOString() }, null, 2)) + "\n";
 
-    const dir = `${meta.time.slice(0, 10)}_seed-${meta.seed}`;
+    const dir = `da-analizzare/${meta.time.slice(0, 10)}_seed-${meta.seed}`;  // once read, a game folder is moved to analizzati/ by hand
     for (let n = 1; n <= 9; n++) {
       const name = n === 1 ? meta.id : `${meta.id}-${n}`; // the same player twice in one game folder: -2, -3...
       const r = await put(env, `${dir}/${name}.json`, b64encode(new TextEncoder().encode(metaText)), `log: ${dir}/${name}`);

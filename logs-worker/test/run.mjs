@@ -56,7 +56,7 @@ try {
   r = await post(payload("bbbbbbbbbbbb", game(12, 2), mods("1.1")));
   assert.equal(r.status, 201);
   r = await post(payload("aaaaaaaaaaaa", game(12, 1), mods("1.0")));
-  assert.equal((await r.json()).path, "2026-10-17_seed-AAAABBBB/aaaaaaaaaaaa-2", "same player twice: -2");
+  assert.equal((await r.json()).path, "da-analizzare/2026-10-17_seed-AAAABBBB/aaaaaaaaaaaa-2", "same player twice: -2");
   assert.equal((await post("{non json")).status, 400, "bad JSON");
   assert.equal((await post({ ...payload("cccccccccccc", "x", []), seed: "../../x" })).status, 400, "bad seed");
   assert.equal((await post("x".repeat(2_100_000))).status, 413, "too big");
@@ -65,7 +65,7 @@ try {
   assert.ok(limited, "rate limit per IP");
   console.log("pass Worker: POST, 405/400/413/429, -2 per lo stesso giocatore");
 
-  const dir = path.join(out, "2026-10-17_seed-AAAABBBB");
+  const dir = path.join(out, "da-analizzare", "2026-10-17_seed-AAAABBBB");
   for (const f of fs.readdirSync(dir)) {
     const t = f.endsWith(".gz") ? zlib.gunzipSync(fs.readFileSync(path.join(dir, f))).toString() : fs.readFileSync(path.join(dir, f), "utf8");
     assert.ok(!/7656119|Ann|Bob|mario/.test(t), "cleaned: " + f);
@@ -74,7 +74,7 @@ try {
   assert.ok(one.includes("User Giocatore 1 (Giocatore 1)") && one.includes("C:\\Users\\<utente>\\Documents"), one);
   console.log("pass Worker: niente Steam ID, nomi e cartella utente nei file salvati");
 
-  const a = spawn("node", [path.join(here, "..", "repo-template", "scripts", "analisi.mjs"), out], { stdio: "inherit" });
+  const a = spawn("node", [path.join(here, "..", "repo-template", "scripts", "analisi.mjs"), path.join(out, "da-analizzare")], { stdio: "inherit" });
   await new Promise((ok) => a.on("exit", ok));
   const md = fs.readFileSync(path.join(dir, "ANALISI.md"), "utf8");
   assert.ok(md.includes("Al frame **9**") && md.includes("Variant(1)") && md.includes("Variant(2)"), md);

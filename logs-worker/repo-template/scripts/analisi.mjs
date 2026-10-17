@@ -79,6 +79,7 @@ export function analyse(players) {
 }
 
 function main(root) {
+  if (!fs.existsSync(root)) return;  // nothing waiting to be read
   for (const dir of fs.readdirSync(root, { withFileTypes: true })) {
     if (!dir.isDirectory() || !/^\d{4}-\d{2}-\d{2}_seed-/.test(dir.name)) continue;
     const folder = path.join(root, dir.name);

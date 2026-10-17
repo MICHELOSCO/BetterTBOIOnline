@@ -29,12 +29,13 @@ BTO Sync ──POST──▶ Worker Cloudflare (token nei secret) ──Contents
 - La scelta è in `%APPDATA%\BtoSync\invio-log.txt` (`sempre` o `no`; se manca, BTO Sync chiede).
   `invio-log-fatto.txt` ricorda l'ultimo log mandato, così lo stesso log parte una volta sola.
 
-Nel repository finiscono `AAAA-MM-GG_seed-XXXXXXXX/<id-anonimo>.log.gz` e `<id-anonimo>.json`. Se lo
-stesso giocatore manda due log per la stessa partita, il secondo diventa `<id>-2`.
+Nel repository finiscono `da-analizzare/AAAA-MM-GG_seed-XXXXXXXX/<id-anonimo>.log.gz` e `<id-anonimo>.json`. Se lo
+stesso giocatore manda due log per la stessa partita, il secondo diventa `<id>-2`. Quando una partita è stata letta,
+la sua cartella si sposta a mano in `analizzati/` (con `git mv`): l'Action guarda solo `da-analizzare/`.
 
 ## I passi da fare (una volta)
 
-Il Worker non è pubblicato e il repository non esiste ancora: questi passi li fai tu.
+Fatti il 17/10/2026: il Worker è online e il repository `bto-logs` esiste. Restano qui per rifarli (token scaduto, altro account).
 
 1. **Repository privato.** Su GitHub crea `MICHELOSCO/bto-logs` **privato**, con un README qualsiasi
    (la Contents API vuole almeno un commit). Copiaci il contenuto di `repo-template/`, cioè
@@ -64,7 +65,7 @@ Il Worker non è pubblicato e il repository non esiste ancora: questi passi li f
    npx wrangler deploy
    ```
    Alla fine stampa l'indirizzo, del tipo `https://bto-logs.<tuo-sottodominio>.workers.dev`.
-6. **BTO Sync:** metti quell'indirizzo in `sync/Core.cs`, `public const string LogsUrl = "…";`, poi
+6. **BTO Sync:** metti quell'indirizzo in `sync/Core.cs` (oggi `https://bto-logs.bto-logs-worker.workers.dev/`), `public const string LogsUrl = "…";`, poi
    compila e rilascia come al solito. Finché `LogsUrl` è vuoto BTO Sync non chiede e non invia niente, e
    l'interruttore in Impostazioni resta nascosto.
 
