@@ -786,6 +786,10 @@
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
+                  <DockPanel x:Name="LogSend" Margin="0,12,0,0" Visibility="Collapsed">
+                    <Ellipse x:Name="LogSendDot" DockPanel.Dock="Left" Width="8" Height="8" VerticalAlignment="Top" Margin="0,5,12,0"/>
+                    <TextBlock x:Name="LogSendText" Style="{StaticResource Sub}" FontSize="12" TextWrapping="Wrap"/>
+                  </DockPanel>
                 </StackPanel>
               </Border>
             </StackPanel>
@@ -1075,6 +1079,17 @@
               <StackPanel>
                 <TextBlock Text="Cartella mods di Isaac" Style="{StaticResource H2}" FontSize="14"/>
                 <TextBlock x:Name="ModsDirText" Style="{StaticResource Sub}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+              </StackPanel>
+            </DockPanel>
+          </Border>
+          <Border x:Name="LogsCard" Style="{StaticResource Card}" Margin="0,0,0,12" Visibility="Collapsed">
+            <DockPanel>
+              <CheckBox x:Name="LogsBox" DockPanel.Dock="Right" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Logs_Click"
+                        AutomationProperties.Name="Invia i log delle partite con errori"/>
+              <StackPanel Margin="0,0,12,0">
+                <TextBlock Text="Invia i log delle partite con errori" Style="{StaticResource H2}" FontSize="14"/>
+                <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" TextWrapping="Wrap"
+                           Text="Dopo un desync o un errore Lua, chiuso Isaac, invio il log dell'ultima partita per confrontarlo con quello degli altri giocatori. Lo pulisco prima qui sul PC: niente Steam ID, nomi dei giocatori e cartella utente."/>
               </StackPanel>
             </DockPanel>
           </Border>

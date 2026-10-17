@@ -14,6 +14,10 @@ namespace BtoSync
 	{
 		// Returns true when the main button was pressed. No cancel button when cancel is null.
 		public static bool Show(Window owner, string title, string text = null, DialogKind kind = DialogKind.Info, string ok = "OK", string cancel = null)
+			=> Choose(owner, title, text, kind, ok, cancel) == 1;
+
+		// Three answers: 1 = ok (main button), 2 = other (between the two), 0 = cancel or closed.
+		public static int Choose(Window owner, string title, string text, DialogKind kind, string ok, string cancel, string other = null)
 		{
 			var app = Application.Current;
 			Brush R(string key) => (Brush)app.FindResource(key);
@@ -33,7 +37,7 @@ namespace BtoSync
 				WindowStartupLocation = owned ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
 				Title = title, FontFamily = owner?.FontFamily ?? SystemFonts.MessageFontFamily, Foreground = R("Fg"),
 			};
-			bool result = false;
+			int result = 0;
 
 			var icon = new Border
 			{
@@ -54,11 +58,17 @@ namespace BtoSync
 				no.Click += (s, e) => w.Close();
 				buttons.Children.Add(no);
 			}
+			if (other != null)
+			{
+				var mid = new Button { Content = other, Style = (Style)app.FindResource("Btn"), Margin = new Thickness(0, 0, 8, 0), MinWidth = 90 };
+				mid.Click += (s, e) => { result = 2; w.Close(); };
+				buttons.Children.Add(mid);
+			}
 			// a destructive action is never the default: Enter on it would delete by mistake
 			bool safe = kind == DialogKind.Danger && no != null;
 			var yes = new Button { Content = ok, Style = (Style)app.FindResource(kind == DialogKind.Danger ? "Danger" : "Primary"), IsDefault = !safe, IsCancel = cancel == null, MinWidth = 90 };
 			if (safe) no.IsDefault = true;
-			yes.Click += (s, e) => { result = true; w.Close(); };
+			yes.Click += (s, e) => { result = 1; w.Close(); };
 			buttons.Children.Add(yes);
 
 			var row = new DockPanel();

@@ -20,7 +20,9 @@ stessa versione, e BTO Sync le mette in pari con un clic.
   (il nome lo chiede a Steam chi lo riceve), cartella e versione delle mod BTO e un hash corto dei file. Gli altri lo incollano e BTO Sync mostra le differenze.
   "Allinea ora" le sistema. Il codice non contiene dati personali. "Ultima partita" legge il `log.txt`
   del gioco e mostra solo quante volte la partita si è divisa e quanti errori Lua ha dato ogni mod:
-  il log contiene anche i nomi e gli Steam ID dei giocatori, che BTO Sync non mostra e non manda.
+  il log contiene anche i nomi e gli Steam ID dei giocatori, che BTO Sync non mostra. Dopo un desync o un errore Lua chiede
+  se inviare i log in automatico (Sempre / Solo questa volta / No, si cambia in Impostazioni): il log dell'ultima partita
+  parte pulito sul PC, con "Giocatore N" al posto di Steam ID e nomi, verso il repository privato `bto-logs` (vedi [logs-worker](../logs-worker/README.md)).
 - **Salvataggi.** Copia, salva e ripristina i 3 slot. Prima di sovrascrivere uno slot ne fa
   sempre un backup, in `%APPDATA%\BtoSync\saves`. Con "Backup prima di giocare" (acceso di serie)
   "Avvia Isaac" salva prima gli slot cambiati dall'ultima volta e tiene gli ultimi 5 per slot. Esporta uno slot in un file `.zip` dove scegli

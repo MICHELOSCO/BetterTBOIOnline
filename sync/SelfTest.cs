@@ -173,6 +173,43 @@ namespace BtoSync
 			Assert(notes.Any(n => n.Contains("bto-thefuture-sync")), "avviso: l'host ha The Future senza la sua mod BTO");
 		}
 
+		// the log sent for the desync analysis: no Steam IDs, player names or Windows user folder (fake ids and names)
+		static void TestLogs()
+		{
+			string a = "7656119" + "0000000001", b = "7656119" + "0000000002";  // split: no Steam-ID-looking text in the source
+			var log = string.Join("\n", new[]
+			{
+				@"[INFO] - Loading C:\Users\mario.rossi\Documents\x.lua",
+				"[INFO] - [Frame 0] User " + a + " (Ann (A)) joined lobby 1",
+				"[INFO] - RNG Start Seed: AAAA BBBB (1) [Net, 3]",
+				"[INFO] - [Frame 0] Received Player Info message from user Bo.b+ [" + b + "]",
+				"[INFO] - Lua Debug: Bo.b+ e Ann (A) giocano; Bo.b+x resta",
+				"[INFO] - RNG Start Seed: CCCC DDDD (2) [Net, 3]",
+				"[ERROR] - Desync detected on frame: 40 ",
+				"[ERROR] -  - Player 0: Username = Ann (A) ID = " + a,
+				"[ERROR] -  - Player 1: Username = Bo.b+ ID = " + b,
+				"[INFO] - C:/Users/mario.rossi/AppData/y.txt",
+				"[INFO] - RNG Start Seed: EEEE FFFF (3) [Net, 3]",
+				"[INFO] - [Frame 1] Removing user \"Ann (A)\" " + a,
+			});
+			var (game, seed) = Core.LastGame(log);
+			Assert(seed == "CCCCDDDD" && game.StartsWith("[INFO] - RNG Start Seed: CCCC") && game.Contains("Desync") && !game.Contains("EEEE"), "log da inviare: la partita del primo desync, col suo seed");
+			Assert(Core.LastGame("[INFO] - RNG Start Seed: AAAA BBBB (1)\nx\n[INFO] - RNG Start Seed: CCCC DDDD (2)\ny").seed == "CCCCDDDD", "log da inviare: senza desync l'ultima partita");
+			var clean = Core.CleanLog(log);
+			Assert(!clean.Contains("7656119") && !clean.Contains("Ann") && !clean.Contains("Bo.b+ ") && !clean.Contains("mario"), "log pulito: niente Steam ID, nomi e cartella utente");
+			Assert(clean.Contains("User Giocatore 1 (Giocatore 1)") && clean.Contains("Username = Giocatore 2 ID = Giocatore 2") && clean.Contains("\"Giocatore 1\" Giocatore 1"), "log pulito: lo stesso giocatore ha sempre lo stesso numero");
+			Assert(clean.Contains("Giocatore 2 e Giocatore 1 giocano; Bo.b+x resta"), "log pulito: i nomi tolti anche fuori dalle righe con l'ID, solo come parole intere");
+			Assert(clean.Contains(@"C:\Users\<utente>\Documents") && clean.Contains("C:/Users/<utente>/AppData"), "log pulito: cartella utente tolta con \\ e con /");
+			var part = Core.CleanLog(game, log);
+			Assert(part.Contains("Username = Giocatore 1 ID = Giocatore 1") && !part.Contains("Ann"), "log pulito: i nomi presi da tutto il log valgono anche per la sola partita");
+			var json = (Dictionary<string, object>)new System.Web.Script.Serialization.JavaScriptSerializer().DeserializeObject(Core.LogPayload(log, new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc), new List<LocalMod>()));
+			string sent;
+			using (var z = new System.IO.Compression.GZipStream(new MemoryStream(Convert.FromBase64String((string)json["log"])), System.IO.Compression.CompressionMode.Decompress))
+			using (var r = new StreamReader(z)) sent = r.ReadToEnd();
+			Assert((string)json["seed"] == "CCCCDDDD" && (int)json["desyncFrame"] == 40 && (string)json["time"] == "2026-01-02T03:04:05Z" && !sent.Contains("7656119") && !sent.Contains("Ann") && sent.Contains("Desync"),
+				"dati da inviare: seed, frame del desync, ora e la partita pulita in gzip");
+		}
+
 		static void TestErrors()
 		{
 			Assert(Core.ErrorShort(new Exception("Steam ha rifiutato l'iscrizione")) == "Steam ha rifiutato l'iscrizione", "errori: i nostri messaggi restano come sono");
@@ -319,6 +356,7 @@ namespace BtoSync
 				TestPatch(t);
 				TestDeps(t);
 				TestErrors();
+				TestLogs();
 				Console.WriteLine("OK");
 				return 0;
 			}
