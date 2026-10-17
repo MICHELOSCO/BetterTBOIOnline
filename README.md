@@ -53,7 +53,7 @@ già attiva, **insieme alle mod che richiede** (per esempio The Future con Custo
 
 ### Gioca online
 Il cuore del programma. L'host preme "Copia il mio codice" e lo incolla su Discord: è un codice
-`BTO1:` con l'elenco delle sue mod. Gli altri lo incollano qui, e BTO Sync mostra cosa va attivato,
+`BTO2:` con l'elenco delle sue mod (i codici `BTO1:` delle versioni vecchie si leggono ancora). Gli altri lo incollano qui, e BTO Sync mostra cosa va attivato,
 disattivato o scaricato. "Allinea ora" fa tutto, poi "Avvia Isaac".
 
 ![Gioca online](docs/img/online.png)

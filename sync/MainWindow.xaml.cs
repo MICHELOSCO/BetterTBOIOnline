@@ -435,7 +435,7 @@ namespace BtoSync
 		async void Export_Click(object sender, RoutedEventArgs e)
 		{
 			var on = local.Where(m => m.Enabled).ToList();
-			var code = Core.ToCode(on);
+			var code = Core.ToCode(on, await ReleaseValues(on));
 			int shared = on.Count(m => !m.Private);
 			ExportBox.Text = code;  // visible copy even if the clipboard fails
 			ExportBox.Visibility = Visibility.Visible;
@@ -447,7 +447,7 @@ namespace BtoSync
 			var onlyHere = on.Where(m => m.Id == "" && !Core.IsBto(m.Folder) && !m.Private).Select(m => m.Name).ToList();
 			if (onlyHere.Count > 0) warn.Add("Né sul Workshop né su GitHub, gli altri dovranno chiederti la cartella: " + string.Join(", ", onlyHere));
 			var links = on.Where(m => m.Link).Select(m => m.Name).ToList();
-			if (links.Count > 0) warn.Add("Collegate a una cartella di sviluppo, gli altri riceveranno la versione della release: " + string.Join(", ", links));
+			if (links.Count > 0) warn.Add("Collegate a una cartella di sviluppo: nel codice c'è la loro release su GitHub, che è quella che scaricano gli altri. Se la tua copia è diversa, la partita può dividersi: " + string.Join(", ", links));
 			try
 			{
 				var assets = await Core.BtoAssets();
@@ -487,7 +487,7 @@ namespace BtoSync
 			try
 			{
 				var clip = Clipboard.ContainsText() ? Clipboard.GetText().Trim() : "";
-				if (!clip.Contains("BTO1:")) return;
+				if (!clip.Contains("BTO1:") && !clip.Contains("BTO2:")) return;
 				Core.FromCode(clip);
 				NavOnline.IsChecked = true;
 				CodeBox.Text = clip;
@@ -506,6 +506,7 @@ namespace BtoSync
 			var ids = host.Where(h => !string.IsNullOrEmpty(h.id)).Select(h => h.id).Union(local.Where(l => l.Id != "").Select(l => l.Id)).ToList();
 			Dictionary<string, string> latest;
 			try { latest = await Core.LatestManifests(ids); } catch { latest = new Dictionary<string, string>(); }
+			Core.FillNames(host, local);
 			plan = Core.MakePlan(host, local, latest);
 			PlanCard.Visibility = Visibility.Visible;
 			NotesList.ItemsSource = plan.Notes;
@@ -821,11 +822,30 @@ namespace BtoSync
 			menu.IsOpen = true;
 		}
 
-		void ExportProfile_Click(object sender, RoutedEventArgs e)
+		// BTO mods linked to a dev folder go into codes as their latest GitHub release (version + hash of the zip).
+		async Task<Dictionary<string, (string version, string hash)>> ReleaseValues(IEnumerable<LocalMod> mods)
+		{
+			var r = new Dictionary<string, (string version, string hash)>();
+			var linked = mods.Where(m => m.Link && Core.IsBto(m.Folder)).ToList();
+			if (linked.Count == 0) return r;
+			Loading(true);
+			try
+			{
+				var catalog = Core.Catalog(await Assets());
+				foreach (var m in linked)
+					if (catalog.TryGetValue(m.Folder, out var c) && c.url != null) r[m.Folder] = (c.version, await Core.ReleaseHash(c.url, m.Folder));
+			}
+			catch { }  // offline: the code keeps the local copy
+			finally { Loading(false); }
+			return r;
+		}
+
+		async void ExportProfile_Click(object sender, RoutedEventArgs e)
 		{
 			var p = Ctx<Profile>(sender);
 			var keys = new HashSet<string>(p.keys);
-			var code = Core.ToCode(local.Where(m => keys.Contains(m.Key)));
+			var chosen = local.Where(m => keys.Contains(m.Key)).ToList();
+			var code = Core.ToCode(chosen, await ReleaseValues(chosen));
 			Status(NativeClipboard.SetText(code) ? $"Codice del profilo \"{p.name}\" copiato negli appunti." : "Appunti non disponibili.");
 		}
 

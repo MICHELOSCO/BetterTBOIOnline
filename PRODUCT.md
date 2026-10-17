@@ -26,7 +26,7 @@ Funziona se un amico, dal codice incollato a "puoi entrare in partita", non deve
 
 ## Positioning
 
-Il Lua delle mod di Isaac è isolato, quindi nessuna mod può controllare o allineare le altre: serve un programma esterno. BTO Sync conosce le mod BTO (anti-desync), che scarica dalle release GitHub verificandone l'hash, e usa il Workshop di Steam come archivio per tutte le altre. Il codice `BTO1:` dell'host descrive l'insieme esatto delle mod, con versioni e hash.
+Il Lua delle mod di Isaac è isolato, quindi nessuna mod può controllare o allineare le altre: serve un programma esterno. BTO Sync conosce le mod BTO (anti-desync), che scarica dalle release GitHub verificandone l'hash, e usa il Workshop di Steam come archivio per tutte le altre. Il codice `BTO2:` dell'host descrive l'insieme esatto delle mod, con versioni e hash.
 
 ## Operating Context
 

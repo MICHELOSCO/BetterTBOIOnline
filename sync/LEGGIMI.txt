@@ -41,7 +41,9 @@ MOD RICHIESTE
 
 GIOCA ONLINE
   Online tutti devono avere le stesse mod dell'host, alla stessa versione.
-  Host: "Copia il mio codice" e incolla il codice (inizia con BTO1:) su Discord.
+  Host: "Copia il mio codice" e incolla il codice (inizia con BTO2:) su Discord. Chi ha BTO Sync
+  2.4.4 o più vecchio deve prima aggiornarlo per leggerlo. Le mod BTO collegate a una cartella di
+  sviluppo vanno nel codice come la loro release su GitHub.
   Gli altri: incollano il codice (se è già negli appunti BTO Sync si apre direttamente qui) e
   il confronto parte da solo. "Allinea ora" attiva, disattiva, scarica da GitHub le mod BTO e
   dal Workshop quelle che mancano; poi "Avvia Isaac". Gli avvisi gialli vanno risolti a mano.
