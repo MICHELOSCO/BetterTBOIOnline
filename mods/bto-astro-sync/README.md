@@ -35,14 +35,17 @@ inizio run, e il gioco saltava tutte le mod che venivano dopo, mod BTO comprese,
 
 ## Cosa cambia per chi gioca
 
-Quei 17 oggetti non escono più, e le trasformazioni con Drop tenuto premuto non ci sono. Tutto il
-resto di Astrobirth è uguale. Vale anche giocando da soli, finché la mod è attiva.
+Con 2 o più giocatori a inizio run quei 17 oggetti non escono più e le trasformazioni con Drop
+tenuto premuto non ci sono; tutto il resto di Astrobirth è uguale. Giocando da soli Astrobirth
+resta completo (Jacob & Esau, l'anima di Tainted Forgotten e Strawman non contano come un
+secondo giocatore; il co-op in locale invece sì).
 
 ## Come vedere che funziona
 
 Nel `log.txt` del gioco (Documenti\My Games\Binding of Isaac Repentance+) compaiono
 `[bto-astro-sync] input guard on … Astro callbacks` e, a ogni inizio run,
-`[bto-astro-sync] removed 17/17 items from the pools`. Il codice, con i riferimenti ai file di
+`[bto-astro-sync] removed 17/17 items from the pools` (con 2+ giocatori) oppure
+`[bto-astro-sync] alone: Astrobirth unchanged` (da soli). Il codice, con i riferimenti ai file di
 Astrobirth, è in [`main.lua`](main.lua).
 
 ## Limiti

@@ -130,7 +130,34 @@ mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
 	end
 end)
 
-log("loaded v0.4")
+-- v0.5: input probe. Does Lua's Input.IsActionPressed(action, player.ControllerIndex) answer the same on
+-- every PC online, for every player, or only for the local player's own hardware? Mods that decide gameplay
+-- on input (Astrobirth: double taps, held Drop) are safe only in the first case. Logged on change, per
+-- player: act = bitmask of ACTIONS as Lua reads them, mv/sh = GetMovementInput/GetShootingInput (simulation
+-- state, the reference: equal on every PC unless the game itself desyncs). tools/input-sync-check.py compares
+-- the logs of two PCs.
+local ACTIONS = { ButtonAction.ACTION_LEFT, ButtonAction.ACTION_RIGHT, ButtonAction.ACTION_UP, ButtonAction.ACTION_DOWN,
+	ButtonAction.ACTION_SHOOTLEFT, ButtonAction.ACTION_SHOOTRIGHT, ButtonAction.ACTION_SHOOTUP, ButtonAction.ACTION_SHOOTDOWN,
+	ButtonAction.ACTION_BOMB, ButtonAction.ACTION_ITEM, ButtonAction.ACTION_PILLCARD, ButtonAction.ACTION_DROP, ButtonAction.ACTION_MAP }
+local lastInput = {}
+mod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, function() lastInput = {} end) -- one full line per player per run
+mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
+	for i = 0, game:GetNumPlayers() - 1 do
+		local p = Isaac.GetPlayer(i)
+		local act = 0
+		for b, a in ipairs(ACTIONS) do
+			if Input.IsActionPressed(a, p.ControllerIndex) then act = act | (1 << (b - 1)) end
+		end
+		local mv, sh = p:GetMovementInput(), p:GetShootingInput()
+		local s = string.format("ci=%d act=%d mv=%.1f,%.1f sh=%.1f,%.1f", p.ControllerIndex, act, mv.X, mv.Y, sh.X, sh.Y)
+		if lastInput[i] ~= s then
+			lastInput[i] = s
+			log("p%d input %s", i, s)
+		end
+	end
+end)
+
+log("loaded v0.5")
 
 -- Snapshot DISATTIVATO (22/09/2026): crash nativo in GetCollectibleNum durante una transizione
 -- di stanza, che ha fatto crashare entrambi i client in lockstep. Vedi docs/findings.md.

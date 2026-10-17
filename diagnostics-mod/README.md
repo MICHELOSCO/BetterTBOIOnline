@@ -11,6 +11,8 @@ chi analizza i desync. Non partecipa al controllo delle mod BTO all'inizio della
 - `main.lua` scrive righe `[BTO-DIAG]` sugli eventi di gioco (inizio e fine run, piani, stanze,
   giocatori, nemici, oggetti, proiettili). Ogni riga ha `f=<frame>`, lo stesso numero delle righe `[Frame N]` del log di
   rete del gioco, così i due log si possono confrontare.
+- Dalla 0.5 scrive anche, quando cambiano, le azioni di ogni giocatore come le legge Lua (righe
+  `pN input`), per la [prova sull'input in online](../docs/prova-input-online.md).
 - `snapshot.lua` fotografa ogni personaggio a ogni stanza (righe `[BTO-SNAP]`) e, quando la
   partita si divide, congela l'ultima foto.
 
