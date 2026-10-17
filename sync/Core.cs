@@ -121,8 +121,8 @@ namespace BtoSync
 
 	public static class Theme
 	{
-		public static readonly Brush Muted = Freeze("#8B93A7"), Ok = Freeze("#3FB97A"), Body = Freeze("#C3C8D4"), Warn = Freeze("#E5A93B"), Bad = Freeze("#F0616D"),
-			Blue = Freeze("#4C8DFF"), Red = Freeze("#E5484D");
+		public static readonly Brush Muted = Freeze("#9BA3AA"), Ok = Freeze("#3FB97A"), Body = Freeze("#C9CED2"), Warn = Freeze("#E0A84B"), Bad = Freeze("#F0616D"),
+			Blue = Freeze("#7FA8D9"), Red = Freeze("#F0616D");
 		static Brush Freeze(string hex) { var b = (Brush)new BrushConverter().ConvertFrom(hex); b.Freeze(); return b; }
 	}
 
@@ -697,12 +697,34 @@ namespace BtoSync
 			return s.Trim();
 		}
 
+		// The game's log.txt: desyncs and Lua errors per mod folder ("" = the game itself). The log also names the players
+		// and their Steam IDs: only these counts ever leave this function.
+		public class GameLog { public int Desyncs, FirstDesyncFrame = -1; public Dictionary<string, int> LuaErrors = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase); }
+		public static string GameLogPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Binding of Isaac Repentance+", "log.txt");
+
+		public static GameLog ReadGameLog(string text)
+		{
+			var g = new GameLog();
+			var seen = new HashSet<string>();
+			foreach (var line in text.Split('\n'))
+			{
+				var d = Regex.Match(line, @"Desync detected on frame: (\d+)");
+				if (d.Success) { if (g.Desyncs++ == 0) g.FirstDesyncFrame = int.Parse(d.Groups[1].Value); continue; }
+				if (!Regex.IsMatch(line, @"\.lua:\d+:") || !seen.Add(line.Trim())) continue;  // the same error every frame counts once
+				var m = Regex.Match(line, @"mods[/\\]([^/\\]+)[/\\]");
+				var key = m.Success ? m.Groups[1].Value : "";
+				g.LuaErrors[key] = g.LuaErrors.TryGetValue(key, out var n) ? n + 1 : 1;
+			}
+			return g;
+		}
+
 		public static Plan MakePlan(List<HostMod> host, List<LocalMod> local, Dictionary<string, string> latest)
 		{
 			var p = new Plan();
 			var byKey = new Dictionary<string, LocalMod>();
 			foreach (var l in local) if (!byKey.ContainsKey(l.Key)) byKey[l.Key] = l;
 			var hostKeys = new HashSet<string>(host.Select(h => h.key));
+			var maybeHostOld = new List<string>();  // BTO3 codes carry no manifest: one note for all of them
 			foreach (var h in host)
 			{
 				byKey.TryGetValue(h.key, out var l);
@@ -721,12 +743,14 @@ namespace BtoSync
 					if (l == null) { p.Add(ActionKind.Subscribe, null, h, $"Installa {h.name} dal Workshop"); continue; }
 					bool hostOld = last != null && !string.IsNullOrEmpty(h.manifest) && h.manifest != last, meOld = last != null && l.Manifest != last;
 					if (hostOld) p.Notes.Add($"{h.name}: è l'host ad avere una versione vecchia: deve aggiornarla e ricopiare il codice.");
-					else if (!meOld && string.IsNullOrEmpty(h.manifest) && last != null) p.Notes.Add($"{h.name}: hai già l'ultima versione del Workshop: se resta diversa dopo la reinstallazione, è l'host a dover aggiornare e ricopiare il codice.");
+					else if (!meOld && string.IsNullOrEmpty(h.manifest) && last != null) maybeHostOld.Add(h.name);
 					if (meOld || !hostOld) p.Add(ActionKind.Subscribe, l, h, (meOld ? "Aggiorna " : "Reinstalla ") + h.name + " dal Workshop");
 					if (!l.Enabled) p.Add(ActionKind.Enable, l, h, $"Attiva {h.name}");
 				}
 				else p.Notes.Add($"{h.name} ({h.folder}): non è né sul Workshop né su GitHub: chiedi la cartella all'host.");
 			}
+			if (maybeHostOld.Count > 0)
+				p.Notes.Add($"{string.Join(", ", maybeHostOld)}: {(maybeHostOld.Count == 1 ? "hai già l'ultima versione" : "hai già le ultime versioni")} del Workshop ma i file sono diversi da quelli dell'host. Le reinstallo; se restano diverse, è l'host a dover aggiornare e ricopiare il codice.");
 			foreach (var t in Ties.Where(t => host.Any(h => h.id == t.Value.id) && !host.Any(h => h.folder == t.Key)))
 				p.Notes.Add($"L'host ha {t.Value.name} ma non {t.Key}: deve aggiornare BTO Sync e ricopiare il codice.");
 			foreach (var l in local.Where(x => x.Enabled && !hostKeys.Contains(x.Key) && !x.Private))

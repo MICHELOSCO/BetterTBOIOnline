@@ -6,7 +6,7 @@ stessa versione, e BTO Sync le mette in pari con un clic.
 
 ## Come funziona
 
-- **Le mie mod.** Legge la cartella `mods` del gioco. Per attivare o disattivare una mod crea o
+- **Mod.** Legge la cartella `mods` del gioco. Per attivare o disattivare una mod crea o
   toglie il file `disable.it` nella sua cartella, come fa il menu Mods di Isaac. Non cancella nulla.
 - **Workshop.** Cerca, installa e aggiorna le mod tramite il client Steam già aperto sul tuo PC,
   presentandosi come Isaac. Le "mod richieste" di una mod le legge dalla sua pagina pubblica sul
@@ -16,11 +16,14 @@ stessa versione, e BTO Sync le mette in pari con un clic.
   questa pagina GitHub e le lega alla mod che sistemano: per esempio BTO The Future Sync si
   attiva con The Future e si spegne senza. Quelle del gioco base te le propone (non le scarica senza
   chiedere) e, una volta installate, le tiene attive. Ogni mod ha un README che spiega cosa sistema.
-- **Gioca online.** L'host copia un codice `BTO3:` (binario, circa 170 caratteri con 15 mod) con l'elenco delle sue mod: id del Workshop
+- **Partita.** L'host copia un codice `BTO3:` (binario, circa 170 caratteri con 15 mod) con l'elenco delle sue mod: id del Workshop
   (il nome lo chiede a Steam chi lo riceve), cartella e versione delle mod BTO e un hash corto dei file. Gli altri lo incollano e BTO Sync mostra le differenze.
-  "Allinea ora" le sistema. Il codice non contiene dati personali.
+  "Allinea ora" le sistema. Il codice non contiene dati personali. "Ultima partita" legge il `log.txt`
+  del gioco e mostra solo quante volte la partita si è divisa e quanti errori Lua ha dato ogni mod:
+  il log contiene anche i nomi e gli Steam ID dei giocatori, che BTO Sync non mostra e non manda.
 - **Salvataggi.** Copia, salva e ripristina i 3 slot. Prima di sovrascrivere uno slot ne fa
-  sempre un backup, in `%APPDATA%\BtoSync\saves`. Esporta uno slot in un file `.zip` dove scegli
+  sempre un backup, in `%APPDATA%\BtoSync\saves`. Con "Backup prima di giocare" (acceso di serie)
+  "Avvia Isaac" salva prima gli slot cambiati dall'ultima volta e tiene gli ultimi 5 per slot. Esporta uno slot in un file `.zip` dove scegli
   tu; un file importato diventa solo un backup, finché non lo ripristini in uno slot.
 - **Profili.** Prima di cambiare le mod attive con un allineamento o un profilo, se non sono già
   salvate in un profilo le salva in una "Copia automatica".

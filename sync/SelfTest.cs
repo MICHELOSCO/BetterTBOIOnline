@@ -276,6 +276,19 @@ namespace BtoSync
 				var plan = Core.MakePlan(hostMods, local, new Dictionary<string, string>());
 				var kinds = string.Join(" ", plan.Actions.Select(a => a.Kind + ":" + (a.Local?.Folder ?? a.Host.folder ?? a.Host.key)).OrderBy(s => s, StringComparer.Ordinal));
 				Assert(kinds == "Disable:extra Download:bto-y Enable:bto-x Subscribe:111", "piano: " + kinds);
+				var log = Core.ReadGameLog(string.Join("\n", new[]
+				{
+					"[INFO] - Running Lua Script: F:/game/mods/thefuture_123/main.lua",
+					"[INFO] - Error in \"PostUpdate\" call: F:/game/mods/thefuture_123/scripts/a.lua:45: attempt to index a nil value",
+					"[INFO] - Error in \"PostUpdate\" call: F:/game/mods/thefuture_123/scripts/a.lua:45: attempt to index a nil value",
+					"[INFO] - Error in \"PostRender\" call: F:\\game\\mods\\thefuture_123\\b.lua:9: bad argument",
+					"[INFO] - resources/scripts/main.lua:12: something",
+					"[ERROR] - Desync detected on frame: 37 ", "[ERROR] - Desync detected on frame: 90 "
+				}));
+				Assert(log.Desyncs == 2 && log.FirstDesyncFrame == 37 && log.LuaErrors["thefuture_123"] == 2 && log.LuaErrors[""] == 1 && log.LuaErrors.Count == 2,
+					"log del gioco: desync e errori Lua per mod, lo stesso errore ripetuto conta una volta");
+				var auto = new[] { (1, 1), (1, 2), (1, 3), (2, 1), (1, 4) }.Select(x => new SaveBackup { Slot = x.Item1, Date = new DateTime(2026, 1, x.Item2), Path = $"{x.Item1}-{x.Item2}" }).ToList();
+				Assert(string.Join(" ", Saves.Prune(auto, 2).Select(b => b.Path).OrderBy(x => x)) == "1-1 1-2", "backup prima di giocare: restano solo gli ultimi per slot");
 				var mine = new LocalMod { Key = "111", Id = "111", Folder = "w_111", Name = "W", Version = "", Hash = "00ff", Manifest = "7" };
 				var wsPlan = Core.MakePlan(new List<HostMod> { new HostMod { key = "111", id = "111", name = "W", version = "", hash = "ffffffff" } }, new List<LocalMod> { mine }, new Dictionary<string, string> { ["111"] = "7" });
 				Assert(wsPlan.Actions.Any(x => x.Kind == ActionKind.Subscribe) && wsPlan.Notes.Any(n => n.Contains("l'host a dover aggiornare")), "piano BTO3 (senza manifest): io aggiornato e diverso = reinstallo, e forse è l'host a dover aggiornare");

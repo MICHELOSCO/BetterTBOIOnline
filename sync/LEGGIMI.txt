@@ -53,7 +53,7 @@ PROFILI
   dall'uno all'altro con "Applica" ("Riapplica" se hai cambiato le mod del profilo attivo). Nel menu
   "⋯" del profilo: "Copia il codice" da mandare agli altri, "Sostituisci con le mod attive adesso"
   (chiede prima) ed "Elimina";
-  "Importa un codice" crea un profilo e scarica le mod che ti mancano; in Gioca online "Salva come
+  "Importa un codice" crea un profilo e scarica le mod che ti mancano; in Partita "Salva come
   profilo" crea un profilo con le mod dell'host. Prima che "Allinea ora" o "Applica" cambino le tue
   mod, se non sono già in un profilo BTO Sync le salva in una "Copia automatica".
 
@@ -85,7 +85,7 @@ collegato i tuoi amici ti vedono "in gioco" su Isaac. "Avvia Isaac" e "Scollega"
 
 AGGIORNAMENTI: all'avvio BTO Sync controlla se su GitHub c'è una versione nuova e lo dice in alto;
 "Aggiorna ora" (o Impostazioni > Aggiorna) la scarica, sostituisce i file e riavvia il programma.
-In qualsiasi momento "Cerca aggiornamenti" (in Le mie mod) rilegge le mod e controlla sia le mod del
+In qualsiasi momento "Cerca aggiornamenti" (nella sezione Mod) rilegge le mod e controlla sia le mod del
 Workshop sia BTO Sync: se trova qualcosa apre l'elenco, scegli cosa aggiornare o premi "Aggiorna
 tutto" (il programma per ultimo, poi si riavvia). Le mod BTO si aggiornano da sole.
 

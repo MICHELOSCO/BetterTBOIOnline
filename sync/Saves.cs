@@ -203,6 +203,27 @@ namespace BtoSync
 			return dir;
 		}
 
+		public const string AutoLabel = "Prima di Avvia Isaac";
+
+		// Before the game starts: a backup of each slot changed since its last automatic one, then only the newest `keep` per slot stay.
+		public static int AutoBackup(int keep = 5)
+		{
+			var auto = Backups().Where(b => !b.FromGame && b.Label == AutoLabel).ToList();
+			int n = 0;
+			foreach (var s in Slots().Where(x => x.Exists))
+			{
+				var last = auto.Where(b => b.Slot == s.Slot).Select(b => b.Date).DefaultIfEmpty().Max();
+				if (s.Modified <= last) continue;  // not played since the last one
+				if (Backup(s.Slot, AutoLabel) != null) n++;
+			}
+			foreach (var old in Prune(Backups().Where(b => !b.FromGame && b.Label == AutoLabel), keep)) Directory.Delete(old.Path, true);
+			return n;
+		}
+
+		// the automatic backups beyond the newest `keep` of each slot
+		public static IEnumerable<SaveBackup> Prune(IEnumerable<SaveBackup> auto, int keep) =>
+			auto.GroupBy(b => b.Slot).SelectMany(g => g.OrderByDescending(b => b.Date).Skip(keep));
+
 		public static List<SaveBackup> Backups()
 		{
 			var list = new List<SaveBackup>();

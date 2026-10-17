@@ -30,16 +30,20 @@ scegliere cosa aggiornare, o aggiornare tutto.
 
 ## Cosa fa
 
-### Le mie mod
+In alto ci sono le sezioni (Partita, Mod, Workshop, Profili, Salvataggi), il profilo attivo e
+"Avvia Isaac"; Impostazioni e Info sono le due icone accanto.
+
+### Mod
 Tutte le mod installate, con l'interruttore per attivarle o disattivarle (disattivare non cancella
 nulla), la ricerca, i filtri e "Aggiorna" per le mod del Workshop vecchie. Cliccando una mod se ne
 legge la descrizione e quali altre mod richiede. Se una mod attiva ne richiede un'altra spenta o
 mancante, BTO Sync lo dice in alto e la sistema con un clic; accendendo una mod accende anche quelle
 che le servono. I fix BTO, che BTO Sync gestisce da solo, stanno in fondo in un gruppo chiuso
 "Fix BTO automatici": un clic per vederli. Le mod BTO hanno l'interruttore bloccato: le gestisce BTO Sync insieme alla
-mod che sistemano.
+mod che sistemano. A destra, "Stato delle mod" (aggiornamenti, mod richieste che mancano) e lo spazio
+che occupano, le più pesanti per prime.
 
-![Le mie mod](docs/img/mods.png)
+![Mod](docs/img/mods.png)
 
 ### Workshop
 Il Workshop di Steam in una griglia di copertine. Cerchi per nome (la ricerca parte da sola), ordini
@@ -51,17 +55,19 @@ già attiva, **insieme alle mod che richiede** (per esempio The Future con Custo
 
 ![Workshop](docs/img/workshop.png)
 
-### Gioca online
-Il cuore del programma. L'host preme "Copia il mio codice" e lo incolla su Discord: è un codice
-`BTO3:` con l'elenco delle sue mod (i codici `BTO1:` e `BTO2:` delle versioni vecchie si leggono ancora). Gli altri lo incollano qui, e BTO Sync mostra cosa va attivato,
-disattivato o scaricato. "Allinea ora" fa tutto, poi "Avvia Isaac".
+### Partita
+Il cuore del programma, e la pagina che si apre all'avvio. L'host preme "Copia il mio codice" e lo
+incolla su Discord: è un codice `BTO3:` con l'elenco delle sue mod (i codici `BTO1:` e `BTO2:` delle
+versioni vecchie si leggono ancora). Gli altri seguono tre passi: incollano il codice, "Allinea ora"
+attiva, disattiva o scarica quello che serve, poi "Avvia Isaac". "Ultima partita" dice cosa ha
+scritto il gioco nel suo log: se la partita si è divisa (desync) e quali mod hanno dato errori Lua.
 
-![Gioca online](docs/img/online.png)
+![Partita](docs/img/online.png)
 
 ### Profili
 Elenchi di mod attive da salvare e richiamare, per esempio "Run con The Future" e "Vanilla+".
 Un profilo si può mandare agli amici come codice, e dal codice di un amico (anche quello dell'host,
-con "Salva come profilo" in Gioca online) se ne crea uno. Prima che "Allinea ora" o "Applica"
+con "Salva come profilo" in Partita) se ne crea uno. Prima che "Allinea ora" o "Applica"
 cambino le tue mod, se non sono già in un profilo BTO Sync le salva in una "Copia automatica":
 niente va perso per sbaglio.
 

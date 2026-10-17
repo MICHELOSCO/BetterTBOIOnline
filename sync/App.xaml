@@ -3,23 +3,28 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnMainWindowClose">
   <Application.Resources>
-    <!-- Palette: neutral dark, red accent -->
-    <SolidColorBrush x:Key="Bg" Color="#0E1015"/>
-    <SolidColorBrush x:Key="Sidebar" Color="#13161D"/>
-    <SolidColorBrush x:Key="Surface" Color="#181C25"/>
-    <SolidColorBrush x:Key="Surface2" Color="#202531"/>
-    <SolidColorBrush x:Key="Hover" Color="#262C39"/>
-    <SolidColorBrush x:Key="Line" Color="#2A3040"/>
-    <SolidColorBrush x:Key="Fg" Color="#E8EAF0"/>
-    <SolidColorBrush x:Key="Body" Color="#C3C8D4"/>
-    <SolidColorBrush x:Key="Muted" Color="#8B93A7"/>
-    <SolidColorBrush x:Key="Accent" Color="#E5484D"/>
-    <SolidColorBrush x:Key="AccentHover" Color="#F05A5F"/>
-    <SolidColorBrush x:Key="AccentSoft" Color="#33E5484D"/>
+    <!-- Palette "cabina di regia": graphite, one teal accent (dark text on it), numbers in a monospace -->
+    <SolidColorBrush x:Key="Bg" Color="#111315"/>
+    <SolidColorBrush x:Key="Surface" Color="#1A1D20"/>
+    <SolidColorBrush x:Key="Surface2" Color="#1F2326"/>
+    <SolidColorBrush x:Key="Hover" Color="#262A2E"/>
+    <SolidColorBrush x:Key="Line" Color="#23272B"/>
+    <SolidColorBrush x:Key="Edge" Color="#2E3337"/>
+    <SolidColorBrush x:Key="Fg" Color="#E9EBEC"/>
+    <SolidColorBrush x:Key="Body" Color="#C9CED2"/>
+    <SolidColorBrush x:Key="Muted" Color="#9BA3AA"/>
+    <SolidColorBrush x:Key="Accent" Color="#3CC8B4"/>
+    <SolidColorBrush x:Key="AccentHover" Color="#5ED6C5"/>
+    <SolidColorBrush x:Key="AccentFg" Color="#06231F"/>
+    <SolidColorBrush x:Key="AccentText" Color="#7FE0D2"/>
+    <SolidColorBrush x:Key="AccentSoft" Color="#243CC8B4"/>
     <SolidColorBrush x:Key="Ok" Color="#3FB97A"/>
-    <SolidColorBrush x:Key="Warn" Color="#E5A93B"/>
-    <SolidColorBrush x:Key="WarnSoft" Color="#22E5A93B"/>
+    <SolidColorBrush x:Key="Warn" Color="#E0A84B"/>
+    <SolidColorBrush x:Key="WarnSoft" Color="#2A2418"/>
+    <SolidColorBrush x:Key="Bad" Color="#F0616D"/>
+    <SolidColorBrush x:Key="BadSoft" Color="#2A1E1F"/>
     <FontFamily x:Key="Icons">Segoe MDL2 Assets</FontFamily>
+    <FontFamily x:Key="Mono">Cascadia Mono, Consolas</FontFamily>
     <BooleanToVisibilityConverter x:Key="Vis"/>
 
     <Style TargetType="TextBlock"><Setter Property="TextOptions.TextFormattingMode" Value="Display"/></Style>
@@ -32,7 +37,15 @@
       </Setter>
     </Style>
     <Style x:Key="H1" TargetType="TextBlock">
-      <Setter Property="FontSize" Value="24"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="{StaticResource Fg}"/>
+      <Setter Property="FontSize" Value="30"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Foreground" Value="{StaticResource Fg}"/>
+    </Style>
+    <!-- small monospace line above a title: where you are -->
+    <Style x:Key="Eyebrow" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="{StaticResource Mono}"/><Setter Property="FontSize" Value="11"/><Setter Property="Foreground" Value="{StaticResource Muted}"/>
+      <Setter Property="Margin" Value="0,0,0,4"/>
+    </Style>
+    <Style x:Key="Num" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="{StaticResource Mono}"/><Setter Property="Foreground" Value="{StaticResource Fg}"/>
     </Style>
     <Style x:Key="H2" TargetType="TextBlock">
       <Setter Property="FontSize" Value="16"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="{StaticResource Fg}"/>
@@ -48,7 +61,7 @@
       <Setter Property="FontFamily" Value="{StaticResource Icons}"/><Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
     <Style x:Key="Card" TargetType="Border">
-      <Setter Property="Background" Value="{StaticResource Surface}"/><Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="Background" Value="{StaticResource Surface}"/><Setter Property="CornerRadius" Value="12"/>
       <Setter Property="BorderBrush" Value="{StaticResource Line}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="18"/>
     </Style>
     <Style x:Key="Badge" TargetType="Border">
@@ -58,8 +71,8 @@
 
     <!-- Buttons -->
     <Style x:Key="Btn" TargetType="Button">
-      <Setter Property="Foreground" Value="{StaticResource Fg}"/><Setter Property="Background" Value="{StaticResource Surface2}"/>
-      <Setter Property="BorderBrush" Value="{StaticResource Line}"/><Setter Property="Tag" Value="{StaticResource Hover}"/>
+      <Setter Property="Foreground" Value="{StaticResource Fg}"/><Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Edge}"/><Setter Property="Tag" Value="{StaticResource Hover}"/>
       <Setter Property="Padding" Value="14,7"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
       <Setter Property="Template">
@@ -80,36 +93,47 @@
     </Style>
     <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource Btn}">
       <Setter Property="Background" Value="{StaticResource Accent}"/><Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
-      <Setter Property="Tag" Value="{StaticResource AccentHover}"/><Setter Property="Foreground" Value="White"/>
+      <Setter Property="Tag" Value="{StaticResource AccentHover}"/><Setter Property="Foreground" Value="{StaticResource AccentFg}"/><Setter Property="FontWeight" Value="Bold"/>
     </Style>
     <Style x:Key="Ghost" TargetType="Button" BasedOn="{StaticResource Btn}">
       <Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/>
     </Style>
     <Style x:Key="Danger" TargetType="Button" BasedOn="{StaticResource Btn}">
-      <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="#F0616D"/><Setter Property="Tag" Value="{StaticResource AccentSoft}"/>
+      <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{StaticResource Bad}"/><Setter Property="Tag" Value="{StaticResource BadSoft}"/>
     </Style>
 
-    <!-- Sidebar navigation -->
+    <!-- Top bar navigation: text tabs -->
     <Style x:Key="Nav" TargetType="RadioButton">
       <Setter Property="Foreground" Value="{StaticResource Muted}"/><Setter Property="FontSize" Value="14"/><Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/><Setter Property="Margin" Value="0,0,0,3"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/><Setter Property="Margin" Value="0,0,4,0"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="RadioButton">
-            <Border x:Name="b" CornerRadius="8" Padding="12,9" Background="Transparent">
-              <Grid>
-                <Rectangle x:Name="bar" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource Accent}" HorizontalAlignment="Left" Margin="-12,2,0,2" Visibility="Hidden"/>
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock Text="{TemplateBinding Tag}" Style="{StaticResource Icon}" FontSize="15" Width="22" Foreground="{TemplateBinding Foreground}"/>
-                  <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
-                </StackPanel>
-              </Grid>
+            <Border x:Name="b" CornerRadius="8" Padding="14,8" Background="Transparent">
+              <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
             </Border>
             <ControlTemplate.Triggers>
-              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource Surface}"/><Setter Property="Foreground" Value="{StaticResource Fg}"/></Trigger>
+              <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{StaticResource Fg}"/></Trigger>
               <Trigger Property="IsChecked" Value="True">
-                <Setter TargetName="b" Property="Background" Value="{StaticResource Surface2}"/><Setter TargetName="bar" Property="Visibility" Value="Visible"/>
-                <Setter Property="Foreground" Value="{StaticResource Fg}"/>
+                <Setter TargetName="b" Property="Background" Value="{StaticResource Surface2}"/>
+                <Setter Property="Foreground" Value="{StaticResource Fg}"/><Setter Property="FontWeight" Value="SemiBold"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="NavIcon" TargetType="RadioButton" BasedOn="{StaticResource Nav}">
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RadioButton">
+            <Border x:Name="b" CornerRadius="8" Width="36" Height="36" Background="Transparent">
+              <TextBlock Text="{TemplateBinding Tag}" Style="{StaticResource Icon}" FontSize="15" HorizontalAlignment="Center" Foreground="{TemplateBinding Foreground}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{StaticResource Fg}"/></Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="b" Property="Background" Value="{StaticResource Surface2}"/><Setter Property="Foreground" Value="{StaticResource Fg}"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -124,14 +148,14 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="RadioButton">
-            <Border x:Name="b" CornerRadius="15" Padding="13,6" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="1">
+            <Border x:Name="b" CornerRadius="8" Padding="12,6" Background="Transparent" BorderBrush="{StaticResource Edge}" BorderThickness="1">
               <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{StaticResource Fg}"/></Trigger>
               <Trigger Property="IsChecked" Value="True">
-                <Setter TargetName="b" Property="Background" Value="{StaticResource Hover}"/><Setter TargetName="b" Property="BorderBrush" Value="#4A5370"/>
-                <Setter Property="Foreground" Value="{StaticResource Fg}"/>
+                <Setter TargetName="b" Property="Background" Value="{StaticResource Fg}"/><Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Fg}"/>
+                <Setter Property="Foreground" Value="{StaticResource Bg}"/><Setter Property="FontWeight" Value="SemiBold"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -142,7 +166,7 @@
     <!-- Text box, placeholder in Tag -->
     <Style TargetType="TextBox">
       <Setter Property="Foreground" Value="{StaticResource Fg}"/><Setter Property="Background" Value="{StaticResource Surface}"/>
-      <Setter Property="BorderBrush" Value="{StaticResource Line}"/><Setter Property="CaretBrush" Value="{StaticResource Fg}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Edge}"/><Setter Property="CaretBrush" Value="{StaticResource Fg}"/>
       <Setter Property="SelectionBrush" Value="{StaticResource Accent}"/><Setter Property="Padding" Value="12,8"/><Setter Property="FontSize" Value="14"/>
       <Setter Property="Template">
         <Setter.Value>
@@ -158,8 +182,8 @@
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="Text" Value=""><Setter TargetName="ph" Property="Visibility" Value="Visible"/></Trigger>
-              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="BorderBrush" Value="#3A4256"/></Trigger>
-              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="b" Property="BorderBrush" Value="#7FB0FF"/></Trigger>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="BorderBrush" Value="#3E454A"/></Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Accent}"/></Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
@@ -177,12 +201,12 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="CheckBox">
-            <Border x:Name="track" Width="38" Height="22" CornerRadius="11" Background="#323848">
-              <Ellipse x:Name="thumb" Width="16" Height="16" Fill="White" HorizontalAlignment="Left" Margin="3,0"/>
+            <Border x:Name="track" Width="38" Height="22" CornerRadius="11" Background="{StaticResource Edge}">
+              <Ellipse x:Name="thumb" Width="16" Height="16" Fill="{StaticResource Muted}" HorizontalAlignment="Left" Margin="3,0"/>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsChecked" Value="True">
-                <Setter TargetName="track" Property="Background" Value="#D7DBE5"/><Setter TargetName="thumb" Property="Fill" Value="{StaticResource Bg}"/>
+                <Setter TargetName="track" Property="Background" Value="{StaticResource Accent}"/><Setter TargetName="thumb" Property="Fill" Value="{StaticResource AccentFg}"/>
                 <Setter TargetName="thumb" Property="HorizontalAlignment" Value="Right"/>
               </Trigger>
               <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
@@ -203,9 +227,9 @@
           <ControlTemplate TargetType="CheckBox">
             <Border x:Name="row" Background="{StaticResource Surface2}" CornerRadius="8" Padding="14,10">
               <DockPanel>
-                <Border x:Name="box" DockPanel.Dock="Left" Width="20" Height="20" CornerRadius="5" BorderThickness="1.5" BorderBrush="#4A5266"
+                <Border x:Name="box" DockPanel.Dock="Left" Width="20" Height="20" CornerRadius="5" BorderThickness="1.5" BorderBrush="#4A5257"
                         Background="Transparent" VerticalAlignment="Center" Margin="0,0,14,0">
-                  <TextBlock x:Name="tick" Text="&#xE73E;" FontFamily="{StaticResource Icons}" FontSize="12" Foreground="White"
+                  <TextBlock x:Name="tick" Text="&#xE73E;" FontFamily="{StaticResource Icons}" FontSize="12" Foreground="{StaticResource AccentFg}"
                              HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
                 </Border>
                 <ContentPresenter VerticalAlignment="Center"/>
@@ -229,14 +253,14 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="CheckBox">
-            <Border x:Name="b" CornerRadius="13" Padding="11,4" Background="{StaticResource Surface2}" BorderBrush="{StaticResource Line}" BorderThickness="1">
+            <Border x:Name="b" CornerRadius="8" Padding="11,4" Background="{StaticResource Surface2}" BorderBrush="{StaticResource Edge}" BorderThickness="1">
               <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{StaticResource Fg}"/></Trigger>
               <Trigger Property="IsChecked" Value="True">
-                <Setter TargetName="b" Property="Background" Value="#1B2D4D"/><Setter TargetName="b" Property="BorderBrush" Value="#7FB0FF"/>
-                <Setter Property="Foreground" Value="#CFE0FF"/>
+                <Setter TargetName="b" Property="Background" Value="{StaticResource AccentSoft}"/><Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                <Setter Property="Foreground" Value="{StaticResource AccentText}"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -276,7 +300,7 @@
     <Style x:Key="RowCard" TargetType="Border" BasedOn="{StaticResource Card}">
       <Setter Property="Padding" Value="14,12"/>
       <Style.Triggers>
-        <Trigger Property="IsMouseOver" Value="True"><Setter Property="BorderBrush" Value="#3A4256"/></Trigger>
+        <Trigger Property="IsMouseOver" Value="True"><Setter Property="BorderBrush" Value="#3E454A"/></Trigger>
       </Style.Triggers>
     </Style>
 
@@ -285,9 +309,9 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Thumb">
-            <Border x:Name="t" CornerRadius="4" Background="#2E3445" Margin="2"/>
+            <Border x:Name="t" CornerRadius="4" Background="#2E3337" Margin="2"/>
             <ControlTemplate.Triggers>
-              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="t" Property="Background" Value="#424A5F"/></Trigger>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="t" Property="Background" Value="#454C52"/></Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>

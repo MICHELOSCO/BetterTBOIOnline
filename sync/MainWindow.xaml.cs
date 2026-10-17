@@ -38,7 +38,6 @@ namespace BtoSync
 			modsView.Filter = ModFilter;
 			modsView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(LocalMod.Group)));
 			AboutText.Text = "BTO Sync " + typeof(MainWindow).Assembly.GetName().Version.ToString(3);
-			SideVersion.Text = "v" + Updater.Current.ToString(3);
 			Title = AboutText.Text;
 			InfoVersion.Text = AboutText.Text + " · gestore di mod open source del progetto BetterTBOIOnline, per giocare online con le stesse mod degli amici.";
 			modsDir = Core.FindModsDir();
@@ -49,7 +48,9 @@ namespace BtoSync
 			timer.Tick += (s, e) => UpdateState();
 			timer.Start();
 			RefreshProfiles();
-			Loaded += async (s, e) => { UpdateState(); _ = CheckUpdate(); await Reload(); CheckPatch(); OpenHostCodeFromClipboard(); };
+			ShowSteps();
+			AutoBackupBox.IsChecked = AutoBackupOn;
+			Loaded += async (s, e) => { UpdateState(); _ = CheckUpdate(); await Reload(); CheckPatch(); OpenHostCodeFromClipboard(); _ = ShowGameLog(); };
 			Closing += (s, e) => { Steam.Disconnect(); SaveWindow(); };
 			RestoreWindow();
 			KeyDown += (s, e) =>  // Esc closes the Workshop detail pane
@@ -122,6 +123,7 @@ namespace BtoSync
 			SearchBox.IsEnabled = SortBtn.IsEnabled = TagsBtn.IsEnabled = !isaac;
 			if (isaac) { WsEmpty.Visibility = MoreBtn.Visibility = WsModal.Visibility = Visibility.Collapsed; WsInfo.Text = "Il Workshop si usa a gioco chiuso."; }
 			else if (was && wsOpened) _ = Search(true);
+			if (was && !isaac) _ = ShowGameLog();  // the game just closed: its log has the session
 			IsaacBanner.Visibility = isaac ? Visibility.Visible : Visibility.Collapsed;
 			SteamBox.Visibility = SettingsDisconnect.Visibility = Steam.Ready ? Visibility.Visible : Visibility.Collapsed;
 			foreach (var m in mods) m.Unlocked = !isaac && !busy;
@@ -176,6 +178,7 @@ namespace BtoSync
 			foreach (var w in ws) w.Installed = Core.HasWorkshopCopy(w.Id.ToString(), modsDir);
 			RefreshSummary();
 			_ = CheckDeps();
+			_ = ShowSpace();
 			if (tie) await Tie();
 			else if (assets != null) ShowMissingBase(Core.MissingBase(local, Core.Catalog(assets)));  // an alignment may have installed some
 		}
@@ -243,6 +246,46 @@ namespace BtoSync
 			UpdateAllText.Text = upd == 1 ? "Aggiorna 1 mod" : $"Aggiorna {upd} mod";
 			CollectionViewSource.GetDefaultView(mods).Refresh();
 			RefreshProfiles();
+			RefreshHealth();
+		}
+
+		// "Stato delle mod" on the Mod page: updates, dependencies, what is on
+		void RefreshHealth()
+		{
+			int upd = local.Count(m => m.CanUpdate);
+			var rows = new List<InfoLine>
+			{
+				upd > 0 ? new InfoLine(Res("Warn"), upd == 1 ? "1 aggiornamento" : $"{upd} aggiornamenti", string.Join(", ", local.Where(m => m.CanUpdate).Select(m => m.Name)))
+					: new InfoLine(Res("Accent"), wsChecked ? "Tutte aggiornate" : "Aggiornamenti non controllati", wsChecked ? "Le mod del Workshop sono all'ultima versione" : "Il Workshop non risponde: riprova con Cerca aggiornamenti"),
+				depIssues.Count > 0 ? new InfoLine(Res("Warn"), "Manca qualcosa a una mod", string.Join(" ", depIssues.Select(d => $"{d.Mod.Name} richiede {d.Name}.")))
+					: new InfoLine(Res("Accent"), "Dipendenze a posto", "Ogni mod attiva ha le mod che le servono"),
+				new InfoLine(Res("Muted"), $"{local.Count(m => m.Enabled)} attive su {local.Count}", local.Count(m => m.Managed) + " sono fix BTO automatici")
+			};
+			HealthList.ItemsSource = rows;
+		}
+
+		// "Spazio occupato": the heaviest mods first; read in the background after each reload
+		async Task ShowSpace()
+		{
+			var sizes = await Task.Run(() => local.Select(m =>
+			{
+				long n = 0;
+				try { n = new System.IO.DirectoryInfo(m.Path).EnumerateFiles("*", System.IO.SearchOption.AllDirectories).Sum(f => f.Length); } catch { }
+				return (m.Name, n);
+			}).OrderByDescending(x => x.n).ToList());
+			long total = sizes.Sum(x => x.n);
+			string Mb(long n) => n < 1 << 20 ? $"{n / 1024.0:0} KB" : $"{n / 1048576.0:0.#} MB";
+			SpaceText.Text = Mb(total);
+			var colors = new[] { "#7FA8D9", "#B49BE0", "#E0A84B" }.Select(c => (Brush)new BrushConverter().ConvertFrom(c)).Concat(new[] { Res("Muted") }).ToArray();
+			var parts = sizes.Take(3).Select(x => (x.Name, x.n)).ToList();
+			parts.Add(("Le altre " + Math.Max(0, sizes.Count - 3), sizes.Skip(3).Sum(x => x.n)));
+			SpaceBar.Children.Clear(); SpaceBar.ColumnDefinitions.Clear();
+			for (int i = 0; i < parts.Count; i++)
+			{
+				SpaceBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(parts[i].n, 1), GridUnitType.Star) });
+				var r = new Border { Background = colors[i] }; Grid.SetColumn(r, i); SpaceBar.Children.Add(r);
+			}
+			SpaceList.ItemsSource = parts.Select((x, i) => new InfoLine(colors[i], x.Name, Mb(x.n))).ToList();
 		}
 
 		// ---------- navigation ----------
@@ -265,10 +308,61 @@ namespace BtoSync
 
 		void Launch_Click(object sender, RoutedEventArgs e)
 		{
+			int saved = 0;
+			if (AutoBackupOn && !Core.Screenshots)
+				try { saved = Saves.AutoBackup(); } catch (Exception ex) { Core.LogError(ex); }  // a failed backup must not keep the game closed
 			Steam.Disconnect();
 			UpdateState();
 			Process.Start("steam://rungameid/" + Core.AppId);
-			Status("Avvio Isaac tramite Steam…");
+			Status("Avvio Isaac tramite Steam…" + (saved == 0 ? "" : saved == 1 ? " Prima ho salvato un backup di 1 slot." : $" Prima ho salvato un backup di {saved} slot."));
+		}
+
+		// "Backup prima di giocare" (Salvataggi): on unless this file exists
+		static string AutoBackupOff => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BtoSync", "autobackup-off.txt");
+		static bool AutoBackupOn => !System.IO.File.Exists(AutoBackupOff);
+
+		void AutoBackup_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				if (AutoBackupBox.IsChecked == true) System.IO.File.Delete(AutoBackupOff);
+				else { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(AutoBackupOff)); System.IO.File.WriteAllText(AutoBackupOff, "off"); }
+			}
+			catch (Exception ex) { ShowError("Non riesco a salvare l'impostazione.", ex); }
+			AutoBackupBox.IsChecked = AutoBackupOn;
+		}
+
+		// "Ultima partita" on Partita: what the game's log says (counts only: the log also holds the players' Steam IDs)
+		async Task ShowGameLog()
+		{
+			var path = Core.GameLogPath;
+			if (!System.IO.File.Exists(path)) { LogCard.Visibility = Visibility.Collapsed; return; }
+			Core.GameLog g;
+			try
+			{
+				g = await Task.Run(() =>
+				{
+					using (var f = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite))
+					using (var r = new System.IO.StreamReader(f)) return Core.ReadGameLog(r.ReadToEnd());
+				});
+			}
+			catch (Exception ex) { Core.LogError(ex); LogCard.Visibility = Visibility.Collapsed; return; }
+			LogWhen.Text = "Dal log del gioco, " + System.IO.File.GetLastWriteTime(path).ToString("dd/MM 'alle' HH:mm");
+			var rows = new List<InfoLine>();
+			if (g.Desyncs > 0) rows.Add(new InfoLine(Res("Bad"), "La partita si è divisa", $"Desync al frame {g.FirstDesyncFrame}" + (g.Desyncs > 1 ? $", {g.Desyncs} volte in tutto" : "") + ": controllate di avere le stesse mod"));
+			foreach (var kv in g.LuaErrors.OrderByDescending(kv => kv.Value))
+			{
+				var name = kv.Key == "" ? "Il gioco" : local.FirstOrDefault(m => m.Folder.Equals(kv.Key, StringComparison.OrdinalIgnoreCase))?.Name ?? kv.Key;
+				rows.Add(new InfoLine(Res("Warn"), $"{name}: {(kv.Value == 1 ? "1 errore Lua" : $"{kv.Value} errori Lua")}", "Diversi tra loro: lo stesso errore ripetuto conta una volta"));
+			}
+			if (rows.Count == 0) rows.Add(new InfoLine(Res("Accent"), "Nessun errore", "Niente desync ed errori Lua nell'ultima sessione"));
+			LogList.ItemsSource = rows;
+			LogCard.Visibility = Visibility.Visible;
+		}
+
+		void OpenLog_Click(object sender, RoutedEventArgs e)
+		{
+			try { Process.Start(Core.GameLogPath); } catch (Exception ex) { ShowError("Non riesco ad aprire il log del gioco.", ex); }
 		}
 
 		void Disconnect_Click(object sender, RoutedEventArgs e) { Steam.Disconnect(); UpdateState(); Status("Scollegato da Steam."); }
@@ -291,7 +385,7 @@ namespace BtoSync
 			if (ModsSearch.Text.Trim() != "" && mods.Any(m => m.Managed && ModFilter(m))) BtoOpen = true;  // don't hide matches in the closed group
 		}
 
-		// the "Fix BTO" group in Le mie mod: closed by default, stays as the user left it across reloads
+		// the "Fix BTO" group in Mod: closed by default, stays as the user left it across reloads
 		public static readonly DependencyProperty BtoOpenProperty = DependencyProperty.Register(nameof(BtoOpen), typeof(bool), typeof(MainWindow));
 		public bool BtoOpen { get => (bool)GetValue(BtoOpenProperty); set => SetValue(BtoOpenProperty, value); }
 		void Filter_Changed(object sender, RoutedEventArgs e) { if (IsLoaded) CollectionViewSource.GetDefaultView(mods).Refresh(); }
@@ -413,7 +507,7 @@ namespace BtoSync
 		{
 			var m = Ctx<LocalMod>(sender);
 			if (Blocked()) return;
-			var how = m.Id != "" ? "Ti disiscrivo dal Workshop e la tolgo dalla cartella mods." : "La tolgo dalla cartella mods (puoi riscaricarla da Gioca online).";
+			var how = m.Id != "" ? "Ti disiscrivo dal Workshop e la tolgo dalla cartella mods." : "La tolgo dalla cartella mods (puoi riscaricarla da Partita).";
 			if (!Dialog.Show(this, $"Disinstallare \"{m.Name}\"?", how, DialogKind.Danger, "Disinstalla", "Annulla")) return;
 			try
 			{
@@ -474,6 +568,7 @@ namespace BtoSync
 			if (text == compared) return;
 			compared = null;
 			PlanCard.Visibility = Visibility.Collapsed;
+			ShowSteps();
 			if (text == "") return;
 			try { Core.FromCode(text); }
 			catch (FormatException ex) { CodeError.Text = ex.Message; CodeError.Visibility = Visibility.Visible; return; }
@@ -481,7 +576,7 @@ namespace BtoSync
 			await Compare();
 		}
 
-		// A host code already in the clipboard means the user is about to join: open straight on Gioca online.
+		// A host code already in the clipboard means the user is about to join: open straight on Partita.
 		void OpenHostCodeFromClipboard()
 		{
 			try
@@ -512,11 +607,44 @@ namespace BtoSync
 			NotesList.ItemsSource = plan.Notes;
 			PlanList.ItemsSource = plan.Actions;
 			ApplyBtn.Visibility = plan.Actions.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-			PlanLaunchBtn.Visibility = plan.Actions.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 			if (plan.Actions.Count == 0 && plan.Notes.Count == 0) { PlanTitle.Text = "Sei pronto a giocare"; PlanSub.Text = $"Hai le stesse {host.Count} mod dell'host: avvia Isaac ed entra in partita."; }
 			else if (plan.Actions.Count == 0) { PlanTitle.Text = "Quasi pronto"; PlanSub.Text = "Niente da fare in automatico, ma controlla gli avvisi."; }
 			else { PlanTitle.Text = plan.Actions.Count == 1 ? "1 cosa da sistemare" : $"{plan.Actions.Count} cose da sistemare"; PlanSub.Text = "Allinea ora le fa tutte. Le mod disattivate restano installate."; }
+			ShowSteps();
 			Status("Confronto fatto.");
+		}
+
+		// The three steps of Partita: paste the code, align, play.
+		void ShowSteps()
+		{
+			bool has = PlanCard.Visibility == Visibility.Visible && plan != null, ready = has && plan.Actions.Count == 0;
+			SetStep(Step1, has ? 2 : 1);
+			SetStep(Step2, !has ? 0 : ready ? 2 : 1);
+			SetStep(Step3, ready ? 1 : 0);
+			SaveHostBtn.Visibility = has ? Visibility.Visible : Visibility.Collapsed;
+			if (!has)
+			{
+				ApplyBtn.Visibility = Visibility.Collapsed;
+				PlanTitle.Text = "Allinea le mod";
+				PlanSub.Text = "Col codice ti dico cosa cambiare; Allinea ora lo fa per te e prima salva le tue mod in un profilo.";
+			}
+			OnlineTitle.Text = !has ? "Entra nella partita di un amico" : ready ? "Sei pronto a giocare" : PlanTitle.Text + " prima di entrare";
+			PlanLaunchBtn.Style = (Style)FindResource(ready ? "Primary" : "Btn");
+		}
+
+		// a step's number: 0 to do (outlined), 1 now (accent), 2 done (tick)
+		void SetStep(Border dot, int state)
+		{
+			dot.Background = state == 1 ? Res("Accent") : state == 2 ? Res("AccentSoft") : Brushes.Transparent;
+			dot.BorderBrush = state == 0 ? Res("Edge") : Brushes.Transparent;
+			dot.Child = new TextBlock
+			{
+				Text = state == 2 ? "\uE73E" : (string)dot.Tag,
+				FontFamily = (FontFamily)FindResource(state == 2 ? "Icons" : "Mono"),
+				FontSize = state == 2 ? 13 : 14, FontWeight = FontWeights.SemiBold,
+				Foreground = state == 1 ? Res("AccentFg") : state == 2 ? Res("Accent") : Res("Muted"),
+				HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+			};
 		}
 
 		async void Apply_Click(object sender, RoutedEventArgs e)
@@ -711,6 +839,7 @@ namespace BtoSync
 			ProfilesEmpty.Visibility = profiles.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 			var cur = profiles.FirstOrDefault(p => p.IsActive);
 			ActiveProfileText.Text = cur?.name ?? "Nessun profilo";
+			ModsEyebrow.Text = "PROFILO · " + (cur?.name ?? "nessuno").ToUpperInvariant();
 			ActiveProfileSub.Text = cur == null ? "Crea un profilo dalle mod attive" : cur.IsCurrent ? cur.Summary : cur.Summary + " · modificato";
 		}
 
@@ -771,7 +900,7 @@ namespace BtoSync
 				RefreshSummary();
 				Status("Profilo applicato: " + p.name + (kept != null ? $". Le mod di prima sono nel profilo \"{kept}\"." : "."));
 				if (missing.Count > 0)
-					Dialog.Show(this, missing.Count == 1 ? "1 mod del profilo non è installata" : $"{missing.Count} mod del profilo non sono installate", "Per scaricarle fatti mandare il codice del profilo da chi le ha e incollalo in Gioca online.", DialogKind.Warning);
+					Dialog.Show(this, missing.Count == 1 ? "1 mod del profilo non è installata" : $"{missing.Count} mod del profilo non sono installate", "Per scaricarle fatti mandare il codice del profilo da chi le ha e incollalo in Partita.", DialogKind.Warning);
 			}
 			catch (Exception ex) { ShowError("Non riesco ad applicare il profilo.", ex); }
 		}
@@ -937,9 +1066,8 @@ namespace BtoSync
 			var vis = open != null ? Visibility.Visible : Visibility.Collapsed;
 			var hide = open != null ? Visibility.Collapsed : Visibility.Visible;
 			ProgressPanel.Visibility = vis;
-			BackupsHeader.Visibility = BackupsList.Visibility = hide;
-			if (open == null) { BackupsEmpty.Visibility = Visibility.Collapsed; return; }
-			BackupsEmpty.Visibility = Visibility.Collapsed;
+			ProgressNone.Visibility = hide;
+			if (open == null) return;
 
 			var bosses = Progress.Of(open.Info);
 			ProgressTitle.Text = "Percorso dello " + open.Title.ToLower();
@@ -1000,7 +1128,7 @@ namespace BtoSync
 			{
 				Style = (Style)FindResource("Btn"), Width = NodeW, Height = NodeH, Padding = new Thickness(12, 6, 12, 6),
 				Background = bg, Foreground = fg, Tag = hover, Content = text, HorizontalContentAlignment = HorizontalAlignment.Left,
-				BorderBrush = b.Key == pickedBoss ? (Brush)new BrushConverter().ConvertFrom("#7FB0FF") : b.State == 0 ? Res("Line") : bg,
+				BorderBrush = b.Key == pickedBoss ? Res("Accent") : b.State == 0 ? Res("Line") : bg,
 				ToolTip = "Clicca per vedere con quali personaggi",
 			};
 			System.Windows.Automation.AutomationProperties.SetName(node, $"{b.Name}: battuto con {b.Beaten} personaggi su 34");
@@ -1182,6 +1310,7 @@ namespace BtoSync
 			depIssues = Core.DepIssues(local);
 			DepBanner.Visibility = depIssues.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 			DepBannerText.Text = string.Join(" ", depIssues.Select(d => $"{d.Mod.Name} richiede {d.Name}, che {(d.Req == null ? "non è installata" : "è spenta")}."));
+			RefreshHealth();
 		}
 
 		// Turning a mod on also turns on the mods it needs that are installed but off (no download here).
@@ -1350,5 +1479,14 @@ namespace BtoSync
 		public bool On { get => on; set => Set(ref on, value); }
 		public LocalMod Mod;
 		public bool IsApp;
+	}
+
+	// a dot, a title and a line under it (Stato delle mod, Spazio occupato)
+	public class InfoLine
+	{
+		public Brush Dot { get; }
+		public string Title { get; }
+		public string Sub { get; }
+		public InfoLine(Brush dot, string title, string sub) { Dot = dot; Title = title; Sub = sub; }
 	}
 }

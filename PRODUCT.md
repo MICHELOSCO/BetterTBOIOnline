@@ -39,7 +39,7 @@ Il Lua delle mod di Isaac è isolato, quindi nessuna mod può controllare o alli
 
 ## Capabilities and Constraints
 
-- Sezioni: Le mie mod (attiva/disattiva, filtri, aggiornamenti, descrizione al clic sulla riga), Workshop (cerca, installa, disinstalla), Gioca online (codice host, confronto, "Allinea ora"), Profili, Salvataggi (backup, copia tra slot, ripristino), Impostazioni (cartella mods, Steam, aggiornamenti).
+- Sezioni, in una barra in alto: Partita (si apre all'avvio: codice host, "Allinea ora", "Avvia Isaac" in tre passi; il proprio codice; l'ultima partita dal log del gioco), Mod (attiva/disattiva, filtri, aggiornamenti, stato e spazio, descrizione al clic sulla riga), Workshop (cerca, installa, disinstalla), Profili, Salvataggi (backup, copia tra slot, ripristino, backup prima di giocare); Impostazioni e Info come icone.
 - Deve girare su Windows 10/11 senza installare niente: .NET Framework 4.8, exe più due DLL.
 - Gli appunti si usano tramite Win32, perché quelli WPF/OLE falliscono su alcuni PC.
 - Lingua: l'interfaccia oggi è solo in italiano. L'autore vuole italiano e inglese; il modo di scegliere la lingua (automatico o da Impostazioni) è da decidere.
@@ -49,6 +49,7 @@ Il Lua delle mod di Isaac è isolato, quindi nessuna mod può controllare o alli
 
 - Nome: BTO Sync (progetto BetterTBOIOnline). Repo pubblico MICHELOSCO/BetterTBOIOnline.
 - Direzione grafica scelta dall'autore: moderna e pulita, con le funzionalità ispirate a r2modman. Ha scartato esplicitamente sia il tema "alla Isaac" sia la pixel art: niente richiami grafici al gioco.
+- Dal 17/10/2026 la direzione è "cabina di regia", scelta dall'autore tra tre mockup: fondo grafite, un solo accento verde acqua con testo scuro sopra, numeri e versioni in carattere monospaziato, sezioni come schede in una barra in alto e Partita come pagina iniziale.
 - Interazione voluta: la descrizione di una mod si apre cliccando la riga, non con un pulsante dedicato.
 
 ## Evidence on Hand
