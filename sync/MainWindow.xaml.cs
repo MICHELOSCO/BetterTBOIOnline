@@ -107,7 +107,7 @@ namespace BtoSync
 		// ---------- loading bar: any running operation (counted) or a busy action shows it ----------
 		int loading;
 		void Loading(bool on) { loading += on ? 1 : -1; ShowLoad(); }
-		void ShowLoad() => LoadBar.Visibility = loading > 0 || busy ? Visibility.Visible : Visibility.Collapsed;
+		void ShowLoad() => LoadBar.Visibility = (loading > 0 || busy) && WsModal.Visibility != Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
 		void LoadBar_SizeChanged(object sender, SizeChangedEventArgs e) =>
 			LoadRunX.BeginAnimation(TranslateTransform.XProperty, new System.Windows.Media.Animation.DoubleAnimation(-LoadRun.Width, e.NewSize.Width, TimeSpan.FromSeconds(1.2)) { RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever });
 
@@ -734,6 +734,7 @@ namespace BtoSync
 			foreach (var x in ws) x.IsSelected = x == w;
 			WsDetail.Content = w;
 			WsModal.Visibility = w == null ? Visibility.Collapsed : Visibility.Visible;
+			ShowLoad();
 			if (w == null) return;
 			try
 			{

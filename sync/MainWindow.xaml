@@ -616,6 +616,10 @@
                             <TextBlock Text="Richiede altre mod" FontSize="11" Foreground="#F1DEB4"/>
                           </Border>
                         </WrapPanel>
+                        <Button x:Name="tileAct" Content="{Binding ButtonText}" Style="{StaticResource Btn}" IsEnabled="{Binding CanAct}" Click="WsAct_Click"
+                                Margin="0,10,0,0" Padding="10,6" AutomationProperties.Name="{Binding Title, StringFormat='Installa {0}'}"/>
+                        <ProgressBar Maximum="1" Value="{Binding Progress}" Margin="0,8,0,0" Visibility="{Binding Busy, Converter={StaticResource Vis}}"/>
+                        <TextBlock x:Name="tileErr" Text="{Binding Error}" Foreground="{StaticResource Bad}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
                       </StackPanel>
                       <StackPanel x:Name="skel" Margin="12,12,12,16" Visibility="Collapsed">
                         <Border Height="12" CornerRadius="4" Background="{StaticResource Surface2}" Margin="0,0,40,8"/>
@@ -626,6 +630,12 @@
                   </Border>
                   <DataTemplate.Triggers>
                     <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="tile" Property="BorderBrush" Value="{StaticResource Accent}"/></DataTrigger>
+                    <MultiDataTrigger>
+                      <MultiDataTrigger.Conditions><Condition Binding="{Binding Installed}" Value="True"/><Condition Binding="{Binding Busy}" Value="False"/></MultiDataTrigger.Conditions>
+                      <Setter TargetName="tileAct" Property="Visibility" Value="Collapsed"/>
+                    </MultiDataTrigger>
+                    <DataTrigger Binding="{Binding Error}" Value="{x:Null}"><Setter TargetName="tileErr" Property="Visibility" Value="Collapsed"/></DataTrigger>
+                    <DataTrigger Binding="{Binding Error}" Value=""><Setter TargetName="tileErr" Property="Visibility" Value="Collapsed"/></DataTrigger>
                     <DataTrigger Binding="{Binding IsVisualOnly}" Value="False">
                       <Setter TargetName="kind" Property="Background" Value="{StaticResource Surface2}"/><Setter TargetName="kindText" Property="Foreground" Value="{StaticResource Body}"/>
                     </DataTrigger>
