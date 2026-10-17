@@ -54,7 +54,9 @@ namespace BtoSync
 			RestoreWindow();
 			KeyDown += (s, e) =>  // Esc closes the Workshop detail pane
 			{
-				if (e.Key == Key.Escape && WsModal.Visibility == Visibility.Visible) { ShowDetail(null); e.Handled = true; }
+				if (e.Key == Key.Escape && UpdModal.Visibility == Visibility.Visible) { UpdModal.Visibility = Visibility.Collapsed; e.Handled = true; }
+				else if (e.Key == Key.Escape && ModModal.Visibility == Visibility.Visible) { ShowMod(null); e.Handled = true; }
+				else if (e.Key == Key.Escape && WsModal.Visibility == Visibility.Visible) { ShowDetail(null); e.Handled = true; }
 			};
 			KeyDown += (s, e) =>  // Ctrl+F: search the page that has a search box
 			{
@@ -159,16 +161,18 @@ namespace BtoSync
 			Status("Leggo le mod…");
 			try { local = await Task.Run(() => Core.ScanMods(modsDir)); }
 			catch (Exception e) { ShowError("Non riesco a leggere la cartella mods.", e); return; }
-			var open = new HashSet<string>(mods.Where(m => m.IsExpanded).Select(m => m.Key));
+			var shown = (ModDetail.Content as LocalMod)?.Key;
 			mods.Clear();
-			foreach (var m in local.OrderBy(m => m.Managed)) { m.Unlocked = !isaac && !busy; m.IsExpanded = open.Contains(m.Key); mods.Add(m); }
+			foreach (var m in local.OrderBy(m => m.Managed)) { m.Unlocked = !isaac && !busy; mods.Add(m); }
+			if (ModModal.Visibility == Visibility.Visible) ShowMod(local.FirstOrDefault(m => m.Key == shown));  // updated: same mod, removed: closed
 			try
 			{
 				var latest = await Core.LatestManifests(local.Where(m => m.Id != "").Select(m => m.Id).ToList());
 				foreach (var m in local) m.UpdateStatus(latest);
+				wsChecked = true;
 				Status("Pronto.");
 			}
-			catch { foreach (var m in local) m.UpdateStatus(new Dictionary<string, string>()); Status("Workshop non raggiungibile: non posso controllare gli aggiornamenti."); }
+			catch { wsChecked = false; foreach (var m in local) m.UpdateStatus(new Dictionary<string, string>()); Status("Workshop non raggiungibile: non posso controllare gli aggiornamenti."); }
 			foreach (var w in ws) w.Installed = Core.HasWorkshopCopy(w.Id.ToString(), modsDir);
 			RefreshSummary();
 			_ = CheckDeps();
@@ -291,9 +295,11 @@ namespace BtoSync
 		public static readonly DependencyProperty BtoOpenProperty = DependencyProperty.Register(nameof(BtoOpen), typeof(bool), typeof(MainWindow));
 		public bool BtoOpen { get => (bool)GetValue(BtoOpenProperty); set => SetValue(BtoOpenProperty, value); }
 		void Filter_Changed(object sender, RoutedEventArgs e) { if (IsLoaded) CollectionViewSource.GetDefaultView(mods).Refresh(); }
-		async void Refresh_Click(object sender, RoutedEventArgs e) => await Reload();
 		void OpenDir_Click(object sender, RoutedEventArgs e) { if (modsDir != null) Process.Start("explorer.exe", "\"" + modsDir + "\""); }
-		void ModRow_Click(object sender, MouseButtonEventArgs e) { var m = Ctx<LocalMod>(sender); m.IsExpanded = !m.IsExpanded; }
+		void ModRow_Click(object sender, MouseButtonEventArgs e) => ShowMod(Ctx<LocalMod>(sender));
+		void ShowMod(LocalMod m) { ModDetail.Content = m; ModModal.Visibility = m == null ? Visibility.Collapsed : Visibility.Visible; }
+		void CloseMod_Click(object sender, RoutedEventArgs e) => ShowMod(null);
+		void ModBackdrop_Click(object sender, MouseButtonEventArgs e) => ShowMod(null);
 		void ModRow_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter || e.Key == Key.Space) { ModRow_Click(sender, null); e.Handled = true; } }
 		void ModFolder_Click(object sender, RoutedEventArgs e) => Process.Start("explorer.exe", "\"" + Ctx<LocalMod>(sender).Path + "\"");
 		void ModPage_Click(object sender, RoutedEventArgs e) => Process.Start("steam://url/CommunityFilePage/" + Ctx<LocalMod>(sender).Id);
@@ -326,6 +332,63 @@ namespace BtoSync
 				return true;
 			}
 			catch (Exception ex) { ShowError("Aggiornamento di " + m.Name + " non riuscito.", ex); return false; }
+		}
+
+		// ---------- "Cerca aggiornamenti": check everything, then choose what to update ----------
+		bool wsChecked;
+		List<UpdEntry> updates = new List<UpdEntry>();
+
+		async void CheckUpdates_Click(object sender, RoutedEventArgs e)
+		{
+			CheckUpdBtn.IsEnabled = false; CheckUpdText.Text = "Controllo…";
+			try { await Reload(); await CheckUpdate(); }
+			finally { CheckUpdBtn.IsEnabled = true; CheckUpdText.Text = "Cerca aggiornamenti"; }
+			updates = local.Where(m => m.CanUpdate).Select(m => new UpdEntry { Name = m.Name, Detail = "Mod del Workshop: c'è una versione nuova" + (m.Version != "" ? $" (hai la {m.Version})" : ""), Mod = m }).ToList();
+			if (update != null)
+				updates.Add(new UpdEntry { Name = "BTO Sync " + update.VersionText, Detail = $"Il programma (hai la {Updater.Current.ToString(3)}): si aggiorna per ultimo e si riavvia", IsApp = true });
+			int ws = local.Count(m => m.Id != "");
+			if (updates.Count == 0)
+			{
+				if (!wsChecked) Dialog.Show(this, "Non riesco a controllare le mod", "Il Workshop non risponde: controlla la connessione e riprova.", DialogKind.Warning);
+				else Dialog.Show(this, "È tutto aggiornato", $"Ho controllato {ws} mod del Workshop e BTO Sync. Le mod BTO si aggiornano da sole.");
+				return;
+			}
+			UpdList.ItemsSource = updates;
+			UpdTitle.Text = updates.Count == 1 ? "1 aggiornamento disponibile" : $"{updates.Count} aggiornamenti disponibili";
+			RefreshUpdButtons();
+			UpdModal.Visibility = Visibility.Visible;
+		}
+
+		void RefreshUpdButtons()
+		{
+			int n = updates.Count(u => u.On);
+			UpdSelText.Text = $"Aggiorna selezionate ({n})";
+			UpdSelBtn.IsEnabled = n > 0;
+		}
+
+		void UpdToggle_Click(object sender, RoutedEventArgs e) => RefreshUpdButtons();
+		void UpdCancel_Click(object sender, RoutedEventArgs e) => UpdModal.Visibility = Visibility.Collapsed;
+		void UpdBackdrop_Click(object sender, MouseButtonEventArgs e) => UpdModal.Visibility = Visibility.Collapsed;
+		async void UpdSelected_Click(object sender, RoutedEventArgs e) => await RunUpdates(updates.Where(u => u.On).ToList());
+		async void UpdAll_Click(object sender, RoutedEventArgs e) => await RunUpdates(updates.ToList());
+
+		// Workshop mods one after the other (each row shows its progress), then BTO Sync itself, which restarts.
+		async Task RunUpdates(List<UpdEntry> todo)
+		{
+			UpdModal.Visibility = Visibility.Collapsed;
+			var mods = todo.Where(u => u.Mod != null).Select(u => u.Mod).ToList();
+			if (mods.Count > 0)
+			{
+				if (Blocked()) return;
+				NavMods.IsChecked = true;
+				int ok = 0;
+				Loading(true);
+				try { foreach (var m in mods) if (await UpdateWorkshopMod(m)) ok++; }
+				finally { Loading(false); }
+				await Reload();
+				Status(ok == mods.Count ? (ok == 1 ? "Aggiornata 1 mod." : $"Aggiornate {ok} mod.") : $"Aggiornate {ok} mod su {mods.Count}.");
+			}
+			if (todo.Any(u => u.IsApp) && update != null) await InstallAppUpdate();
 		}
 
 		async void UpdateMod_Click(object sender, RoutedEventArgs e)
@@ -1206,6 +1269,11 @@ namespace BtoSync
 			var notes = update.Notes.Replace("**", "").Trim();
 			if (notes.Length > 700) notes = notes.Substring(0, 700) + "…";
 			if (!Ask($"Aggiornare BTO Sync alla versione {update.VersionText}?{NL}{notes}{NL}Scarico l'aggiornamento da GitHub, sostituisco i file del programma e lo riavvio. Profili e backup restano.", "Aggiorna")) return;
+			await InstallAppUpdate();
+		}
+
+		async Task InstallAppUpdate()
+		{
 			busy = true; UpdateState();
 			Status($"Scarico BTO Sync {update.VersionText}…");
 			try
@@ -1251,5 +1319,16 @@ namespace BtoSync
 			}
 			finally { CloseClipboard(); }
 		}
+	}
+
+	// One line of the update menu: a Workshop mod or BTO Sync itself.
+	public class UpdEntry : Notify
+	{
+		bool on = true;
+		public string Name { get; set; }
+		public string Detail { get; set; }
+		public bool On { get => on; set => Set(ref on, value); }
+		public LocalMod Mod;
+		public bool IsApp;
 	}
 }

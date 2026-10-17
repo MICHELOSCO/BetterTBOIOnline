@@ -153,6 +153,117 @@
       </ContentControl>
     </Grid>
 
+    <!-- ===== Le mie mod: details of the clicked mod, same dialog as the Workshop ===== -->
+    <Grid x:Name="ModModal" Grid.ColumnSpan="2" Panel.ZIndex="5" Visibility="Collapsed">
+      <Border Background="#B8080A0E" MouseLeftButtonDown="ModBackdrop_Click"/>
+      <ContentControl x:Name="ModDetail" Width="840" Margin="40" HorizontalAlignment="Center" VerticalAlignment="Center" Focusable="False">
+        <ContentControl.ContentTemplate>
+          <DataTemplate>
+            <Grid>
+              <Border CornerRadius="12" Background="{StaticResource Bg}">
+                <Border.Effect><DropShadowEffect BlurRadius="40" ShadowDepth="0" Opacity="0.8" Color="Black"/></Border.Effect>
+              </Border>
+              <Border Style="{StaticResource Card}" Padding="0" CornerRadius="12">
+                <DockPanel>
+                  <DockPanel DockPanel.Dock="Top" Margin="26,20,20,0">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Padding="9,7" VerticalAlignment="Top" Click="CloseMod_Click"
+                            ToolTip="Chiudi (Esc)" AutomationProperties.Name="Chiudi i dettagli">
+                      <TextBlock Text="&#xE711;" Style="{StaticResource Icon}" FontSize="11"/>
+                    </Button>
+                    <TextBlock Text="{Binding NameText}" Style="{StaticResource H1}" FontSize="22" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                  </DockPanel>
+                  <ScrollViewer Margin="26,16,12,24" VerticalScrollBarVisibility="Auto" Padding="0,0,14,0">
+                    <StackPanel>
+                      <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="26"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <Grid Width="200" Height="200" VerticalAlignment="Top">
+                          <Border CornerRadius="8" Background="{StaticResource Surface2}"/>
+                          <TextBlock Text="{Binding OriginIcon}" Style="{StaticResource Icon}" FontSize="48" Foreground="{Binding OriginBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.6"/>
+                          <Border CornerRadius="8" Visibility="{Binding HasPreview, Converter={StaticResource Vis}}">
+                            <Border.Background><ImageBrush ImageSource="{Binding Preview, TargetNullValue={x:Null}}" Stretch="UniformToFill"/></Border.Background>
+                          </Border>
+                        </Grid>
+                        <StackPanel Grid.Column="2">
+                          <StackPanel Orientation="Horizontal">
+                            <Border Style="{StaticResource Badge}" BorderBrush="{Binding OriginBrush}" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding Origin}" Foreground="{Binding OriginBrush}" FontSize="11" FontWeight="SemiBold"/>
+                            </Border>
+                            <TextBlock Text="{Binding VersionText}" Style="{StaticResource Sub}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Status}" Foreground="{Binding StatusBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                          </StackPanel>
+                          <WrapPanel Margin="0,16,0,0">
+                            <Button Style="{StaticResource Primary}" Click="UpdateMod_Click" Margin="0,0,8,8" IsEnabled="{Binding Unlocked}"
+                                    Visibility="{Binding CanUpdate, Converter={StaticResource Vis}}" Content="Aggiorna"/>
+                            <Button Style="{StaticResource Btn}" Click="ModPage_Click" Margin="0,0,8,8" Visibility="{Binding HasPage, Converter={StaticResource Vis}}">
+                              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Pagina Workshop"/></StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource Btn}" Click="ModFolder_Click" Margin="0,0,8,8">
+                              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8B7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Apri cartella"/></StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource Danger}" Click="ModRemove_Click" Margin="0,0,8,8" IsEnabled="{Binding Unlocked}" Visibility="{Binding CanRemove, Converter={StaticResource Vis}}">
+                              <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Disinstalla"/></StackPanel>
+                            </Button>
+                          </WrapPanel>
+                          <Border Background="#2A2315" BorderBrush="#4A3B1E" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,8,0,0"
+                                  Visibility="{Binding HasRequires, Converter={StaticResource Vis}}">
+                            <TextBlock Text="{Binding RequiresText}" Foreground="#F1DEB4" FontSize="12" TextWrapping="Wrap"/>
+                          </Border>
+                          <TextBlock Text="{Binding DetailsText}" Style="{StaticResource Sub}" FontSize="12" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                        </StackPanel>
+                      </Grid>
+                      <TextBlock Text="{Binding DescriptionText}" Foreground="{StaticResource Body}" TextWrapping="Wrap" LineHeight="22" Margin="0,22,0,0"/>
+                    </StackPanel>
+                  </ScrollViewer>
+                </DockPanel>
+              </Border>
+            </Grid>
+          </DataTemplate>
+        </ContentControl.ContentTemplate>
+      </ContentControl>
+    </Grid>
+
+    <!-- ===== Updates found by "Cerca aggiornamenti": choose which ones ===== -->
+    <Grid x:Name="UpdModal" Grid.ColumnSpan="2" Panel.ZIndex="6" Visibility="Collapsed">
+      <Border Background="#B8080A0E" MouseLeftButtonDown="UpdBackdrop_Click"/>
+      <Grid Width="580" Margin="40" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Border CornerRadius="12" Background="{StaticResource Bg}">
+          <Border.Effect><DropShadowEffect BlurRadius="40" ShadowDepth="0" Opacity="0.8" Color="Black"/></Border.Effect>
+        </Border>
+        <Border Style="{StaticResource Card}" Padding="0" CornerRadius="12">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Top" Margin="26,22,26,0">
+              <TextBlock x:Name="UpdTitle" Style="{StaticResource H2}" FontSize="20"/>
+              <TextBlock Style="{StaticResource Sub}" TextWrapping="Wrap" Margin="0,4,0,0"
+                         Text="Scegli cosa aggiornare. Le mod BTO non sono in elenco perché BTO Sync le tiene aggiornate da solo."/>
+            </StackPanel>
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="26,6,26,22">
+              <Button Content="Annulla" Style="{StaticResource Btn}" Click="UpdCancel_Click" Margin="0,0,8,0"/>
+              <Button x:Name="UpdSelBtn" Style="{StaticResource Btn}" Click="UpdSelected_Click" Margin="0,0,8,0">
+                <TextBlock x:Name="UpdSelText" Text="Aggiorna selezionate"/>
+              </Button>
+              <Button Style="{StaticResource Primary}" Click="UpdAll_Click">
+                <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Aggiorna tutto"/></StackPanel>
+              </Button>
+            </StackPanel>
+            <ScrollViewer Margin="26,16,14,8" MaxHeight="420" VerticalScrollBarVisibility="Auto" Padding="0,0,12,0">
+              <ItemsControl x:Name="UpdList">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <CheckBox Style="{StaticResource Check}" IsChecked="{Binding On, Mode=TwoWay}" Click="UpdToggle_Click" Margin="0,0,0,6" AutomationProperties.Name="{Binding Name}">
+                      <StackPanel>
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding Detail}" Style="{StaticResource Sub}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                      </StackPanel>
+                    </CheckBox>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+      </Grid>
+    </Grid>
+
     <!-- ===== Loading bar: shown by MainWindow.Loading/busy ===== -->
     <Grid x:Name="LoadBar" Grid.Column="1" Height="3" VerticalAlignment="Top" Panel.ZIndex="10" ClipToBounds="True" IsHitTestVisible="False"
           Visibility="Collapsed" SizeChanged="LoadBar_SizeChanged">
@@ -234,8 +345,8 @@
               <Button x:Name="UpdateAllBtn" Style="{StaticResource Primary}" Click="UpdateAll_Click" Margin="0,0,8,0" Visibility="Collapsed">
                 <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock x:Name="UpdateAllText" Text="Aggiorna tutte"/></StackPanel>
               </Button>
-              <Button Style="{StaticResource Btn}" Click="Refresh_Click" ToolTip="Rileggi la cartella mods">
-                <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Ricarica"/></StackPanel>
+              <Button x:Name="CheckUpdBtn" Style="{StaticResource Btn}" Click="CheckUpdates_Click" ToolTip="Rilegge la cartella mods e controlla se ci sono versioni nuove delle mod del Workshop e di BTO Sync">
+                <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock x:Name="CheckUpdText" Text="Cerca aggiornamenti"/></StackPanel>
               </Button>
               <Button Style="{StaticResource Btn}" Click="OpenDir_Click" Margin="8,0,0,0">
                 <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8B7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Cartella"/></StackPanel>
@@ -337,31 +448,10 @@
                         <TextBlock Text="{Binding Origin}" Foreground="{Binding OriginBrush}" FontSize="11" FontWeight="SemiBold"/>
                       </Border>
                       <TextBlock Grid.Column="4" Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                      <TextBlock Grid.Column="5" x:Name="chev" Text="&#xE70D;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Muted}" Margin="8,0,2,0"/>
+                      <TextBlock Grid.Column="5" Text="&#xE76C;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Muted}" Margin="8,0,2,0" ToolTip="Dettagli"/>
                     </Grid>
-                    <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource Vis}}" Margin="110,12,8,2">
-                      <TextBlock Text="{Binding DescriptionText}" Foreground="{StaticResource Body}" TextWrapping="Wrap" LineHeight="21" MaxWidth="860" HorizontalAlignment="Left"/>
-                      <TextBlock Text="{Binding RequiresText}" Foreground="{StaticResource Body}" FontSize="12" Margin="0,12,0,0" Visibility="{Binding HasRequires, Converter={StaticResource Vis}}"/>
-                      <TextBlock Text="{Binding DetailsText}" Style="{StaticResource Sub}" FontSize="12" Margin="0,12,0,0"/>
-                      <WrapPanel Margin="0,12,0,0">
-                        <Button Style="{StaticResource Primary}" Click="UpdateMod_Click" Margin="0,0,8,0" IsEnabled="{Binding Unlocked}"
-                                Visibility="{Binding CanUpdate, Converter={StaticResource Vis}}" Content="Aggiorna"/>
-                        <Button Style="{StaticResource Btn}" Click="ModPage_Click" Margin="0,0,8,0" Visibility="{Binding HasPage, Converter={StaticResource Vis}}">
-                          <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Pagina Workshop"/></StackPanel>
-                        </Button>
-                        <Button Style="{StaticResource Btn}" Click="ModFolder_Click" Margin="0,0,8,0">
-                          <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8B7;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Apri cartella"/></StackPanel>
-                        </Button>
-                        <Button Style="{StaticResource Danger}" Click="ModRemove_Click" IsEnabled="{Binding Unlocked}" Visibility="{Binding CanRemove, Converter={StaticResource Vis}}">
-                          <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Disinstalla"/></StackPanel>
-                        </Button>
-                      </WrapPanel>
-                    </StackPanel>
                   </StackPanel>
                 </Border>
-                <DataTemplate.Triggers>
-                  <DataTrigger Binding="{Binding IsExpanded}" Value="True"><Setter TargetName="chev" Property="Text" Value="&#xE70E;"/></DataTrigger>
-                </DataTemplate.Triggers>
               </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>

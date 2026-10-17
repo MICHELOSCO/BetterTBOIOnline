@@ -83,5 +83,8 @@ collegato i tuoi amici ti vedono "in gioco" su Isaac. "Avvia Isaac" e "Scollega"
 
 AGGIORNAMENTI: all'avvio BTO Sync controlla se su GitHub c'è una versione nuova e lo dice in alto;
 "Aggiorna ora" (o Impostazioni > Aggiorna) la scarica, sostituisce i file e riavvia il programma.
+In qualsiasi momento "Cerca aggiornamenti" (in Le mie mod) rilegge le mod e controlla sia le mod del
+Workshop sia BTO Sync: se trova qualcosa apre l'elenco, scegli cosa aggiornare o premi "Aggiorna
+tutto" (il programma per ultimo, poi si riavvia). Le mod BTO si aggiornano da sole.
 
 Sorgente e nuove versioni: https://github.com/MICHELOSCO/BetterTBOIOnline

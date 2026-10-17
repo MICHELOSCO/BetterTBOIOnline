@@ -25,7 +25,8 @@ che spiega cosa sistema e perché (vedi [la tabella](#le-mod-bto)).
    l'exe non ha una firma digitale: [perché è sicuro](docs/BTO-Sync.md#perché-è-sicuro).
 
 Si aggiorna da solo: all'avvio guarda se qui c'è una versione nuova e la installa se premi
-"Aggiorna ora".
+"Aggiorna ora". Quando vuoi, "Cerca aggiornamenti" controlla anche le mod del Workshop e ti fa
+scegliere cosa aggiornare, o aggiornare tutto.
 
 ## Cosa fa
 

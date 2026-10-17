@@ -49,7 +49,7 @@ namespace BtoSync
 		// Private: a private.txt in the folder marks a mod only for this PC: never in a host code, never touched by an alignment, never released
 		public bool Private;
 		public bool Bto => !Private && Core.IsBto(Folder);
-		bool enabled, canUpdate, unlocked = true, expanded; string status = "", preview; Brush statusBrush = Theme.Muted;
+		bool enabled, canUpdate, unlocked = true; string status = "", preview; Brush statusBrush = Theme.Muted;
 		public string NameText => Name;
 		public string VersionText => Version == "" ? "" : "v" + Version;
 		public string Origin => Link ? "Sviluppo" : Id != "" ? "Workshop" : Private ? "Privata" : Bto ? "BTO" : "Locale";
@@ -69,7 +69,6 @@ namespace BtoSync
 		public Brush StatusBrush { get => statusBrush; set => Set(ref statusBrush, value); }
 		public bool CanUpdate { get => canUpdate; set => Set(ref canUpdate, value); }
 		public bool Unlocked { get => unlocked; set { if (unlocked != value) { Set(ref unlocked, value); Raise(nameof(Switchable)); } } }  // false while Isaac runs
-		public bool IsExpanded { get => expanded; set => Set(ref expanded, value); }
 		string requires = "";
 		public string RequiresText { get => requires; set { Set(ref requires, value); Raise(nameof(HasRequires)); } }  // "Richiede: Custom Stage API"
 		public bool HasRequires => requires != "";
