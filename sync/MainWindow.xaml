@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="BTO Sync" Width="1440" Height="900" MinWidth="1180" MinHeight="640"
         WindowStartupLocation="CenterScreen" Background="{StaticResource Bg}"
-        FontFamily="Segoe UI" FontSize="14" Foreground="{StaticResource Fg}" UseLayoutRounding="True">
+        FontFamily="{StaticResource Mono}" FontSize="14" Foreground="{StaticResource Fg}" UseLayoutRounding="True">
   <Grid>
     <Grid.RowDefinitions><RowDefinition Height="60"/><RowDefinition/></Grid.RowDefinitions>
 
@@ -31,11 +31,11 @@
           <Button Content="Scollega" Style="{StaticResource Ghost}" Padding="8,2" FontSize="12" Margin="2,0,0,0" Click="Disconnect_Click"/>
         </StackPanel>
         <Border DockPanel.Dock="Right" CornerRadius="8" BorderBrush="{StaticResource Edge}" BorderThickness="1" Padding="12,6" Margin="0,0,12,0" VerticalAlignment="Center"
-                Cursor="Hand" MouseLeftButtonUp="ProfileCard_Click" ToolTip="Profilo attivo: clicca per gestire i profili" MaxWidth="280">
+                Cursor="Hand" MouseLeftButtonUp="ProfileCard_Click" ToolTip="Profilo attivo: clicca per gestire i profili" MaxWidth="360">
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="&#xE8B9;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,0,8,0"/>
-            <TextBlock x:Name="ActiveProfileText" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxWidth="150"/>
-            <TextBlock x:Name="ActiveProfileSub" Style="{StaticResource Sub}" FontSize="12" Margin="8,0,0,0" TextWrapping="NoWrap" VerticalAlignment="Center"/>
+            <TextBlock x:Name="ActiveProfileText" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxWidth="160"/>
+            <TextBlock x:Name="ActiveProfileSub" Style="{StaticResource Sub}" FontSize="12" Margin="8,0,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
           </StackPanel>
         </Border>
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -125,7 +125,7 @@
 
                         </StackPanel>
                       </Grid>
-                      <TextBlock Text="{Binding LongDescription}" Foreground="{StaticResource Body}" TextWrapping="Wrap" LineHeight="22" Margin="0,22,0,0"/>
+                      <TextBlock Text="{Binding LongDescription}" FontFamily="{StaticResource Prose}" Foreground="{StaticResource Body}" TextWrapping="Wrap" LineHeight="22" Margin="0,22,0,0"/>
                     </StackPanel>
                   </ScrollViewer>
                 </DockPanel>
@@ -197,7 +197,7 @@
                           <TextBlock Text="{Binding DetailsText}" Style="{StaticResource Sub}" FontSize="12" TextWrapping="Wrap" Margin="0,12,0,0"/>
                         </StackPanel>
                       </Grid>
-                      <TextBlock Text="{Binding DescriptionText}" Foreground="{StaticResource Body}" TextWrapping="Wrap" LineHeight="22" Margin="0,22,0,0"/>
+                      <TextBlock Text="{Binding DescriptionText}" FontFamily="{StaticResource Prose}" Foreground="{StaticResource Body}" TextWrapping="Wrap" LineHeight="22" Margin="0,22,0,0"/>
                     </StackPanel>
                   </ScrollViewer>
                 </DockPanel>
@@ -353,10 +353,21 @@
               <RadioButton x:Name="FilterOff" Style="{StaticResource Pill}" GroupName="filter" Content="Disattivate" Checked="Filter_Changed"/>
               <RadioButton x:Name="FilterUpd" Style="{StaticResource Pill}" GroupName="filter" Content="Da aggiornare" Checked="Filter_Changed" Margin="0"/>
             </StackPanel>
+            <ScrollViewer Focusable="False" VerticalScrollBarVisibility="Auto" Margin="0,0,-16,0">
+              <ScrollViewer.Template>
+                <ControlTemplate TargetType="ScrollViewer">
+                  <Grid>
+                    <ScrollContentPresenter Margin="0,0,16,0" CanContentScroll="False"/>
+                    <ScrollBar x:Name="PART_VerticalScrollBar" HorizontalAlignment="Right" Value="{TemplateBinding VerticalOffset}" Maximum="{TemplateBinding ScrollableHeight}"
+                               ViewportSize="{TemplateBinding ViewportHeight}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+                  </Grid>
+                </ControlTemplate>
+              </ScrollViewer.Template>
             <Border Style="{StaticResource Card}" Padding="0" VerticalAlignment="Top">
             <Grid>
           <Border x:Name="ModsMask" CornerRadius="11" Background="{StaticResource Surface}"/>
           <ListBox x:Name="ModsList" Style="{StaticResource Plain}" ItemContainerStyle="{StaticResource FlatItem}">
+            <ListBox.Template><ControlTemplate TargetType="ListBox"><ItemsPresenter/></ControlTemplate></ListBox.Template>
             <ListBox.OpacityMask><VisualBrush Visual="{Binding ElementName=ModsMask}"/></ListBox.OpacityMask>
             <ListBox.GroupStyle>
               <GroupStyle>
@@ -449,6 +460,7 @@
           </ListBox>
             </Grid>
             </Border>
+            </ScrollViewer>
           </DockPanel>
 
           <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Focusable="False">
@@ -994,10 +1006,10 @@
                   </StackPanel>
                 </DockPanel>
               </Border>
-          <DockPanel x:Name="BackupsHeader" DockPanel.Dock="Top" Margin="0,0,0,10">
-            <TextBlock x:Name="BackupsCount" DockPanel.Dock="Right" Style="{StaticResource Sub}" VerticalAlignment="Bottom"/>
+          <StackPanel x:Name="BackupsHeader" DockPanel.Dock="Top" Margin="0,0,0,10">
             <TextBlock Text="Backup" Style="{StaticResource H2}"/>
-          </DockPanel>
+            <TextBlock x:Name="BackupsCount" Style="{StaticResource Sub}" FontSize="12" Margin="0,2,0,0"/>
+          </StackPanel>
           <TextBlock x:Name="BackupsEmpty" DockPanel.Dock="Top" Style="{StaticResource Sub}" Margin="2,0,0,0"
                      Text="Nessun backup ancora: premi Backup su uno slot."/>
           <ListBox x:Name="BackupsList" Style="{StaticResource Plain}" ItemContainerStyle="{StaticResource CardItem}">

@@ -24,7 +24,8 @@
     <SolidColorBrush x:Key="Bad" Color="#F0616D"/>
     <SolidColorBrush x:Key="BadSoft" Color="#2A1E1F"/>
     <FontFamily x:Key="Icons">Segoe MDL2 Assets</FontFamily>
-    <FontFamily x:Key="Mono">Cascadia Mono, Consolas</FontFamily>
+    <FontFamily x:Key="Mono">Cascadia Mono, Consolas</FontFamily>  <!-- the whole app -->
+    <FontFamily x:Key="Prose">Segoe UI</FontFamily>  <!-- only the mods' descriptions: long text reads better proportional -->
     <BooleanToVisibilityConverter x:Key="Vis"/>
 
     <Style TargetType="TextBlock"><Setter Property="TextOptions.TextFormattingMode" Value="Display"/></Style>
@@ -358,7 +359,7 @@
 
     <!-- Dropdown menus (slot picker) -->
     <Style TargetType="ContextMenu">
-      <Setter Property="Foreground" Value="{StaticResource Fg}"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="FontSize" Value="13"/>
+      <Setter Property="Foreground" Value="{StaticResource Fg}"/><Setter Property="FontFamily" Value="{StaticResource Mono}"/><Setter Property="FontSize" Value="13"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="ContextMenu">
@@ -386,6 +387,7 @@
     </Style>
 
     <Style TargetType="ToolTip">
+      <Setter Property="FontFamily" Value="{StaticResource Mono}"/>
       <Setter Property="Background" Value="{StaticResource Surface2}"/><Setter Property="Foreground" Value="{StaticResource Fg}"/>
       <Setter Property="BorderBrush" Value="{StaticResource Line}"/><Setter Property="Padding" Value="9,6"/><Setter Property="MaxWidth" Value="420"/>
     </Style>
