@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+	<name>BTO Astro Sync</name>
+	<directory>bto-astro-sync</directory>
+	<description>Evita i desync con Astrobirth (Astro Items): niente più comandi da tastiera e mouse che vedeva solo chi li premeva, e fuori dalle pool gli oggetti che funzionano solo così.
+
+Serve la mod Astrobirth.
+
+Va installata su tutti i PC della partita, con la stessa versione (BTO Sync lo controlla per te).</description>
+	<version>1.0</version>
+	<visibility>Private</visibility>
+</metadata>

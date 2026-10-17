@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+	<name>BTO Golden Items Sync</name>
+	<directory>bto-goldenitems-sync</directory>
+	<description>Evita i desync con Golden Items: gli oggetti dorati ora escono uguali su tutti i PC.
+
+Serve la mod Golden Items.
+
+Va installata su tutti i PC della partita, con la stessa versione (BTO Sync lo controlla per te).</description>
+	<version>1.0</version>
+	<visibility>Private</visibility>
+</metadata>

@@ -69,3 +69,19 @@ Due livelli, di costo e rischio molto diversi:
 Per le mod: il join in corsa trasferisce i dati salvati (`SaveData`), non lo stato Lua in memoria
 (`TheFuture.rng`, tabelle locali). Una mod che tiene stato rilevante solo in memoria resterebbe
 divergente dopo la risincronizzazione, quindi la prevenzione (punti 1–3) resta necessaria.
+
+## Mod aggiunte il 17/10/2026
+
+Lettura del codice, con le prove dal vivo indicate.
+
+| Mod (Workshop) | Rischio | Cosa | Stato |
+|---|---|---|---|
+| Bestia (2588931231) | nessuno | solo grafica e musica | – |
+| [Fish] Siren's Items Over Mom's (3650363740) | nessuno | solo nomi/descrizioni; errore Lua a ogni avvio (`mod.onUpdate` nil all'ultima riga) | `bto-sirens-fix` |
+| New Pockets (3460799883) | basso | con l'annunciatore "a caso" (`AnnouncerVoiceMode=0`) estrae dal `GetCardRNG`/`GetPillRNG` del giocatore solo sui PC con quell'impostazione (`announcer.lua:59,114`) | stessa voce annunciatore per tutti |
+| Golden Items (3338495603) | alto | `GoldChanceRNG` seminato una volta per processo, al primo piedistallo (`main.lua:187-216`), come la fonte #6 | `bto-goldenitems-sync`: decide prima, da `InitSeed` (hash Murmur3), provato su 4000 piedistalli |
+| Astrobirth (3260980911) | alto | tasti grezzi, mouse e "Drop tenuto" contati sui frame disegnati (`upgrade-action.lua`), effetti in callback di render; errore in `lucky-rock-bottom.lua:34` continuando senza dati, che ferma l'intero `MC_POST_GAME_STARTED` | `bto-astro-sync`: input neutro dentro i callback di Astro (P Key provata), 17 oggetti fuori dalle pool, dati preparati |
+
+Nota generale emersa: il dispatcher dei callback (`resources/scripts/main.lua:71-76`) si ferma al primo
+errore, quindi un errore Lua in un callback salta tutti quelli dopo, mod BTO comprese. Se l'errore
+capita su un PC solo, è un desync.

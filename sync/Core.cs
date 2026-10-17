@@ -153,7 +153,10 @@ namespace BtoSync
 		// Every other BTO mod in the releases fixes the base game and is always active.
 		public static readonly Dictionary<string, (string id, string name)> Ties = new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
 		{
+			["bto-astro-sync"] = ("3260980911", "Astrobirth"),
 			["bto-faircoop-crash-fix"] = ("2678027825", "Fair Co-op Items"),
+			["bto-goldenitems-sync"] = ("3338495603", "Golden Items"),
+			["bto-sirens-fix"] = ("3650363740", "[Fish] Siren's Items Over Mom's"),
 			["bto-stageapi-sync"] = ("1348031964", "StageAPI"),
 			["bto-thefuture-sync"] = ("2993558907", "The Future"),
 			["bto-thefuture-revive-fix"] = ("2993558907", "The Future"),

@@ -118,6 +118,9 @@ Tutti i dettagli sono in [docs/BTO-Sync.md](docs/BTO-Sync.md).
 | [BTO The Future Sync](mods/bto-thefuture-sync/README.md) | Nemici di The Future che sparano anelli di proiettili | The Future |
 | [BTO The Future Revive Fix](mods/bto-thefuture-revive-fix/README.md) | La Revive Machine dentro The Future bloccava tutti | The Future |
 | [BTO Fair Co-op Crash Fix](mods/bto-faircoop-crash-fix/README.md) | Crash di tutti insieme subito dopo uno split | Fair Co-op Items |
+| [BTO Golden Items Sync](mods/bto-goldenitems-sync/README.md) | Oggetti dorati diversi da un PC all'altro | Golden Items |
+| [BTO Astro Sync](mods/bto-astro-sync/README.md) | Comandi da tastiera e mouse che vedeva solo chi li premeva, oggetti che agivano mentre si disegna lo schermo | Astrobirth |
+| [BTO Sirens Fix](mods/bto-sirens-fix/README.md) | Errore Lua a ogni avvio (innocuo, ma faceva inviare il log ogni volta) | [Fish] Siren's Items Over Mom's |
 | [BetterTBOIOnline Diagnostics](diagnostics-mod/README.md) | Solo log, per analizzare i desync (non cambia il gioco) | se installata |
 
 Tutti devono avere le stesse mod BTO alla stessa versione: le mod se ne accorgono da sole all'inizio
