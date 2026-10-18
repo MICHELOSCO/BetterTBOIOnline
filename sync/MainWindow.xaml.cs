@@ -104,7 +104,18 @@ namespace BtoSync
 		static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
 
 		static T Ctx<T>(object sender) => (T)((FrameworkElement)sender).DataContext;
-		void Status(string s) => StatusText.Text = s;
+		// results fade after a few seconds (longer ones stay longer); "…" means still working, so it stays until the next message
+		System.Windows.Threading.DispatcherTimer statusTimer;
+		void Status(string s)
+		{
+			StatusText.Text = s;
+			StatusText.BeginAnimation(OpacityProperty, null);
+			statusTimer?.Stop();
+			if (string.IsNullOrEmpty(s) || s.EndsWith("…")) return;
+			statusTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(Math.Max(6, s.Length / 12)) };
+			statusTimer.Tick += (_, __) => { statusTimer.Stop(); StatusText.BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(0, TimeSpan.FromSeconds(0.6))); };
+			statusTimer.Start();
+		}
 
 		// ---------- loading bar: any running operation (counted) or a busy action shows it ----------
 		int loading;
