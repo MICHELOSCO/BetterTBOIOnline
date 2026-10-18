@@ -5,3 +5,4 @@ logs-others/
 __pycache__/
 bin/
 obj/
+BTO-Sync-Setup-*.exe

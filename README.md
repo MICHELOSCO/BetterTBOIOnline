@@ -18,11 +18,12 @@ che spiega cosa sistema e perché (vedi [la tabella](#le-mod-bto)).
 ## Scaricalo
 
 1. Vai nelle [release](https://github.com/MICHELOSCO/BetterTBOIOnline/releases) e scarica
-   `BTO-Sync-X.Y.Z.zip` dall'ultima release `sync-v…`.
-2. Estrailo dove vuoi e apri `BTO-Sync.exe`, **a gioco chiuso** e con Steam aperto. Non serve
-   installare nulla.
+   `BTO-Sync-Setup-X.Y.Z.exe` dall'ultima release `sync-v…`.
+2. Aprilo: installa BTO Sync per il tuo utente (senza permessi di amministratore) con il collegamento nel
+   menu Start. Poi apri BTO Sync **a gioco chiuso** e con Steam aperto. Se preferisci non installare,
+   c'è anche `BTO-Sync-X.Y.Z.zip`: estrailo dove vuoi e apri `BTO-Sync.exe`.
 3. Se Windows dice "PC protetto": "Ulteriori informazioni" › "Esegui comunque". Succede perché
-   l'exe non ha una firma digitale: [perché è sicuro](docs/BTO-Sync.md#perché-è-sicuro).
+   il programma non ha ancora una firma digitale: [perché è sicuro](docs/BTO-Sync.md#perché-è-sicuro).
 
 Si aggiorna da solo: all'avvio guarda se qui c'è una versione nuova e la installa se premi
 "Aggiorna ora". Quando vuoi, "Cerca aggiornamenti" controlla anche le mod del Workshop e ti fa

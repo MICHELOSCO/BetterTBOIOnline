@@ -75,5 +75,6 @@ questa cartella o compilalo tu.
 ## Dove trovarlo
 
 Ultima versione: [release `sync-v…`](https://github.com/MICHELOSCO/BetterTBOIOnline/releases).
-Scarica `BTO-Sync-X.Y.Z.zip`, estrailo e apri `BTO-Sync.exe`, a gioco chiuso. Le istruzioni
-d'uso sono nel `LEGGIMI.txt` dentro lo zip.
+Scarica `BTO-Sync-Setup-X.Y.Z.exe` e installalo (per il tuo utente, senza amministratore), oppure
+`BTO-Sync-X.Y.Z.zip` da estrarre; poi apri BTO Sync a gioco chiuso. Le istruzioni d'uso sono nel
+`LEGGIMI.txt` accanto all'exe.
