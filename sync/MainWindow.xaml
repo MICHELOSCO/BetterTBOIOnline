@@ -16,7 +16,7 @@
         </StackPanel>
         <Button x:Name="LaunchBtn" DockPanel.Dock="Right" Style="{StaticResource Primary}" Padding="16,8" Click="Launch_Click" VerticalAlignment="Center" Margin="10,0,0,0">
           <StackPanel Orientation="Horizontal">
-            <TextBlock Text="&#xE7FC;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/>
+            <TextBlock Text="&#xE7FC;" Style="{StaticResource Icon}" FontSize="17" Margin="0,-3,8,-3"/>
             <TextBlock Text="Avvia Isaac"/>
           </StackPanel>
         </Button>
@@ -760,7 +760,7 @@
                 <DockPanel>
                   <Border x:Name="Step3" Style="{StaticResource StepDot}" Tag="3" DockPanel.Dock="Left"/>
                   <Button x:Name="PlanLaunchBtn" DockPanel.Dock="Right" Style="{StaticResource Btn}" Click="Launch_Click" VerticalAlignment="Center" Padding="18,9">
-                    <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7FC;" Style="{StaticResource Icon}" FontSize="12" Margin="0,0,8,0"/><TextBlock Text="Avvia Isaac"/></StackPanel>
+                    <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7FC;" Style="{StaticResource Icon}" FontSize="17" Margin="0,-3,8,-3"/><TextBlock Text="Avvia Isaac"/></StackPanel>
                   </Button>
                   <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="Avvia Isaac" Style="{StaticResource H2}"/>
