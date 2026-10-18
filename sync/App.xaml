@@ -61,6 +61,13 @@
     <Style x:Key="Icon" TargetType="TextBlock">
       <Setter Property="FontFamily" Value="{StaticResource Icons}"/><Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
+    <!-- filled controller for "Avvia Isaac": Segoe's outline glyph looked thin next to bold text -->
+    <Style x:Key="Gamepad" TargetType="Path">
+      <Setter Property="Data" Value="F0 M6,1 H18 C21.5,1 23.2,3.5 23.7,7 L24,11.5 C24.3,14.2 22.8,15.8 21,15.8 C19.6,15.8 18.8,15 17.8,13.6 L16.6,12 H7.4 L6.2,13.6 C5.2,15 4.4,15.8 3,15.8 C1.2,15.8 -0.3,14.2 0,11.5 L0.3,7 C0.8,3.5 2.5,1 6,1 Z M5.6,3.7 h1.8 v1.9 h1.9 v1.8 h-1.9 v1.9 h-1.8 v-1.9 h-1.9 v-1.8 h1.9 Z M17.7,8.3 A1.2,1.2 0 1 0 15.3,8.3 A1.2,1.2 0 1 0 17.7,8.3 Z M20.2,5.6 A1.2,1.2 0 1 0 17.8,5.6 A1.2,1.2 0 1 0 20.2,5.6 Z"/>
+      <Setter Property="Fill" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+      <Setter Property="Stretch" Value="Uniform"/><Setter Property="Width" Value="21"/>
+      <Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="0,-3,9,-3"/>
+    </Style>
     <Style x:Key="Card" TargetType="Border">
       <Setter Property="Background" Value="{StaticResource Surface}"/><Setter Property="CornerRadius" Value="12"/>
       <Setter Property="BorderBrush" Value="{StaticResource Line}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="18"/>
