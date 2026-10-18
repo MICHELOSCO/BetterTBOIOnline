@@ -121,14 +121,15 @@ namespace BtoSync
 
 		const int MinVotes = 10;  // below this a percentage is noise ("100%" from 3 votes)
 
-		// Facepunch 2.3.3 keeps Steam's "number of required items" only in its internal details struct.
+		// Facepunch 2.3.3 keeps Steam's "number of required items" and published size only in its internal details struct
+		// (its SizeBytes is the installed size: 0 for anything not downloaded).
 		static readonly System.Reflection.FieldInfo DetailsField = typeof(Item).GetField("details", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-		static int Children(Item i)
+		static long Detail(Item i, string field)
 		{
 			try
 			{
 				var d = DetailsField?.GetValue(i);
-				return d == null ? 0 : Convert.ToInt32(d.GetType().GetField("NumChildren", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)?.GetValue(d) ?? 0);
+				return d == null ? 0 : Convert.ToInt64(d.GetType().GetField(field, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)?.GetValue(d) ?? 0);
 			}
 			catch { return 0; }
 		}
@@ -150,9 +151,9 @@ namespace BtoSync
 				HasScore = votes >= MinVotes, ScoreText = votes == 0 ? "" : $"{100.0 * i.VotesUp / votes:0}%",
 				VotesText = votes == 0 ? "nessun voto" : votes < MinVotes ? $"pochi voti ({votes})" : $"{100.0 * i.VotesUp / votes:0}% di {votes:N0}",
 				SubsShort = Compact(i.NumUniqueSubscriptions), SubsFull = $"{i.NumUniqueSubscriptions:N0}",
-				SizeText = Size(i.SizeBytes) ?? "-", UpdatedText = $"{i.Updated:dd/MM/yyyy}",
+				SizeText = Size(Math.Max(Detail(i, "FileSize"), i.SizeBytes)) ?? "-", UpdatedText = $"{i.Updated:dd/MM/yyyy}",
 				KindText = tags.Length == 0 ? "" : visual ? "Solo grafica e suoni" : "Può cambiare il gameplay", IsVisualOnly = visual,
-				NumRequired = Children(i),
+				NumRequired = (int)Detail(i, "NumChildren"),
 				Tags = tags.Select(TagChip.LabelOf).ToArray(),
 				Installed = Core.HasWorkshopCopy(i.Id.Value.ToString(), modsDir),
 			};
