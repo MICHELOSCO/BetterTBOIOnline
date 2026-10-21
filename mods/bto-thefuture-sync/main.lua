@@ -1,6 +1,6 @@
--- BTO The Future Sync v1.0 (BetterTBOIOnline). Desync fixes specific to The Future's enemies. Needs The Future.
+-- BTO The Future Sync v1.1 (BetterTBOIOnline). Desync fixes specific to The Future (enemies, Steven's room). Needs The Future.
 -- Every player in the party must have the same BTO mods at the same version (handshake at the bottom).
-local NAME, VERSION = "bto-thefuture-sync", "1.0"
+local NAME, VERSION = "bto-thefuture-sync", "1.1"
 local mod = RegisterMod("BTO The Future Sync", 1)
 local game = Game()
 local function log(s) Isaac.DebugString("[" .. NAME .. "] " .. s) end
@@ -21,8 +21,62 @@ local function wrap()
 	wrapped = true
 	log("FireProjectiles circle angle pinned")
 end
-wrap() -- the order in which mods load is not fixed: retry at run start
-mod:AddPriorityCallback(ModCallbacks.MC_POST_GAME_STARTED, CallbackPriority.IMPORTANT, wrap)
+-- Steven's room (stevennpc.lua:223-316): on Caves/Catacombs II, 33% of the time (+10% with Steven) a 1x1
+-- dead end becomes Steven's room, the way into The Future. Both the roll and the choice of dead end used a
+-- module RNG() never seeded (stevennpc.lua:2), whose state depends on each PC's history: desync 19/10 21:51,
+-- one PC of three entered "Steven's Cold Storage" where the other two had a normal room (frame 29135).
+-- Its MakeStevenRoom becomes a no-op (its roll still runs, harmlessly) and the same decision is made here
+-- from the stage seed, identical on every PC.
+local stevenWrapped = false
+local function wrapSteven()
+	if stevenWrapped or not (TheFuture and TheFuture.MakeStevenRoom and StageAPI and StageAPI.RoomsLists) then return end
+	TheFuture.MakeStevenRoom = function() end
+	stevenWrapped = true
+	log("Steven room seeded from the stage")
+end
+
+local function isDeadEnd(level, idx)
+	local n = 0
+	for _, shift in ipairs({ 1, -1, 13, -13 }) do
+		if level:GetRoomByIdx(idx + shift).Data then n = n + 1 end
+	end
+	return n == 1
+end
+
+mod:AddCallback(ModCallbacks.MC_POST_NEW_LEVEL, function()
+	if not stevenWrapped then return end
+	local tf, level = TheFuture, game:GetLevel()
+	-- same conditions as stevennpc.lua:229-230
+	if game:IsGreedMode() or Isaac.GetChallenge() ~= Challenge.CHALLENGE_NULL or level:GetStage() ~= LevelStage.STAGE2_2
+		or (StageAPI.InOverriddenStage() and not (StageAPI.GetCurrentStage().Name == "Catacombs 2"
+			or StageAPI.GetCurrentStage().StageHPNumber == 4)) then return end
+	local rng = RNG()
+	rng:SetSeed(math.max(game:GetSeeds():GetStageSeed(level:GetStage()), 1), 35)
+	local chance = tf.StevenChance + (tf:IsPlayerWithCollectible(CollectibleType.COLLECTIBLE_STEVEN) and 0.1 or 0)
+	if rng:RandomFloat() > chance then return end
+	local ends, rooms = {}, level:GetRooms()
+	for i = 0, #rooms - 1 do
+		local desc = rooms:Get(i)
+		if desc.Data.Shape == RoomShape.ROOMSHAPE_1x1 and desc.Data.Type == RoomType.ROOM_DEFAULT
+			and desc.Data.Subtype == 0 and isDeadEnd(level, desc.SafeGridIndex) then
+			ends[#ends + 1] = desc.SafeGridIndex
+		end
+	end
+	if #ends == 0 then return end
+	local desc = level:GetRoomByIdx(ends[rng:RandomInt(#ends) + 1])
+	desc.Data = StageAPI.GetGotoDataForTypeShape(RoomType.ROOM_DEFAULT, RoomShape.ROOMSHAPE_1x1)
+	StageAPI.SetLevelRoom(StageAPI.LevelRoom{
+		RoomType = RoomType.ROOM_DEFAULT,
+		RequireRoomType = false,
+		RoomsList = StageAPI.RoomsLists.FutureStevenRooms,
+		RoomDescriptor = desc
+	}, desc.ListIndex)
+	log("Steven room at " .. desc.SafeGridIndex)
+end)
+
+local function wrapAll() wrap() wrapSteven() end
+wrapAll() -- the order in which mods load is not fixed: retry at run start
+mod:AddPriorityCallback(ModCallbacks.MC_POST_GAME_STARTED, CallbackPriority.IMPORTANT, wrapAll)
 log("loaded")
 
 -- BTO handshake begin (identical in every BTO mod: build-zip.sh checks it) ------------------------------
