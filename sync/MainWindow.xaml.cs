@@ -498,7 +498,8 @@ namespace BtoSync
 		async void CheckUpdates_Click(object sender, RoutedEventArgs e)
 		{
 			CheckUpdBtn.IsEnabled = false; CheckUpdText.Text = "Controllo…";
-			try { await Reload(); await CheckUpdate(); }
+			// the release list is re-read too: a BTO mod released after BTO Sync opened was never seen (21/10)
+			try { assets = null; await Reload(); await CheckUpdate(); }
 			finally { CheckUpdBtn.IsEnabled = true; CheckUpdText.Text = "Cerca aggiornamenti"; }
 			updates = local.Where(m => m.CanUpdate).Select(m => new UpdEntry { Name = m.Name, Detail = "Mod del Workshop: c'è una versione nuova" + (m.Version != "" ? $" (hai la {m.Version})" : ""), Mod = m }).ToList();
 			if (update != null)
@@ -506,7 +507,11 @@ namespace BtoSync
 			int ws = local.Count(m => m.Id != "");
 			if (updates.Count == 0)
 			{
-				if (!wsChecked) Dialog.Show(this, "Non riesco a controllare le mod", "Il Workshop non risponde: controlla la connessione e riprova.", DialogKind.Warning);
+				// BTO mods the alignment in Reload could not update (Isaac open, download failed): never "all up to date"
+				var pending = assets == null ? new List<string>() : Core.TiePlan(local, Core.Catalog(assets)).Actions.Where(a => a.Kind == ActionKind.Download).Select(a => a.Text).ToList();
+				if (pending.Count > 0)
+					Dialog.Show(this, "Mod BTO da aggiornare", string.Join(NL, pending) + NL + (Core.IsaacRunning ? "Chiudi Isaac e premi di nuovo Cerca aggiornamenti." : "Il download non è riuscito: riprova con Cerca aggiornamenti."), DialogKind.Warning);
+				else if (!wsChecked) Dialog.Show(this, "Non riesco a controllare le mod", "Il Workshop non risponde: controlla la connessione e riprova.", DialogKind.Warning);
 				else Dialog.Show(this, "È tutto aggiornato", $"Ho controllato {ws} mod del Workshop e BTO Sync. Le mod BTO si aggiornano da sole.");
 				return;
 			}
