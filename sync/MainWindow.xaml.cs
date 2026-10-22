@@ -361,7 +361,14 @@ namespace BtoSync
 				? (RgonOn ? "Avvia Isaac lo avvia con REPENTOGON, dal suo launcher: " : "Avvia Isaac lo ignora e avvia il gioco normale. Launcher: ") + rgon
 				: rgonCopy ? "È installato, ma non trovo il suo launcher: sceglilo (REPENTOGONLauncher.exe) e Avvia Isaac lo userà."
 				: "Non installato. Serve solo alle mod che lo richiedono (nel Workshop hanno il segno \"Richiede REPENTOGON\"): si installa da repentogon.com.";
+			// no launcher, but REPENTOGON is installed or an active mod needs it: Avvia Isaac would start the game without it
+			var needs = local.Where(m => m.Enabled && Core.RequiresRepentogon(m.Name, m.Description ?? "")).Select(m => m.Name).ToList();
+			RgonBanner.Visibility = rgon == null && (rgonCopy || needs.Count > 0) ? Visibility.Visible : Visibility.Collapsed;
+			RgonBannerText.Text = (needs.Count == 0 ? "REPENTOGON è installato" : needs.Count == 1 ? $"{needs[0]} richiede REPENTOGON" : $"{needs.Count} mod attive richiedono REPENTOGON ({string.Join(", ", needs)})")
+				+ ", ma non trovo il suo launcher nella cartella di Isaac: Avvia Isaac avvierà il gioco senza. Sceglilo, o installalo da repentogon.com.";
 		}
+
+		void RgonSite_Click(object sender, RoutedEventArgs e) { try { Process.Start("https://repentogon.com/install.html"); } catch (Exception ex) { ShowError("Non riesco ad aprire il browser.", ex); } }
 
 		void Rgon_Click(object sender, RoutedEventArgs e)
 		{
@@ -1567,6 +1574,7 @@ namespace BtoSync
 			depIssues = Core.DepIssues(local);
 			DepBanner.Visibility = depIssues.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 			DepBannerText.Text = string.Join(" ", depIssues.Select(d => $"{d.Mod.Name} richiede {d.Name}, che {(d.Req == null ? "non è installata" : "è spenta")}."));
+			ShowRepentogon();
 			RefreshHealth();
 		}
 

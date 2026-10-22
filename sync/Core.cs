@@ -659,13 +659,20 @@ namespace BtoSync
 		// the copy the launcher made: REPENTOGON is installed even when its launcher is somewhere we do not look
 		public static bool RepentogonCopy(string modsDir) => GameDir(modsDir) != null && File.Exists(Path.Combine(GameDir(modsDir), "Repentogon", "zhlRepentogon.dll"));
 
-		// REPENTOGONLauncher.exe: the one picked by hand, the places repentogon.com suggests (a folder in the game folder or at a
-		// drive's root), or the one in Isaac's Steam launch options ("<path>\REPENTOGONLauncher.exe" --isaac=%command%).
+		// REPENTOGONLauncher.exe: the one picked by hand, then the game folder (where it usually is: in it or in one of its
+		// folders), a REPENTOGONLauncher folder at a drive's root (repentogon.com's other suggestion), or the one in Isaac's Steam
+		// launch options ("<path>\REPENTOGONLauncher.exe" --isaac=%command%).
 		public static string RepentogonLauncher(string modsDir)
 		{
 			try { var s = File.ReadAllText(RepentogonChoice).Trim(); if (File.Exists(s)) return s; } catch { }
 			var tries = new List<string>();
-			if (GameDir(modsDir) != null) tries.Add(Path.Combine(GameDir(modsDir), "REPENTOGONLauncher", "REPENTOGONLauncher.exe"));
+			var game = GameDir(modsDir);
+			if (game != null)
+			{
+				tries.Add(Path.Combine(game, "REPENTOGONLauncher.exe"));
+				tries.Add(Path.Combine(game, "REPENTOGONLauncher", "REPENTOGONLauncher.exe"));
+				try { tries.AddRange(Directory.GetDirectories(game).Select(d => Path.Combine(d, "REPENTOGONLauncher.exe"))); } catch { }
+			}
 			try { tries.AddRange(DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady).Select(d => Path.Combine(d.Name, "REPENTOGONLauncher", "REPENTOGONLauncher.exe"))); } catch { }
 			var found = tries.FirstOrDefault(File.Exists);
 			if (found != null) return found;
