@@ -9,7 +9,7 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>BTO-Sync</AssemblyName>
     <RootNamespace>BtoSync</RootNamespace>
-    <Version>2.9.8</Version>
+    <Version>2.9.9</Version>
     <ApplicationIcon>app.ico</ApplicationIcon>  <!-- made by tools/make-icon.py -->
     <!-- no PDB path (it holds the local user folder) in the published exe -->
     <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
