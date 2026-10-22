@@ -9,6 +9,8 @@ namespace BtoSync
 		{
 			base.OnStartup(e);
 			if (e.Args.Contains("--selftest")) { Shutdown(SelfTest.Run()); return; }
+			// the Steamworks child (Steam.cs): off the UI thread, so its awaits do not wait on a dispatcher nobody pumps
+			if (e.Args.Contains("--steam-host")) { Shutdown(System.Threading.Tasks.Task.Run(() => Steam.Host()).GetAwaiter().GetResult()); return; }
 			Updater.CleanOld(Updater.AppDir);
 			Core.Screenshots = e.Args.Contains("--screenshots");
 			DispatcherUnhandledException += (s, x) =>  // an unexpected error must not close the window mid-sync

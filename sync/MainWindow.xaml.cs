@@ -54,6 +54,7 @@ namespace BtoSync
 			LogsCard.Visibility = Core.LogsUrlNow == "" ? Visibility.Collapsed : Visibility.Visible;
 			Loaded += async (s, e) => { UpdateState(); _ = CheckUpdate(); await Reload(); CheckPatch(); OpenHostCodeFromClipboard(); AskLogs(); _ = ShowGameLog(); };
 			Closing += (s, e) => { Steam.Disconnect(); SaveWindow(); };
+			Steam.Changed += () => Dispatcher.BeginInvoke(new Action(UpdateState));  // it also closes by itself after a minute unused
 			RestoreWindow();
 			KeyDown += (s, e) =>  // Esc closes the Workshop detail pane
 			{
@@ -319,12 +320,16 @@ namespace BtoSync
 
 		void ProfileCard_Click(object sender, MouseButtonEventArgs e) => NavProfiles.IsChecked = true;
 
-		void Launch_Click(object sender, RoutedEventArgs e)
+		async void Launch_Click(object sender, RoutedEventArgs e)
 		{
 			int saved = 0;
 			if (AutoBackupOn && !Core.Screenshots)
 				try { saved = Saves.AutoBackup(); } catch (Exception ex) { Core.LogError(ex); }  // a failed backup must not keep the game closed
-			Steam.Disconnect();
+			if (Steam.Disconnect())
+			{
+				Status("Chiudo il collegamento a Steam…"); Loading(true);
+				try { await Steam.WaitReleased(); } finally { Loading(false); }
+			}
 			UpdateState();
 			Process.Start("steam://rungameid/" + Core.AppId);
 			Status("Avvio Isaac tramite Steam…" + (saved == 0 ? "" : saved == 1 ? " Prima ho salvato un backup di 1 slot." : $" Prima ho salvato un backup di {saved} slot."));
@@ -842,7 +847,7 @@ namespace BtoSync
 				var (items, total) = await Steam.Search(SearchBox.Text, sortIndex, trendDays, on.Select(t => t.Name), wsPage);
 				if (search != searchId) return;  // a newer search started meanwhile
 				foreach (var sk in ws.Where(x => x.Skeleton).ToList()) ws.Remove(sk);
-				foreach (var i in items) { var w = WsItem.From(i, modsDir); MarkWs(w); ws.Add(w); }
+				foreach (var w in items) { MarkWs(w); ws.Add(w); }
 				wsPage++;
 				WsInfo.ToolTip = null;
 				WsInfo.Text = total == 0 ? "Nessuna mod trovata." : $"{total:N0} mod trovate · ne vedi {ws.Count} · clicca una mod per i dettagli";

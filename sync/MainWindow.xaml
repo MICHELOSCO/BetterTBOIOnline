@@ -25,7 +25,7 @@
         <RadioButton x:Name="NavInfo" GroupName="nav" DockPanel.Dock="Right" Style="{StaticResource NavIcon}" Tag="&#xE946;" Checked="Nav_Checked" VerticalAlignment="Center"
                      ToolTip="Info su BTO Sync" AutomationProperties.Name="Info"/>
         <StackPanel x:Name="SteamBox" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0" Visibility="Collapsed"
-                    ToolTip="Per il Workshop BTO Sync si collega a Steam come Isaac: finché è collegato risulti in gioco su Isaac.">
+                    ToolTip="Per il Workshop BTO Sync si collega a Steam come Isaac: finché è collegato risulti in gioco su Isaac. Si scollega da solo dopo un minuto senza usarlo.">
           <Ellipse Width="8" Height="8" Fill="{StaticResource Accent}" VerticalAlignment="Center"/>
           <TextBlock Text="Steam" Style="{StaticResource Sub}" FontSize="12" Margin="7,0,0,0" VerticalAlignment="Center"/>
           <Button Content="Scollega" Style="{StaticResource Ghost}" Padding="8,2" FontSize="12" Margin="2,0,0,0" Click="Disconnect_Click"/>
@@ -1128,7 +1128,7 @@
               <StackPanel>
                 <TextBlock Text="Steam" Style="{StaticResource H2}" FontSize="14"/>
                 <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0"
-                           Text="Per cercare e installare dal Workshop BTO Sync si collega a Steam come Isaac: finché è collegato i tuoi amici ti vedono in gioco su Isaac. Si scollega da solo quando avvii il gioco."/>
+                           Text="Per cercare e installare dal Workshop BTO Sync si collega a Steam come Isaac: finché è collegato i tuoi amici ti vedono in gioco su Isaac. Si scollega da solo dopo un minuto senza usare il Workshop e quando avvii il gioco."/>
               </StackPanel>
             </DockPanel>
           </Border>
