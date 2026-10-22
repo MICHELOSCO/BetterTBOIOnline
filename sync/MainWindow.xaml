@@ -111,6 +111,10 @@
                                       Visibility="{Binding HasRequires, Converter={StaticResource Vis}}">
                                 <TextBlock Text="{Binding RequiresText}" Foreground="#F1DEB4" FontSize="12" TextWrapping="Wrap"/>
                               </Border>
+                              <Border Background="#2A2315" BorderBrush="#4A3B1E" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,10,0,0"
+                                      Visibility="{Binding HasRepentogonNote, Converter={StaticResource Vis}}">
+                                <TextBlock Text="{Binding RepentogonNote}" Foreground="#F1DEB4" FontSize="12" TextWrapping="Wrap"/>
+                              </Border>
 
                               <ItemsControl ItemsSource="{Binding Tags}" Margin="0,4,0,0">
                                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -628,6 +632,10 @@
                           <Border x:Name="kind" CornerRadius="5" Padding="7,2,7,3" Margin="0,0,5,0" Background="#1B2D4D" Visibility="{Binding HasKind, Converter={StaticResource Vis}}">
                             <TextBlock x:Name="kindText" Text="{Binding KindText}" FontSize="11" Foreground="#CFE0FF"/>
                           </Border>
+                          <Border CornerRadius="5" Padding="7,2,7,3" Margin="0,0,5,0" Background="#2A2315" Visibility="{Binding NeedsRepentogon, Converter={StaticResource Vis}}"
+                                  ToolTip="L'autore scrive che serve REPENTOGON (repentogon.com): Avvia Isaac lo usa quando c'è">
+                            <TextBlock Text="Richiede REPENTOGON" FontSize="11" Foreground="#F1DEB4"/>
+                          </Border>
                           <Border CornerRadius="5" Padding="7,2,7,3" Background="#2A2315" Visibility="{Binding NeedsOthers, Converter={StaticResource Vis}}"
                                   ToolTip="Su Steam richiede altre mod: BTO Sync le installa insieme">
                             <TextBlock Text="Richiede altre mod" FontSize="11" Foreground="#F1DEB4"/>
@@ -1108,6 +1116,17 @@
               <StackPanel>
                 <TextBlock Text="Cartella mods di Isaac" Style="{StaticResource H2}" FontSize="14"/>
                 <TextBlock x:Name="ModsDirText" Style="{StaticResource Sub}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+              </StackPanel>
+            </DockPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+            <DockPanel>
+              <CheckBox x:Name="RgonBox" DockPanel.Dock="Right" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Rgon_Click" Visibility="Collapsed"
+                        AutomationProperties.Name="Avvia Isaac con REPENTOGON"/>
+              <Button DockPanel.Dock="Right" Content="Scegli il launcher" Style="{StaticResource Btn}" Click="RgonPick_Click" VerticalAlignment="Center" Margin="0,0,14,0"/>
+              <StackPanel Margin="0,0,12,0">
+                <TextBlock Text="REPENTOGON" Style="{StaticResource H2}" FontSize="14"/>
+                <TextBlock x:Name="RgonText" Style="{StaticResource Sub}" Margin="0,4,0,0" TextWrapping="Wrap" Text="Cerco il launcher…"/>
               </StackPanel>
             </DockPanel>
           </Border>

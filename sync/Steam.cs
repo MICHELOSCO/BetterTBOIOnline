@@ -40,11 +40,12 @@ namespace BtoSync
 				{
 					UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, StandardOutputEncoding = new UTF8Encoding(false),
 				});
-				var first = Task.Run(() => p.StandardOutput.ReadLine());
-				if (!first.Wait(15000) || first.Result != "ok")  // "ok" once SteamClient.Init worked, else its error
+				// "ok" once SteamClient.Init worked, "err:" and why if not; steam_api prints lines of its own on the same output: skipped
+				var first = Task.Run(() => { string l; while ((l = p.StandardOutput.ReadLine()) != null && l != "ok" && !l.StartsWith("err:")) { } return l; });
+				if (!first.Wait(15000) || first.Result != "ok")
 				{
 					try { p.Kill(); } catch { }
-					return fail + (first.IsCompleted && !string.IsNullOrEmpty(first.Result) ? " (" + first.Result + ")" : "");
+					return fail + (first.IsCompleted && first.Result != null ? " (" + first.Result.Substring(4).Trim() + ")" : "");
 				}
 				lock (gate) { host = p; toHost = new StreamWriter(p.StandardInput.BaseStream, new UTF8Encoding(false)) { AutoFlush = true }; }
 				new Thread(() => Read(p)) { IsBackground = true }.Start();
@@ -157,7 +158,7 @@ namespace BtoSync
 			var w = new object();
 			void Send(object o) { var line = o as string ?? Json.Serialize(o); lock (w) output.WriteLine(line); }
 			try { SteamClient.Init(Core.AppId, true); }
-			catch (Exception e) { Send(e.Message.Replace('\n', ' ')); return 1; }
+			catch (Exception e) { Send("err: " + e.Message.Replace('\n', ' ')); return 1; }
 			Send("ok");
 			string req;
 			while ((req = input.ReadLine()) != null)  // null: the parent disconnected or closed
@@ -202,7 +203,7 @@ namespace BtoSync
 			["Id"] = w.Id, ["Title"] = w.Title, ["Preview"] = w.Preview, ["LongDescription"] = w.LongDescription, ["Description"] = w.Description,
 			["SubsText"] = w.SubsText, ["HasScore"] = w.HasScore, ["ScoreText"] = w.ScoreText, ["VotesText"] = w.VotesText, ["SubsShort"] = w.SubsShort,
 			["SubsFull"] = w.SubsFull, ["SizeText"] = w.SizeText, ["UpdatedText"] = w.UpdatedText, ["KindText"] = w.KindText,
-			["IsVisualOnly"] = w.IsVisualOnly, ["NumRequired"] = w.NumRequired, ["Tags"] = w.Tags,
+			["IsVisualOnly"] = w.IsVisualOnly, ["NumRequired"] = w.NumRequired, ["Tags"] = w.Tags, ["NeedsRepentogon"] = w.NeedsRepentogon,
 		};
 
 		static async Task<(List<Item> items, int total)> SearchHere(string text, int sort, int days, IEnumerable<string> tags, int page)
@@ -272,6 +273,10 @@ namespace BtoSync
 		public bool HasKind => KindText != "";
 		public int NumRequired { get; set; }    // Steam "Required items" count
 		public bool NeedsOthers => NumRequired > 0;
+		public bool NeedsRepentogon { get; set; }  // Core.RequiresRepentogon on what the author wrote
+		string rgonNote = "";
+		public string RepentogonNote { get => rgonNote; set { Set(ref rgonNote, value); Raise(nameof(HasRepentogonNote)); } }  // MainWindow.MarkWs: have it or not
+		public bool HasRepentogonNote => rgonNote != "";
 		public string[] Tags { get; set; } = new string[0];  // Italian labels
 		bool selected; string requires = "";
 		public bool IsSelected { get => selected; set => Set(ref selected, value); }
@@ -327,6 +332,7 @@ namespace BtoSync
 				SizeText = Size(Math.Max(Detail(i, "FileSize"), i.SizeBytes)) ?? "-", UpdatedText = $"{i.Updated:dd/MM/yyyy}",
 				KindText = tags.Length == 0 ? "" : visual ? "Solo grafica e suoni" : "Può cambiare il gameplay", IsVisualOnly = visual,
 				NumRequired = (int)Detail(i, "NumChildren"),
+				NeedsRepentogon = Core.RequiresRepentogon(i.Title, desc),
 				Tags = tags.Select(TagChip.LabelOf).ToArray(),
 				Installed = Core.HasWorkshopCopy(i.Id.Value.ToString(), modsDir),
 			};

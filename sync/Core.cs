@@ -648,6 +648,64 @@ namespace BtoSync
 			return dst;
 		}
 
+		// ---- REPENTOGON (repentogon.com): its launcher builds a patched copy of the game in <game>\Repentogon and starts it;
+		// the mods stay in <game>\mods. Avvia Isaac goes through the launcher when there is one (MainWindow.Launch_Click). ----
+		static string BtoDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BtoSync");
+		public static string RepentogonChoice => Path.Combine(BtoDir, "repentogon.txt");  // the launcher picked by hand in Impostazioni
+		public static string RepentogonOffFile => Path.Combine(BtoDir, "repentogon-off.txt");  // present: Avvia Isaac ignores REPENTOGON
+		static string GameDir(string modsDir) => modsDir == null ? null : Path.GetDirectoryName(modsDir.TrimEnd('\\', '/'));
+		public static string IsaacExe(string modsDir) => GameDir(modsDir) == null ? null : Path.Combine(GameDir(modsDir), "isaac-ng.exe");
+
+		// the copy the launcher made: REPENTOGON is installed even when its launcher is somewhere we do not look
+		public static bool RepentogonCopy(string modsDir) => GameDir(modsDir) != null && File.Exists(Path.Combine(GameDir(modsDir), "Repentogon", "zhlRepentogon.dll"));
+
+		// REPENTOGONLauncher.exe: the one picked by hand, the places repentogon.com suggests (a folder in the game folder or at a
+		// drive's root), or the one in Isaac's Steam launch options ("<path>\REPENTOGONLauncher.exe" --isaac=%command%).
+		public static string RepentogonLauncher(string modsDir)
+		{
+			try { var s = File.ReadAllText(RepentogonChoice).Trim(); if (File.Exists(s)) return s; } catch { }
+			var tries = new List<string>();
+			if (GameDir(modsDir) != null) tries.Add(Path.Combine(GameDir(modsDir), "REPENTOGONLauncher", "REPENTOGONLauncher.exe"));
+			try { tries.AddRange(DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady).Select(d => Path.Combine(d.Name, "REPENTOGONLauncher", "REPENTOGONLauncher.exe"))); } catch { }
+			var found = tries.FirstOrDefault(File.Exists);
+			if (found != null) return found;
+			try
+			{
+				var steam = Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "SteamPath", null) as string;
+				foreach (var vdf in Directory.GetFiles(Path.Combine(steam, "userdata"), "localconfig.vdf", SearchOption.AllDirectories))
+					foreach (Match m in Regex.Matches(File.ReadAllText(vdf), @"[A-Za-z]:(?:\\{1,2}[^""\\]+)*?\\{1,2}REPENTOGONLauncher\.exe", RegexOptions.IgnoreCase))
+					{
+						var path = m.Value.Replace(@"\\", @"\");
+						if (File.Exists(path)) return path;
+					}
+			}
+			catch { }
+			return null;
+		}
+
+		// A Workshop mod that needs REPENTOGON, from what its author wrote: a tag in the title ("[REPENTOGON]", "(RGON)") or a
+		// sentence about the mod ("Requires REPENTOGON", "REPENTOGON is required"). "Not required", "works without", "X or
+		// REPENTOGON" and "the details require REPENTOGON" do not count. ponytail: wording rules, tuned on 185 Workshop mods.
+		const string Rg = @"repentogon|rgon\b";
+		// a title naming it ("[REPENTOGON]", "More Jingles! REPENTOGON") means made for it, unless it says no/compatible/optional;
+		// REPENTOGON's own Workshop page ("REPENTOGON: Isaac Script Extender") is not a mod that needs it
+		static readonly Regex RgTitleNo = new Regex(@"\b(no|non|without|w/o)[\s-]+(" + Rg + @")|(" + Rg + @")\W+(\w+\W+){0,1}(compat\w*|support\w*|optional|friendly)|(compat\w*|support\w*|optional)\W+(\w+\W+){0,2}(" + Rg + @")|script\s+extender", RegexOptions.IgnoreCase);
+		static readonly Regex RgTitleYes = new Regex(@"\b(" + Rg + ")", RegexOptions.IgnoreCase);
+		static readonly Regex RgNo = new Regex(@"\b(not|n't|no|never|without)\W+(\w+\W+){0,2}(requir|need)\w*\W+(\w+\W+){0,3}(" + Rg + @")|(" + Rg + @")\W+(\w+\W+){0,2}(is\s+|are\s+)?(not|n't)\s+(\w+\s+)?(required|needed|necessary|mandatory)|\b(no|without)\s+(" + Rg + @")\b", RegexOptions.IgnoreCase);
+		static readonly Regex RgYes = new Regex(@"(?:^|[.!?•|\n\-:*>]\s*|\b(?:this\s+mod|the\s+mod|mod|it|this)\s+)(?:requires?|needs?|depends\s+on|must\s+(?:have|use)|only\s+works\s+with)[\s:!]+(?:the\s+)?(?:" + Rg + @")(?!\s+or\b)" +
+			@"|(?:requirements?|dependenc(?:y|ies)|requires)\s*:\s*[\w\s,&+()-]{0,40}?\b(?:" + Rg + @")(?!\s+or\b)" +
+			@"|(?<!\bor\s)\b(?:" + Rg + @")\s+(?:is\s+|are\s+)?(?:required|needed|mandatory|necessary)\b" +
+			@"|(?:won.t|doesn.t|does\s+not|will\s+not|can.t|cannot)\s+(?:work|run|function)\s+without\s+(?:the\s+)?(?:" + Rg + ")", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+		public static bool RequiresRepentogon(string title, string description)
+		{
+			title = title ?? "";
+			if (RgTitleNo.IsMatch(title)) return false;
+			if (RgTitleYes.IsMatch(title)) return true;
+			var t = title + "\n" + (description ?? "");
+			return !RgNo.IsMatch(t) && RgYes.IsMatch(t);
+		}
+
 		// Steam "Required items" of a Workshop mod (e.g. The Future -> Custom Stage API). The Steamworks API of
 		// Facepunch 2.3.3 does not expose them and the keyless Web API has none, so they are read from the item's
 		// public page, once per session. ponytail: HTML scraping; if Steam changes the page this returns nothing.

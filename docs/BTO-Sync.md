@@ -13,6 +13,10 @@ stessa versione, e BTO Sync le mette in pari con un clic.
   Workshop (`steamcommunity.com`), senza account, e le installa insieme a lei. Per questo, finché è collegato, gli amici ti vedono "in gioco".
   Si scollega da solo dopo un minuto senza usare il Workshop e quando avvii il gioco: il collegamento vive in un
   processo a parte (`BTO-Sync.exe --steam-host`), perché Steam considera Isaac aperto finché quel processo non si chiude.
+  Le mod che richiedono [REPENTOGON](https://repentogon.com) hanno il segno "Richiede REPENTOGON", preso da quello che
+  scrive l'autore (titolo e descrizione). Se c'è il suo launcher (`REPENTOGONLauncher.exe`: scelto in Impostazioni, in una
+  cartella `REPENTOGONLauncher` nel gioco o alla radice di un disco, o nelle opzioni di avvio di Isaac su Steam), "Avvia
+  Isaac" lo lancia con `--isaac="<gioco>\isaac-ng.exe" --launch-mode=repentogon --stealth-mode`.
 - **Mod BTO.** Sono i fix per l'online di questo progetto. BTO Sync le scarica dalle release di
   questa pagina GitHub e le lega alla mod che sistemano: per esempio BTO The Future Sync si
   attiva con The Future e si spegne senza. Quelle del gioco base te le propone (non le scarica senza

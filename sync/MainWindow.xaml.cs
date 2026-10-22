@@ -189,6 +189,8 @@ namespace BtoSync
 				Status("Pronto.");
 			}
 			catch { wsChecked = false; foreach (var m in local) m.UpdateStatus(new Dictionary<string, string>()); Status("Workshop non raggiungibile: non posso controllare gli aggiornamenti."); }
+			(rgon, rgonCopy) = await Task.Run(() => (Core.RepentogonLauncher(modsDir), Core.RepentogonCopy(modsDir)));
+			ShowRepentogon();
 			RefreshSummary();
 			_ = CheckDeps();
 			_ = ShowSpace();
@@ -331,8 +333,57 @@ namespace BtoSync
 				try { await Steam.WaitReleased(); } finally { Loading(false); }
 			}
 			UpdateState();
+			var exe = Core.IsaacExe(modsDir);
+			if (rgon != null && RgonOn && exe != null)
+			{
+				// as Steam's launch option does (--isaac=%command%); stealth: starts the game by itself and closes with it
+				try
+				{
+					Process.Start(new ProcessStartInfo(rgon, $"--isaac=\"{exe}\" --launch-mode=repentogon --stealth-mode") { WorkingDirectory = System.IO.Path.GetDirectoryName(rgon), UseShellExecute = false });
+					Status("Avvio Isaac con REPENTOGON…" + (saved == 0 ? "" : saved == 1 ? " Prima ho salvato un backup di 1 slot." : $" Prima ho salvato un backup di {saved} slot."));
+					return;
+				}
+				catch (Exception ex) { ShowError("Non riesco ad avviare il launcher di REPENTOGON: avvio il gioco normale.", ex); }
+			}
 			Process.Start("steam://rungameid/" + Core.AppId);
 			Status("Avvio Isaac tramite Steam…" + (saved == 0 ? "" : saved == 1 ? " Prima ho salvato un backup di 1 slot." : $" Prima ho salvato un backup di {saved} slot."));
+		}
+
+		// ---------- REPENTOGON (Core.RepentogonLauncher): Avvia Isaac goes through its launcher; Impostazioni shows it ----------
+		string rgon; bool rgonCopy;
+		static bool RgonOn => !System.IO.File.Exists(Core.RepentogonOffFile);
+
+		void ShowRepentogon()
+		{
+			RgonBox.Visibility = rgon != null ? Visibility.Visible : Visibility.Collapsed;
+			RgonBox.IsChecked = RgonOn;
+			RgonText.Text = rgon != null
+				? (RgonOn ? "Avvia Isaac lo avvia con REPENTOGON, dal suo launcher: " : "Avvia Isaac lo ignora e avvia il gioco normale. Launcher: ") + rgon
+				: rgonCopy ? "È installato, ma non trovo il suo launcher: sceglilo (REPENTOGONLauncher.exe) e Avvia Isaac lo userà."
+				: "Non installato. Serve solo alle mod che lo richiedono (nel Workshop hanno il segno \"Richiede REPENTOGON\"): si installa da repentogon.com.";
+		}
+
+		void Rgon_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				if (RgonBox.IsChecked == true) System.IO.File.Delete(Core.RepentogonOffFile);
+				else { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Core.RepentogonOffFile)); System.IO.File.WriteAllText(Core.RepentogonOffFile, "off"); }
+			}
+			catch (Exception ex) { ShowError("Non riesco a salvare l'impostazione.", ex); }
+			ShowRepentogon();
+			foreach (var w in ws) MarkWs(w);
+		}
+
+		void RgonPick_Click(object sender, RoutedEventArgs e)
+		{
+			var dlg = new Microsoft.Win32.OpenFileDialog { Title = "Scegli il launcher di REPENTOGON", Filter = "Launcher di REPENTOGON|REPENTOGONLauncher.exe|Programmi (*.exe)|*.exe" };
+			if (dlg.ShowDialog(this) != true) return;
+			try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Core.RepentogonChoice)); System.IO.File.WriteAllText(Core.RepentogonChoice, dlg.FileName); }
+			catch (Exception ex) { ShowError("Non riesco a salvare l'impostazione.", ex); return; }
+			rgon = dlg.FileName;
+			ShowRepentogon();
+			foreach (var w in ws) MarkWs(w);
 		}
 
 		// "Backup prima di giocare" (Salvataggi): on unless this file exists
@@ -871,6 +922,11 @@ namespace BtoSync
 			var id = w.Id.ToString();
 			w.Installed = Core.HasWorkshopCopy(id, modsDir);
 			w.Active = local.Any(m => m.Id == id && m.Enabled);
+			w.RepentogonNote = !w.NeedsRepentogon ? ""
+				: rgon != null && RgonOn ? "Richiede REPENTOGON: ce l'hai, e Avvia Isaac lo usa."
+				: rgon != null ? "Richiede REPENTOGON: ce l'hai, ma Avvia Isaac non lo usa. Riattivalo in Impostazioni."
+				: rgonCopy ? "Richiede REPENTOGON: è installato, ma non trovo il suo launcher. Sceglilo in Impostazioni."
+				: "Richiede REPENTOGON, che qui non c'è: senza, la mod non funziona. Si installa da repentogon.com, poi Avvia Isaac lo usa da solo.";
 		}
 
 		Profile ActiveP() => profiles.FirstOrDefault(p => p.name == activeProfile);

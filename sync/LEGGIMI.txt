@@ -84,7 +84,12 @@ Con "Va bene", dopo un desync o un errore Lua, chiuso Isaac, manda da solo il lo
 Steam ID, nomi dei giocatori e cartella utente). Si disattiva in Impostazioni.
 
 NOTA SU STEAM: per usare il Workshop BTO Sync si collega a Steam come Isaac, quindi finché è
-collegato i tuoi amici ti vedono "in gioco" su Isaac. "Avvia Isaac" e "Scollega" lo staccano.
+collegato i tuoi amici ti vedono "in gioco" su Isaac. Si stacca da solo dopo un minuto senza usare
+il Workshop, con "Scollega" e con "Avvia Isaac".
+
+REPENTOGON: se hai il suo launcher (REPENTOGONLauncher.exe, da repentogon.com), "Avvia Isaac" avvia il
+gioco da lì, con REPENTOGON. BTO Sync lo cerca da solo; se non lo trova, sceglilo in Impostazioni,
+dove puoi anche spegnerlo. Nel Workshop le mod che lo richiedono hanno il segno "Richiede REPENTOGON".
 
 AGGIORNAMENTI: all'avvio BTO Sync controlla se su GitHub c'è una versione nuova e lo dice in alto;
 "Aggiorna ora" (o Impostazioni > Aggiorna) la scarica, sostituisce i file e riavvia il programma.

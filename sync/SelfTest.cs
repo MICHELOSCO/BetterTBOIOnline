@@ -200,6 +200,20 @@ namespace BtoSync
 			Assert(clean.Contains("User Giocatore 1 (Giocatore 1)") && clean.Contains("Username = Giocatore 2 ID = Giocatore 2") && clean.Contains("\"Giocatore 1\" Giocatore 1"), "log pulito: lo stesso giocatore ha sempre lo stesso numero");
 			Assert(clean.Contains("Giocatore 2 e Giocatore 1 giocano; Bo.b+x resta"), "log pulito: i nomi tolti anche fuori dalle righe con l'ID, solo come parole intere");
 			Assert(clean.Contains(@"C:\Users\<utente>\Documents") && clean.Contains("C:/Users/<utente>/AppData"), "log pulito: cartella utente tolta con \\ e con /");
+			// REPENTOGON: which Workshop mods need it, from title and description (Core.RequiresRepentogon)
+			var rg = new (string title, string desc, bool needs)[]
+			{
+				("Crayons [REPENTOGON]", "", true), ("Animated Pickup Counter [RGON]", "", true), ("Infinite Tokens", "Solves that! Requires Repentogon!! Install it.", true),
+				("Bael", "Recommended with EID) This mod requires REPENTOGON ---", true), ("Eclipsed", "Mod Config Menu Requires: REPENTOGON Bug reporting", true),
+				("Restored Pack", "Caution! REPENTOGON is required for this mod to function.", true), ("No Score Timer (No REPENTOGON)", "Requires: REPENTOGON", false),
+				("Smart Culling", "Repentogon is NOT required.", false), ("Doki", "REPENTOGON is not required but highly recommended.", false),
+				("Door Overhaul", "REPENTOGON not required", false), ("EID", "Compatible with Repentance and Repentogon. (Detailed info require REPENTOGON installed!)", false),
+				("Car", "Either Music Callback Mod or REPENTOGON needed to hear the tunes.", false), ("Soundtrack Menu", "REQUIRES REPENTOGON OR MUSIC MOD CALLBACK.", false),
+				("Neptunus", "amount depends on Neptunus charge. Repentogon: makes Lung work.", false), ("Plain mod", "A new item.", false),
+				("Repentogon Light Mode", "", true), ("More Jingles! REPENTOGON", "", true), ("Cool Hats (REPENTOGON compatible)", "", false),
+				("[BETA] REPENTOGON: Isaac Script Extender", "REPENTOGON is NOT a traditional mod", false),
+			};
+			foreach (var (title, desc, needs) in rg) Assert(Core.RequiresRepentogon(title, desc) == needs, $"REPENTOGON: \"{title}\" " + (needs ? "lo richiede" : "non lo richiede"));
 			var part = Core.CleanLog(game, log);
 			Assert(part.Contains("Username = Giocatore 1 ID = Giocatore 1") && !part.Contains("Ann"), "log pulito: i nomi presi da tutto il log valgono anche per la sola partita");
 			var json = (Dictionary<string, object>)new System.Web.Script.Serialization.JavaScriptSerializer().DeserializeObject(Core.LogPayload(log, new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc), new List<LocalMod>()));
