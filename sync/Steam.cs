@@ -29,10 +29,14 @@ namespace BtoSync
 		public static event Action Changed;  // connected or not: on a background thread
 		public static bool Ready { get { lock (gate) return host != null && !host.HasExited; } }
 
+		// the files the child needs next to BTO-Sync.exe: missing when only the exe was copied somewhere (App.LoneCopy)
+		public static bool FilesHere => new[] { "Facepunch.Steamworks.Win64.dll", "steam_api64.dll" }.All(f => File.Exists(Path.Combine(Updater.AppDir, f)));
+
 		public static string Connect()
 		{
 			if (Ready) return null;
 			if (Core.IsaacRunning) return "Chiudi Isaac per usare il Workshop da qui.";
+			if (!FilesHere) return "Mancano dei file di BTO Sync accanto a BTO-Sync.exe: aprilo dalla sua cartella (o da un collegamento), non da una copia del solo exe.";
 			const string fail = "Non riesco a collegarmi a Steam: aprilo, accedi e riprova.";
 			try
 			{
@@ -301,12 +305,13 @@ namespace BtoSync
 
 		// Facepunch 2.3.3 keeps Steam's "number of required items" and published size only in its internal details struct
 		// (its SizeBytes is the installed size: 0 for anything not downloaded).
-		static readonly System.Reflection.FieldInfo DetailsField = typeof(Item).GetField("details", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+		// in a class of its own: typeof(Item) loads Facepunch, which only the Steam child needs (a WsItem field would load it with any WsItem)
+		static class Details { public static readonly System.Reflection.FieldInfo Field = typeof(Item).GetField("details", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance); }
 		static long Detail(Item i, string field)
 		{
 			try
 			{
-				var d = DetailsField?.GetValue(i);
+				var d = Details.Field?.GetValue(i);
 				return d == null ? 0 : Convert.ToInt64(d.GetType().GetField(field, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)?.GetValue(d) ?? 0);
 			}
 			catch { return 0; }
